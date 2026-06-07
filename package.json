@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "DATABASE_URL=$CANOPY_DEV_DB_URL OPENAI_API_KEY=$CANOPY_DEV_OPENAI_KEY BETTER_AUTH_SECRET=$CANOPY_DEV_AUTH_SECRET next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
