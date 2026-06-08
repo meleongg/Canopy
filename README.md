@@ -1,6 +1,6 @@
 # Canopy
 
-Canopy is a language-agnostic vocabulary scratchpad and AI dialogue sandbox built with Next.js 16, Drizzle, Neon, Better Auth, Tailwind CSS, and the Vercel AI SDK.
+Canopy is a language-agnostic vocabulary workspace built around The Sprouting Queue, The Overstory Sandbox, and The Understory Chat.
 
 ## Getting Started
 

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { hasOpenAIEnv } from "@/db/env";
+import { phoneticTextForSentence } from "@/lib/phonetics";
 
 export const GARDEN_BOUNDARY_MESSAGE =
   "Your sentence wandered out of the garden boundary. Let's try phrasing that differently!";
@@ -37,7 +38,7 @@ export async function generateExampleContext(input: {
       {
         role: "system",
         content:
-          "Return compact JSON with sentence, phonetic, and translation keys. Use the target word naturally.",
+          "Return compact JSON with sentence and translation keys. Use the target word naturally. Do not include phonetic readings.",
       },
       {
         role: "user",
@@ -49,13 +50,17 @@ export async function generateExampleContext(input: {
   const content = completion.choices[0]?.message.content ?? "{}";
   const parsed = JSON.parse(content) as {
     sentence?: string;
-    phonetic?: string;
     translation?: string;
   };
+  const sentence = parsed.sentence ?? input.targetText;
 
   return {
-    sentence: parsed.sentence ?? input.targetText,
-    phonetic: parsed.phonetic ?? input.phoneticReading.join(" "),
+    sentence,
+    phonetic: phoneticTextForSentence(
+      input.languageCode,
+      sentence,
+      input.phoneticReading,
+    ),
     translation: parsed.translation ?? input.definitions.join("; "),
     generatedAt: new Date().toISOString(),
   };

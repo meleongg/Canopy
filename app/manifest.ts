@@ -4,7 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Canopy",
     short_name: "Canopy",
-    description: "A vocabulary scratchpad and AI dialogue sandbox.",
+    description:
+      "A vocabulary workspace with The Sprouting Queue, The Overstory Sandbox, and The Understory Chat.",
     start_url: "/",
     scope: "/",
     display: "standalone",

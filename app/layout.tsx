@@ -21,7 +21,8 @@ const appleTitleMeta = {
 
 export const metadata: Metadata = {
   title: "Canopy",
-  description: "A vocabulary scratchpad and AI dialogue sandbox.",
+  description:
+    "A vocabulary workspace with The Sprouting Queue, The Overstory Sandbox, and The Understory Chat.",
   applicationName: "Canopy",
   appleWebApp: {
     capable: true,

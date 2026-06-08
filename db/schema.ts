@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { ExampleContext } from "@/lib/example-contexts";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -94,12 +95,9 @@ export const flashcards = pgTable(
     interval: integer("interval").default(0).notNull(),
     repetition: integer("repetition").default(0).notNull(),
     easiness: integer("easiness").default(250).notNull(),
-    aiExampleContext: jsonb("ai_example_context").$type<{
-      sentence: string;
-      phonetic: string;
-      translation: string;
-      generatedAt: string;
-    }>(),
+    aiExampleContext: jsonb("ai_example_context").$type<
+      ExampleContext[] | ExampleContext
+    >(),
     nextReviewAt: timestamp("next_review_at").defaultNow().notNull(),
     lastReviewedAt: timestamp("last_reviewed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

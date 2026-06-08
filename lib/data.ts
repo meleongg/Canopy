@@ -1,8 +1,12 @@
-import { and, asc, eq, lte, or, sql } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
 import { flashcards, user, words } from "@/db/schema";
 import { DEMO_USER_ID } from "@/lib/constants";
+import {
+  type ExampleContext,
+  normalizeExampleContexts,
+} from "@/lib/example-contexts";
 
 export type DashboardCard = {
   id: string;
@@ -15,12 +19,7 @@ export type DashboardCard = {
   easiness: number;
   nextReviewAt: Date;
   lastReviewedAt: Date | null;
-  aiExampleContext: {
-    sentence: string;
-    phonetic: string;
-    translation: string;
-    generatedAt: string;
-  } | null;
+  aiExampleContexts: ExampleContext[];
 };
 
 export async function ensureDemoUser() {
@@ -52,7 +51,7 @@ export async function getDashboardData(): Promise<DashboardCard[]> {
   const db = getDb();
   await ensureDemoUser();
 
-  return db
+  const rows = await db
     .select({
       id: flashcards.id,
       languageCode: words.languageCode,
@@ -71,39 +70,9 @@ export async function getDashboardData(): Promise<DashboardCard[]> {
     .where(eq(flashcards.userId, DEMO_USER_ID))
     .orderBy(asc(flashcards.nextReviewAt))
     .limit(60);
-}
 
-export async function getRecommendedSeedCards() {
-  if (!hasDatabaseEnv()) {
-    return [];
-  }
-
-  const db = getDb();
-  return db
-    .select({
-      id: flashcards.id,
-      languageCode: words.languageCode,
-      targetText: words.targetText,
-      phoneticReading: words.phoneticReading,
-      definitions: words.definitions,
-      interval: flashcards.interval,
-      repetition: flashcards.repetition,
-      easiness: flashcards.easiness,
-      nextReviewAt: flashcards.nextReviewAt,
-      lastReviewedAt: flashcards.lastReviewedAt,
-      aiExampleContext: flashcards.aiExampleContext,
-    })
-    .from(flashcards)
-    .innerJoin(words, eq(flashcards.wordId, words.id))
-    .where(
-      and(
-        eq(flashcards.userId, DEMO_USER_ID),
-        or(
-          lte(flashcards.easiness, 240),
-          lte(flashcards.nextReviewAt, sql`now()`),
-        ),
-      ),
-    )
-    .orderBy(asc(flashcards.nextReviewAt))
-    .limit(7);
+  return rows.map(({ aiExampleContext, ...card }) => ({
+    ...card,
+    aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+  }));
 }

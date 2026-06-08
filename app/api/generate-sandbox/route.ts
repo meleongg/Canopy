@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     model: openai("gpt-4o-mini"),
     temperature: 0.4,
     system:
-      "Write one short natural story paragraph for a language learner. Include every target term exactly once. Avoid lists and explanations.",
+      "You are writing for The Overstory Sandbox. Write one short natural story paragraph for a language learner. Include every target term exactly once. Avoid lists and explanations.",
     prompt: JSON.stringify({ seeds }),
     onFinish: async ({ text }) => {
       if (!hasDatabaseEnv()) {

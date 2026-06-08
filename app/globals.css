@@ -9,6 +9,8 @@
   --primary-foreground: #fdfbf7;
   --accent: #d0c4b6;
   --muted-foreground: #68726b;
+  --selection-background: #7a3e2a;
+  --selection-foreground: #fdfbf7;
 }
 
 @theme inline {
@@ -34,6 +36,8 @@
     --primary-foreground: #131815;
     --accent: #d8e2dc;
     --muted-foreground: #a3b19b;
+    --selection-background: #9b5137;
+    --selection-foreground: #fdfbf7;
   }
 }
 
@@ -66,6 +70,6 @@ button:disabled {
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--foreground);
+  background: var(--selection-background);
+  color: var(--selection-foreground);
 }

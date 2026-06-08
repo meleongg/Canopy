@@ -12,22 +12,31 @@ import {
 import {
   BookOpen,
   Check,
+  ChevronDown,
   CircleHelp,
   Droplets,
-  MessageCircle,
-  Plus,
+  FileText,
+  PencilLine,
+  Search,
   Send,
   Sparkles,
+  TreePine,
   Upload,
+  X,
 } from "lucide-react";
 import {
   addFlashcardAction,
+  createFlashcardsFromPreviewAction,
   generateContextAction,
-  importVocabularyAction,
+  removeContextAction,
   reviewCardAction,
 } from "@/app/actions";
 import logoDark from "@/app/assets/icons/canopy-logo-dark.svg";
 import logoLight from "@/app/assets/icons/canopy-logo-light.svg";
+import {
+  type ExampleContext,
+  MAX_EXAMPLE_CONTEXTS,
+} from "@/lib/example-contexts";
 import { cn } from "@/lib/utils";
 
 export type WorkspaceCard = {
@@ -41,18 +50,27 @@ export type WorkspaceCard = {
   easiness: number;
   nextReviewAt: string;
   lastReviewedAt: string | null;
-  aiExampleContext: {
-    sentence: string;
-    phonetic: string;
-    translation: string;
-    generatedAt: string;
-  } | null;
+  aiExampleContexts: ExampleContext[];
+};
+
+type ImportDraft = {
+  languageCode: string;
+  targetText: string;
+  phoneticReading: string[];
+  definitions: string[];
+  exampleContexts: ExampleContext[];
+  linguisticMeta?: {
+    alternatives?: string[];
+    partOfSpeech?: string[];
+  };
 };
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+type SeedFilter = "due" | "weak" | "recent";
 
 const initialImportState = {
   ok: true,
@@ -64,7 +82,25 @@ const initialAddState = {
   message: "Add one card directly.",
 };
 
-const sampleRows = "医院\tyi yuan\thospital\n会议\thui yi\tmeeting; conference";
+const importExamples: Record<string, string> = {
+  "zh-CN": "医院\thospital\n会议\tmeeting; conference",
+  "zh-HK": "飲茶\tyum2 caa4\tdrink tea; dim sum\n附近\tnearby",
+  "fr-FR": "hôpital\thospital\nréunion\tmeeting",
+  und: "kinship\tfamily relationship\nthreshold\tstarting point",
+};
+
+const reviewLabels: Record<number, string> = {
+  2: "Hard",
+  3: "Pass",
+  4: "Good",
+  5: "Easy",
+};
+
+const seedFilterLabels: Record<SeedFilter, string> = {
+  due: "Due",
+  weak: "Weak",
+  recent: "Recent",
+};
 
 function growthLabel(card: WorkspaceCard) {
   if (card.repetition >= 5 || card.interval >= 30) {
@@ -88,9 +124,237 @@ function dueLabel(card: WorkspaceCard) {
   }).format(due);
 }
 
+function contextGeneratedLabel(generatedAt: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(generatedAt));
+}
+
+function cardMatchesSearch(card: WorkspaceCard, query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [
+    card.targetText,
+    card.languageCode,
+    card.phoneticReading.join(" "),
+    card.definitions.join(" "),
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(normalizedQuery);
+}
+
+function filterSeedCards(cards: WorkspaceCard[], filter: SeedFilter) {
+  const now = new Date();
+
+  if (filter === "due") {
+    return cards.filter((card) => new Date(card.nextReviewAt) <= now);
+  }
+
+  if (filter === "weak") {
+    return cards.filter(
+      (card) => card.easiness <= 240 || card.repetition === 0,
+    );
+  }
+
+  return [...cards]
+    .sort((a, b) => {
+      const left = new Date(a.lastReviewedAt ?? a.nextReviewAt).getTime();
+      const right = new Date(b.lastReviewedAt ?? b.nextReviewAt).getTime();
+      return right - left;
+    })
+    .slice(0, 12);
+}
+
+function SeedPicker({
+  title,
+  description,
+  cards,
+  selectedIds,
+  setSelectedIds,
+  min,
+  max = 7,
+}: {
+  title: string;
+  description: string;
+  cards: WorkspaceCard[];
+  selectedIds: string[];
+  setSelectedIds: Dispatch<SetStateAction<string[]>>;
+  min: number;
+  max?: number;
+}) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<SeedFilter>("recent");
+  const selectedCards = cards.filter((card) => selectedIds.includes(card.id));
+  const visibleCards = filterSeedCards(cards, filter)
+    .filter((card) => cardMatchesSearch(card, query))
+    .slice(0, 12);
+
+  function toggleSeed(cardId: string) {
+    setSelectedIds((current) => {
+      if (current.includes(cardId)) {
+        return current.filter((id) => id !== cardId);
+      }
+
+      if (current.length >= max) {
+        return current;
+      }
+
+      return [...current, cardId];
+    });
+  }
+
+  function clearSelectedSeed(cardId: string) {
+    setSelectedIds((current) => current.filter((id) => id !== cardId));
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-2xl font-bold">{title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+        </div>
+        <span className="rounded-lg border border-border px-2 py-1 text-xs font-semibold">
+          {selectedIds.length}/{max}
+        </span>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {selectedCards.length > 0 ? (
+          selectedCards.map((card) => (
+            <button
+              className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold transition hover:bg-accent hover:text-[#2C3539]"
+              key={card.id}
+              onClick={() => clearSelectedSeed(card.id)}
+              title={`Remove ${card.targetText}`}
+              type="button"
+            >
+              <span className="truncate">{card.targetText}</span>
+              <X className="size-3" />
+            </button>
+          ))
+        ) : (
+          <p className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+            Select at least {min} seed{min > 1 ? "s" : ""}.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3">
+        <Search className="size-4 text-muted-foreground" />
+        <input
+          className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search seeds"
+          value={query}
+        />
+      </div>
+
+      <div className="mt-3 inline-flex rounded-lg border border-border bg-background p-1 text-sm">
+        {(["due", "weak", "recent"] as SeedFilter[]).map((nextFilter) => (
+          <button
+            className={cn(
+              "cursor-pointer rounded-md px-3 py-1.5 transition hover:bg-accent hover:text-[#2C3539]",
+              filter === nextFilter && "bg-primary text-primary-foreground",
+            )}
+            key={nextFilter}
+            onClick={() => setFilter(nextFilter)}
+            type="button"
+          >
+            {seedFilterLabels[nextFilter]}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2">
+        {cards.length === 0 ? (
+          <p className="rounded-lg border border-border bg-background p-3 text-sm text-muted-foreground">
+            No vocabulary rows found. Import a log or run the seed script.
+          </p>
+        ) : null}
+        {cards.length > 0 && visibleCards.length === 0 ? (
+          <p className="rounded-lg border border-border bg-background p-3 text-sm text-muted-foreground">
+            No seeds match this filter.
+          </p>
+        ) : null}
+        {visibleCards.map((card) => {
+          const selected = selectedIds.includes(card.id);
+
+          return (
+            <label
+              className={cn(
+                "flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-background p-3 text-sm transition hover:border-primary",
+                selected && "border-primary",
+              )}
+              key={card.id}
+            >
+              <input
+                checked={selected}
+                onChange={() => toggleSeed(card.id)}
+                type="checkbox"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">
+                  {card.targetText}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {card.definitions.join(", ")}
+                </span>
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                EF {(card.easiness / 100).toFixed(2)}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SelectField({
+  id,
+  name,
+  defaultValue,
+  value,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  defaultValue: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
+  return (
+    <div className="relative mt-2">
+      <select
+        className="h-11 w-full appearance-none rounded-lg border border-border bg-background px-3 pr-10 text-sm outline-none transition focus:border-primary"
+        id={id}
+        name={name}
+        defaultValue={value ? undefined : defaultValue}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+      >
+        <option value="zh-CN">Mandarin</option>
+        <option value="zh-HK">Cantonese</option>
+        <option value="fr-FR">French</option>
+        <option value="und">Agnostic</option>
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    </div>
+  );
+}
+
 export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
   const [importState, importAction, importPending] = useActionState(
-    importVocabularyAction,
+    createFlashcardsFromPreviewAction,
     initialImportState,
   );
   const [addState, addAction, addPending] = useActionState(
@@ -105,10 +369,18 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
   );
   const [story, setStory] = useState("");
   const [chatInput, setChatInput] = useState("");
+  const [importLanguage, setImportLanguage] = useState("zh-CN");
+  const [importRawText, setImportRawText] = useState("");
+  const [importDrafts, setImportDrafts] = useState<ImportDraft[]>([]);
+  const [importPreviewMessage, setImportPreviewMessage] = useState("");
+  const [importPreviewPending, setImportPreviewPending] = useState(false);
+  const [queueFilter, setQueueFilter] = useState<"due" | "all">("due");
+  const [showSm2Help, setShowSm2Help] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Choose seeds, then start a short roleplay.",
+      content:
+        "Bramble is ready. Choose seeds, then step into a low-pressure dialogue.",
     },
   ]);
   const [isPending, startTransition] = useTransition();
@@ -121,36 +393,90 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
     () => cards.filter((card) => chatSeedIds.includes(card.id)),
     [cards, chatSeedIds],
   );
-  const recommendedIds = useMemo(
-    () =>
-      cards
-        .filter(
-          (card) =>
-            card.easiness <= 240 || new Date(card.nextReviewAt) <= new Date(),
-        )
-        .slice(0, 7)
-        .map((card) => card.id),
-    [cards],
-  );
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
   ).length;
+  const queueCards = useMemo(() => {
+    if (queueFilter === "all") {
+      return cards;
+    }
 
-  function toggleSeed(
-    cardId: string,
-    setter: Dispatch<SetStateAction<string[]>>,
+    return cards.filter((card) => new Date(card.nextReviewAt) <= new Date());
+  }, [cards, queueFilter]);
+
+  async function readImportFile(file: File) {
+    const text = await file.text();
+    setImportRawText(text);
+    setImportPreviewMessage(`Loaded ${file.name}. Preview before creating.`);
+  }
+
+  async function previewImport() {
+    const rawText = importRawText.trim();
+    if (!rawText) {
+      setImportPreviewMessage("Paste text or drop a .txt file first.");
+      return;
+    }
+
+    setImportPreviewPending(true);
+    setImportPreviewMessage("");
+
+    try {
+      const response = await fetch("/api/import-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rawText,
+          languageCode: importLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        setImportPreviewMessage(await response.text());
+        return;
+      }
+
+      const payload = (await response.json()) as { entries?: ImportDraft[] };
+      const drafts = (payload.entries ?? []).map((entry) => ({
+        ...entry,
+        exampleContexts: (entry.exampleContexts ?? []).slice(
+          0,
+          MAX_EXAMPLE_CONTEXTS,
+        ),
+      }));
+
+      setImportDrafts(drafts);
+      setImportPreviewMessage(
+        drafts.length
+          ? `Previewing ${drafts.length} flashcard draft${drafts.length === 1 ? "" : "s"}.`
+          : "No importable entries found.",
+      );
+    } finally {
+      setImportPreviewPending(false);
+    }
+  }
+
+  function updateImportDraft(
+    index: number,
+    updater: (draft: ImportDraft) => ImportDraft,
   ) {
-    setter((current) => {
-      if (current.includes(cardId)) {
-        return current.filter((id) => id !== cardId);
-      }
+    setImportDrafts((current) =>
+      current.map((draft, draftIndex) =>
+        draftIndex === index ? updater(draft) : draft,
+      ),
+    );
+  }
 
-      if (current.length >= 7) {
-        return current;
-      }
-
-      return [...current, cardId];
-    });
+  function updateImportDraftContext(
+    draftIndex: number,
+    contextIndex: number,
+    updater: (context: ExampleContext) => ExampleContext,
+  ) {
+    updateImportDraft(draftIndex, (draft) => ({
+      ...draft,
+      exampleContexts: draft.exampleContexts.map((context, nextIndex) =>
+        nextIndex === contextIndex ? updater(context) : context,
+      ),
+    }));
   }
 
   async function streamTextResponse(
@@ -202,7 +528,8 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
     const nextMessages: ChatMessage[] = [
       ...chatMessages.filter(
         (message) =>
-          message.content !== "Choose seeds, then start a short roleplay.",
+          message.content !==
+          "Bramble is ready. Choose seeds, then step into a low-pressure dialogue.",
       ),
       { role: "user", content },
     ];
@@ -282,11 +609,10 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 self-end">
+          <div className="grid grid-cols-2 gap-3 self-end">
             {[
               ["Cards", cards.length],
               ["Due", dueCount],
-              ["Story", storySeedIds.length],
             ].map(([label, value]) => (
               <div
                 className="rounded-xl border border-border bg-background p-4"
@@ -304,12 +630,9 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
 
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-6 md:grid-cols-[360px_1fr] md:px-8">
         <aside className="flex flex-col gap-6">
-          <form
-            action={importAction}
-            className="rounded-xl border border-border bg-card p-5"
-          >
+          <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="font-serif text-2xl font-bold">Log Drop</h2>
+              <h2 className="font-serif text-2xl font-bold">Import</h2>
               <Upload className="size-5 text-primary" />
             </div>
             <label
@@ -318,17 +641,13 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
             >
               Language
             </label>
-            <select
-              className="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
+            <SelectField
               id="languageCode"
               name="languageCode"
               defaultValue="zh-CN"
-            >
-              <option value="zh-CN">Mandarin</option>
-              <option value="zh-HK">Cantonese</option>
-              <option value="fr-FR">French</option>
-              <option value="und">Agnostic</option>
-            </select>
+              value={importLanguage}
+              onChange={setImportLanguage}
+            />
             <label className="mt-4 block text-sm font-medium" htmlFor="rawText">
               Raw text
             </label>
@@ -336,29 +655,52 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
               className="mt-2 min-h-36 w-full resize-y rounded-lg border border-dashed border-border bg-background p-3 text-sm leading-6 outline-none transition focus:border-primary"
               id="rawText"
               name="rawText"
-              placeholder={sampleRows}
+              onChange={(event) => setImportRawText(event.target.value)}
+              placeholder={importExamples[importLanguage]}
+              value={importRawText}
             />
-            <div className="mt-3 rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Sample rows
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              Paste rows as word, definition or word, reading, definition. Tabs
+              and simple CSV are both supported.
+            </p>
+            <div
+              className="mt-3 rounded-lg border border-dashed border-border bg-background p-3"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const [file] = Array.from(event.dataTransfer.files);
+                if (file) {
+                  void readImportFile(file);
+                }
+              }}
+            >
+              <input
+                className="block w-full cursor-pointer text-sm file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground"
+                onChange={(event) => {
+                  const [file] = Array.from(event.target.files ?? []);
+                  if (file) {
+                    void readImportFile(file);
+                  }
+                }}
+                type="file"
+                accept=".txt,text/plain"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Drag and drop a Pleco export or .txt vocabulary list here.
               </p>
-              <pre className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
-                {sampleRows}
-              </pre>
             </div>
-            <input
-              className="mt-3 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground"
-              name="file"
-              type="file"
-              accept=".txt,text/plain"
-            />
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              You can add dictionary history or bookmark exports from tools like
+              Pleco, WordReference, or a plain .txt vocabulary list.
+            </p>
             <button
               className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={importPending}
-              type="submit"
+              disabled={importPreviewPending}
+              onClick={previewImport}
+              type="button"
             >
-              <Upload className="size-4" />
-              Import
+              <Search className="size-4" />
+              Preview Flashcards
             </button>
             <p
               className={cn(
@@ -366,9 +708,160 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
                 importState.ok ? "text-muted-foreground" : "text-red-700",
               )}
             >
-              {importState.message}
+              {importPreviewMessage || importState.message}
             </p>
-          </form>
+            {importDrafts.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  Preview
+                </p>
+                {importDrafts.map((draft, draftIndex) => (
+                  <div
+                    className="rounded-lg border border-border bg-background p-3"
+                    key={`${draft.targetText}-${draftIndex}`}
+                  >
+                    <label className="block text-xs font-semibold uppercase text-muted-foreground">
+                      Word
+                    </label>
+                    <input
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-card px-3 text-sm outline-none transition focus:border-primary"
+                      onChange={(event) =>
+                        updateImportDraft(draftIndex, (current) => ({
+                          ...current,
+                          targetText: event.target.value,
+                        }))
+                      }
+                      value={draft.targetText}
+                    />
+                    <label className="mt-3 block text-xs font-semibold uppercase text-muted-foreground">
+                      Reading
+                    </label>
+                    <input
+                      className="mt-1 h-10 w-full rounded-lg border border-border bg-card px-3 text-sm outline-none transition focus:border-primary"
+                      onChange={(event) =>
+                        updateImportDraft(draftIndex, (current) => ({
+                          ...current,
+                          phoneticReading: event.target.value
+                            .split(/\s+/)
+                            .filter(Boolean),
+                        }))
+                      }
+                      value={draft.phoneticReading.join(" ")}
+                    />
+                    <label className="mt-3 block text-xs font-semibold uppercase text-muted-foreground">
+                      Definitions
+                    </label>
+                    <textarea
+                      className="mt-1 min-h-24 w-full resize-y rounded-lg border border-border bg-card p-3 text-sm leading-6 outline-none transition focus:border-primary"
+                      onChange={(event) =>
+                        updateImportDraft(draftIndex, (current) => ({
+                          ...current,
+                          definitions: event.target.value
+                            .split(";")
+                            .map((definition) => definition.trim())
+                            .filter(Boolean),
+                        }))
+                      }
+                      value={draft.definitions.join("; ")}
+                    />
+                    {draft.exampleContexts.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">
+                          Contexts
+                        </p>
+                        {draft.exampleContexts.map((context, contextIndex) => (
+                          <div
+                            className="rounded-lg border border-border bg-card p-2"
+                            key={`${context.sentence}-${contextIndex}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                Example {contextIndex + 1}
+                              </span>
+                              <button
+                                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border transition hover:bg-accent hover:text-[#2C3539]"
+                                onClick={() =>
+                                  updateImportDraft(draftIndex, (current) => ({
+                                    ...current,
+                                    exampleContexts:
+                                      current.exampleContexts.filter(
+                                        (_item, nextIndex) =>
+                                          nextIndex !== contextIndex,
+                                      ),
+                                  }))
+                                }
+                                title="Remove context"
+                                type="button"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </div>
+                            <input
+                              className="mt-2 h-9 w-full rounded-lg border border-border bg-background px-2 text-sm outline-none transition focus:border-primary"
+                              onChange={(event) =>
+                                updateImportDraftContext(
+                                  draftIndex,
+                                  contextIndex,
+                                  (current) => ({
+                                    ...current,
+                                    sentence: event.target.value,
+                                  }),
+                                )
+                              }
+                              value={context.sentence}
+                            />
+                            <input
+                              className="mt-2 h-9 w-full rounded-lg border border-border bg-background px-2 text-sm outline-none transition focus:border-primary"
+                              onChange={(event) =>
+                                updateImportDraftContext(
+                                  draftIndex,
+                                  contextIndex,
+                                  (current) => ({
+                                    ...current,
+                                    phonetic: event.target.value,
+                                  }),
+                                )
+                              }
+                              value={context.phonetic}
+                            />
+                            <textarea
+                              className="mt-2 min-h-16 w-full resize-y rounded-lg border border-border bg-background p-2 text-sm leading-5 outline-none transition focus:border-primary"
+                              onChange={(event) =>
+                                updateImportDraftContext(
+                                  draftIndex,
+                                  contextIndex,
+                                  (current) => ({
+                                    ...current,
+                                    translation: event.target.value,
+                                  }),
+                                )
+                              }
+                              value={context.translation}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                <form action={importAction}>
+                  <input
+                    name="previewEntries"
+                    type="hidden"
+                    value={JSON.stringify(importDrafts)}
+                  />
+                  <button
+                    className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={importPending}
+                    type="submit"
+                  >
+                    <Upload className="size-4" />
+                    Create Flashcards
+                  </button>
+                </form>
+              </div>
+            ) : null}
+          </div>
 
           <form
             action={addAction}
@@ -376,7 +869,7 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
           >
             <div className="flex items-center justify-between gap-4">
               <h2 className="font-serif text-2xl font-bold">Add Card</h2>
-              <Plus className="size-5 text-primary" />
+              <PencilLine className="size-5 text-primary" />
             </div>
             <label
               className="mt-4 block text-sm font-medium"
@@ -384,17 +877,11 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
             >
               Language
             </label>
-            <select
-              className="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3 text-sm"
+            <SelectField
               id="manualLanguageCode"
               name="manualLanguageCode"
               defaultValue="zh-CN"
-            >
-              <option value="zh-CN">Mandarin</option>
-              <option value="zh-HK">Cantonese</option>
-              <option value="fr-FR">French</option>
-              <option value="und">Agnostic</option>
-            </select>
+            />
             <label
               className="mt-4 block text-sm font-medium"
               htmlFor="targetText"
@@ -417,7 +904,7 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
               className="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-primary"
               id="phoneticReading"
               name="phoneticReading"
-              placeholder="ji chang"
+              placeholder="Optional; auto-generates for Chinese"
             />
             <label
               className="mt-4 block text-sm font-medium"
@@ -431,12 +918,24 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
               name="definitions"
               placeholder="airport; terminal"
             />
+            <label
+              className="mt-4 block text-sm font-medium"
+              htmlFor="exampleContext"
+            >
+              Context
+            </label>
+            <textarea
+              className="mt-2 min-h-24 w-full resize-y rounded-lg border border-border bg-background p-3 text-sm leading-6 outline-none transition focus:border-primary"
+              id="exampleContext"
+              name="exampleContext"
+              placeholder="Optional example sentence"
+            />
             <button
               className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={addPending}
               type="submit"
             >
-              <Plus className="size-4" />
+              <FileText className="size-4" />
               Add Flashcard
             </button>
             <p
@@ -449,108 +948,70 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
             </p>
           </form>
 
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="font-serif text-2xl font-bold">Story Seeds</h2>
-              <button
-                className="cursor-pointer rounded-lg border border-border px-3 py-2 text-xs font-semibold transition hover:bg-accent hover:text-[#2C3539]"
-                onClick={() => setStorySeedIds(recommendedIds)}
-                title="Recommended Seeds"
-                type="button"
-              >
-                Recommended
-              </button>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Select 3 to 7 active rows for sandbox generation.
-            </p>
-            <div className="mt-4 flex flex-col gap-2">
-              {cards.length === 0 ? (
-                <p className="rounded-lg border border-border bg-background p-3 text-sm text-muted-foreground">
-                  No vocabulary rows found. Import a log or run the seed script.
-                </p>
-              ) : null}
-              {cards.slice(0, 12).map((card) => (
-                <label
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-background p-3 text-sm"
-                  key={card.id}
-                >
-                  <input
-                    checked={storySeedIds.includes(card.id)}
-                    onChange={() => toggleSeed(card.id, setStorySeedIds)}
-                    type="checkbox"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">
-                      {card.targetText}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {card.definitions.join(", ")}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <SeedPicker
+            title="The Overstory Seeds"
+            description="Choose 3 to 7 cards that will blossom into The Overstory Sandbox."
+            cards={cards}
+            selectedIds={storySeedIds}
+            setSelectedIds={setStorySeedIds}
+            min={3}
+          />
 
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="font-serif text-2xl font-bold">Chat Seeds</h2>
-              <button
-                className="cursor-pointer rounded-lg border border-border px-3 py-2 text-xs font-semibold transition hover:bg-accent hover:text-[#2C3539]"
-                onClick={() => setChatSeedIds(recommendedIds)}
-                title="Recommended Seeds"
-                type="button"
-              >
-                Recommended
-              </button>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Select 1 to 7 rows for conversation practice.
-            </p>
-            <div className="mt-4 flex flex-col gap-2">
-              {cards.length === 0 ? (
-                <p className="rounded-lg border border-border bg-background p-3 text-sm text-muted-foreground">
-                  No vocabulary rows found. Import a log or run the seed script.
-                </p>
-              ) : null}
-              {cards.slice(0, 12).map((card) => (
-                <label
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-background p-3 text-sm"
-                  key={card.id}
-                >
-                  <input
-                    checked={chatSeedIds.includes(card.id)}
-                    onChange={() => toggleSeed(card.id, setChatSeedIds)}
-                    type="checkbox"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">
-                      {card.targetText}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {card.definitions.join(", ")}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <SeedPicker
+            title="The Understory Seeds"
+            description="Choose 1 to 7 cards that Bramble should weave into The Understory Chat."
+            cards={cards}
+            selectedIds={chatSeedIds}
+            setSelectedIds={setChatSeedIds}
+            min={1}
+          />
         </aside>
 
         <div className="grid gap-6">
           <section className="rounded-xl border border-border bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-serif text-2xl font-bold">
-                  Sprouting Queue
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-serif text-2xl font-bold">
+                    The Sprouting Queue
+                  </h2>
+                  <button
+                    className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border transition hover:bg-accent hover:text-[#2C3539]"
+                    onClick={() => setShowSm2Help(true)}
+                    title="How review scheduling works"
+                    type="button"
+                  >
+                    <CircleHelp className="size-4" />
+                  </button>
+                </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  SM-2 spaces reviews over time. Interval is days until the next
-                  review; EF is the ease factor.
+                  Cards are sorted by next review date. Review buttons update
+                  their next interval.
                 </p>
               </div>
               <Droplets className="size-5 text-primary" />
+            </div>
+            <div className="mt-4 inline-flex rounded-lg border border-border bg-background p-1 text-sm">
+              <button
+                className={cn(
+                  "cursor-pointer rounded-md px-3 py-1.5 transition hover:bg-accent hover:text-[#2C3539]",
+                  queueFilter === "due" && "bg-primary text-primary-foreground",
+                )}
+                onClick={() => setQueueFilter("due")}
+                type="button"
+              >
+                Due ({dueCount})
+              </button>
+              <button
+                className={cn(
+                  "cursor-pointer rounded-md px-3 py-1.5 transition hover:bg-accent hover:text-[#2C3539]",
+                  queueFilter === "all" && "bg-primary text-primary-foreground",
+                )}
+                onClick={() => setQueueFilter("all")}
+                type="button"
+              >
+                All ({cards.length})
+              </button>
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -560,7 +1021,13 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
                   <code>npm run db:seed</code> after pushing the schema.
                 </div>
               ) : null}
-              {cards.map((card) => (
+              {cards.length > 0 && queueCards.length === 0 ? (
+                <div className="rounded-xl border border-border bg-background p-5 text-sm text-muted-foreground lg:col-span-2">
+                  No cards are due right now. Switch to All to browse the full
+                  collection.
+                </div>
+              ) : null}
+              {queueCards.map((card) => (
                 <article
                   className="rounded-xl border border-border bg-background p-5"
                   key={card.id}
@@ -594,27 +1061,58 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
                     <span>Rep {card.repetition}</span>
                     <span>{card.languageCode}</span>
                   </div>
-                  {card.aiExampleContext ? (
-                    <div className="mt-4 rounded-lg border border-border bg-card p-3 text-sm">
-                      <p className="font-semibold">
-                        {card.aiExampleContext.sentence}
-                      </p>
-                      <p className="mt-1 text-muted-foreground">
-                        {card.aiExampleContext.phonetic}
-                      </p>
-                      <p className="mt-1">
-                        {card.aiExampleContext.translation}
-                      </p>
+                  {card.aiExampleContexts.length > 0 ? (
+                    <div className="mt-4 space-y-3">
+                      {card.aiExampleContexts.map((context, contextIndex) => (
+                        <div
+                          className="rounded-lg border border-border bg-card p-3 text-sm"
+                          key={`${context.sentence}-${contextIndex}`}
+                        >
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase text-muted-foreground">
+                              Context {contextIndex + 1} generated{" "}
+                              {contextGeneratedLabel(context.generatedAt)}
+                            </p>
+                            <form action={removeContextAction}>
+                              <input
+                                name="cardId"
+                                type="hidden"
+                                value={card.id}
+                              />
+                              <input
+                                name="contextIndex"
+                                type="hidden"
+                                value={contextIndex}
+                              />
+                              <button
+                                className="inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border transition hover:bg-accent hover:text-[#2C3539]"
+                                title="Remove context"
+                                type="submit"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </form>
+                          </div>
+                          <p className="font-semibold">{context.sentence}</p>
+                          <p className="mt-1 text-muted-foreground">
+                            {context.phonetic}
+                          </p>
+                          <p className="mt-1">{context.translation}</p>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <p className="basis-full text-xs text-muted-foreground">
+                      Review: 2 Hard · 3 Pass · 4 Good · ✓ Easy
+                    </p>
                     {[2, 3, 4, 5].map((quality) => (
                       <form action={reviewCardAction} key={quality}>
                         <input name="cardId" type="hidden" value={card.id} />
                         <input name="quality" type="hidden" value={quality} />
                         <button
                           className="inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-border transition hover:bg-accent hover:text-[#2C3539]"
-                          title={`Review quality ${quality}`}
+                          title={`Review quality ${quality}: ${reviewLabels[quality]}`}
                           type="submit"
                         >
                           {quality === 5 ? (
@@ -629,11 +1127,18 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
                       <input name="cardId" type="hidden" value={card.id} />
                       <button
                         className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold transition hover:bg-accent hover:text-[#2C3539]"
-                        title="Generate and save an example sentence, reading, and translation for this card."
+                        disabled={
+                          card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                        }
+                        title="Generate and save one more example sentence, reading, and translation for this card."
                         type="submit"
                       >
                         <Sparkles className="size-4" />
-                        Generate Context
+                        {card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                          ? "Max Contexts"
+                          : card.aiExampleContexts.length > 0
+                            ? "Generate Another"
+                            : "Generate Context"}
                       </button>
                     </form>
                   </div>
@@ -645,9 +1150,19 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="font-serif text-2xl font-bold">Overstory</h2>
+                <div>
+                  <p className="text-xs font-semibold uppercase text-primary">
+                    The Overstory
+                  </p>
+                  <h2 className="font-serif text-2xl font-bold">
+                    The Overstory Sandbox
+                  </h2>
+                </div>
                 <BookOpen className="size-5 text-primary" />
               </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Watch your vocabulary blossom into custom reading context.
+              </p>
               <button
                 className="mt-4 inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={
@@ -659,39 +1174,59 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
                 type="button"
               >
                 <Sparkles className="size-4" />
-                Generate Story
+                Generate Overstory
               </button>
               <p className="mt-4 min-h-44 rounded-lg border border-border bg-background p-4 text-sm leading-7">
-                {story || "A streamed short story will appear here."}
+                {story || "The Overstory will stream here."}
               </p>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="font-serif text-2xl font-bold">Helper Studio</h2>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="inline-flex size-8 items-center justify-center rounded-lg border border-border text-primary"
-                    title="The assistant should respond in the target language of your selected chat seeds."
-                  >
-                    <CircleHelp className="size-4" />
-                  </span>
-                  <MessageCircle className="size-5 text-primary" />
+                <div>
+                  <p className="text-xs font-semibold uppercase text-primary">
+                    The Understory
+                  </p>
+                  <h2 className="font-serif text-2xl font-bold">
+                    The Understory Chat
+                  </h2>
                 </div>
+                <span
+                  className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-primary"
+                  title="Bramble"
+                >
+                  <TreePine className="size-5" />
+                </span>
               </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Drop your conversational roots. Step into a low-pressure
+                dialogue space with Bramble.
+              </p>
               <div className="mt-4 flex min-h-44 flex-col gap-3 rounded-lg border border-border bg-background p-4">
                 {chatMessages.map((message, index) => (
-                  <p
+                  <div
                     className={cn(
-                      "rounded-lg px-3 py-2 text-sm leading-6",
-                      message.role === "user"
-                        ? "ml-8 bg-primary text-primary-foreground"
-                        : "mr-8 bg-accent text-[#2C3539]",
+                      "flex items-start gap-2",
+                      message.role === "user" && "justify-end",
                     )}
                     key={`${message.role}-${index}`}
                   >
-                    {message.content}
-                  </p>
+                    {message.role === "assistant" ? (
+                      <span className="mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-[#D8E2DC] text-[#4A5D4E]">
+                        <TreePine className="size-4" />
+                      </span>
+                    ) : null}
+                    <p
+                      className={cn(
+                        "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-6",
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-[#F4E5D2] text-[#2C3539]",
+                      )}
+                    >
+                      {message.content}
+                    </p>
+                  </div>
                 ))}
               </div>
               <div className="mt-3 flex gap-2">
@@ -703,7 +1238,7 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
                       sendChatMessage();
                     }
                   }}
-                  placeholder="Reply using a seed word"
+                  placeholder="Reply to Bramble"
                   value={chatInput}
                 />
                 <button
@@ -720,6 +1255,60 @@ export function CanopyWorkspace({ cards }: { cards: WorkspaceCard[] }) {
           </section>
         </div>
       </section>
+      {showSm2Help ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sm2-help-title"
+        >
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2
+                  id="sm2-help-title"
+                  className="font-serif text-2xl font-bold"
+                >
+                  SM-2 Review Scheduling
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Canopy uses the SuperMemo-2 pattern to decide when each card
+                  comes back.
+                </p>
+              </div>
+              <button
+                className="inline-flex size-9 cursor-pointer items-center justify-center rounded-lg border border-border transition hover:bg-accent hover:text-[#2C3539]"
+                onClick={() => setShowSm2Help(false)}
+                title="Close"
+                type="button"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="mt-5 space-y-4 text-sm leading-6">
+              <p>
+                <strong>Interval</strong> is the number of days until the next
+                review. A new card starts near zero, then grows after successful
+                reviews.
+              </p>
+              <p>
+                <strong>EF</strong> is the ease factor. Higher EF means future
+                intervals grow faster. Hard reviews lower EF; easy reviews raise
+                or preserve it.
+              </p>
+              <p>
+                The review buttons are quality scores: <strong>2 Hard</strong>,{" "}
+                <strong>3 Pass</strong>, <strong>4 Good</strong>, and{" "}
+                <strong>5 Easy</strong>. The checkmark is the same as 5 Easy.
+              </p>
+              <p>
+                The queue defaults to Due cards so it does not become one long
+                collection view. Use All when you want to browse every card.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

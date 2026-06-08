@@ -15,7 +15,12 @@ import {
   parseVocabularyLog,
 } from "@/lib/ingestion";
 import { generateExampleContext } from "@/lib/openai";
+import { phoneticTextForSentence } from "@/lib/phonetics";
 import { calculateSm2 } from "@/lib/srs";
+import {
+  MAX_EXAMPLE_CONTEXTS,
+  normalizeExampleContexts,
+} from "@/lib/example-contexts";
 
 type ActionState = {
   ok: boolean;
@@ -24,6 +29,34 @@ type ActionState = {
 
 function id() {
   return crypto.randomUUID();
+}
+
+function entriesFromPreviewJson(value: string): ParsedVocabularyEntry[] {
+  const parsed = JSON.parse(value) as Partial<ParsedVocabularyEntry>[];
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .map((entry) => ({
+      languageCode: String(entry.languageCode ?? "zh-CN"),
+      targetText: String(entry.targetText ?? "").trim(),
+      phoneticReading: Array.isArray(entry.phoneticReading)
+        ? entry.phoneticReading.map(String).filter(Boolean)
+        : String(entry.phoneticReading ?? "")
+            .split(/\s+/)
+            .filter(Boolean),
+      definitions: Array.isArray(entry.definitions)
+        ? entry.definitions.map(String).filter(Boolean)
+        : String(entry.definitions ?? "")
+            .split(/[;/,]|(?:\s{2,})/)
+            .map((definition) => definition.trim())
+            .filter(Boolean),
+      exampleContexts: normalizeExampleContexts(entry.exampleContexts),
+      linguisticMeta: entry.linguisticMeta,
+    }))
+    .filter((entry) => entry.targetText && entry.definitions.length > 0);
 }
 
 async function upsertVocabularyEntries(
@@ -75,14 +108,29 @@ async function upsertVocabularyEntries(
         })
         .returning({ id: words.id });
 
-      await db
-        .insert(flashcards)
-        .values({
-          id: id(),
-          userId,
-          wordId: word.id,
-        })
-        .onConflictDoNothing();
+      if (entry.exampleContexts?.length) {
+        await db
+          .insert(flashcards)
+          .values({
+            id: id(),
+            userId,
+            wordId: word.id,
+            aiExampleContext: entry.exampleContexts,
+          })
+          .onConflictDoUpdate({
+            target: [flashcards.userId, flashcards.wordId],
+            set: { aiExampleContext: entry.exampleContexts },
+          });
+      } else {
+        await db
+          .insert(flashcards)
+          .values({
+            id: id(),
+            userId,
+            wordId: word.id,
+          })
+          .onConflictDoNothing();
+      }
     } catch (error) {
       if (isMissingDatabaseSchemaError(error)) {
         return { ok: false, message: databaseSetupMessage() };
@@ -110,6 +158,22 @@ export async function importVocabularyAction(
   return upsertVocabularyEntries(entries);
 }
 
+export async function createFlashcardsFromPreviewAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const previewEntries = String(formData.get("previewEntries") ?? "");
+  if (!previewEntries) {
+    return { ok: false, message: "Preview at least one vocabulary row first." };
+  }
+
+  try {
+    return upsertVocabularyEntries(entriesFromPreviewJson(previewEntries));
+  } catch {
+    return { ok: false, message: "Preview data could not be imported." };
+  }
+}
+
 export async function addFlashcardAction(
   _previousState: ActionState,
   formData: FormData,
@@ -118,6 +182,7 @@ export async function addFlashcardAction(
   const targetText = String(formData.get("targetText") ?? "").trim();
   const phonetic = String(formData.get("phoneticReading") ?? "").trim();
   const definitions = String(formData.get("definitions") ?? "").trim();
+  const exampleContext = String(formData.get("exampleContext") ?? "").trim();
 
   if (!targetText || !definitions) {
     return {
@@ -128,6 +193,22 @@ export async function addFlashcardAction(
 
   const row = [targetText, phonetic, definitions].filter(Boolean).join("\t");
   const entries = await parseVocabularyLog(row, languageCode);
+  const [entry] = entries;
+
+  if (entry && exampleContext) {
+    entry.exampleContexts = [
+      {
+        sentence: exampleContext,
+        phonetic: phoneticTextForSentence(
+          languageCode,
+          exampleContext,
+          entry.phoneticReading,
+        ),
+        translation: entry.definitions.join("; "),
+        generatedAt: new Date().toISOString(),
+      },
+    ];
+  }
 
   return upsertVocabularyEntries(entries);
 }
@@ -174,6 +255,7 @@ export async function generateContextAction(formData: FormData) {
       phoneticReading: words.phoneticReading,
       definitions: words.definitions,
       languageCode: words.languageCode,
+      aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
     .innerJoin(words, eq(flashcards.wordId, words.id))
@@ -185,10 +267,56 @@ export async function generateContextAction(formData: FormData) {
   }
 
   const aiExampleContext = await generateExampleContext(card);
+  const existingContexts = normalizeExampleContexts(card.aiExampleContext);
+  if (existingContexts.length >= MAX_EXAMPLE_CONTEXTS) {
+    return;
+  }
+
   await db
     .update(flashcards)
-    .set({ aiExampleContext })
+    .set({
+      aiExampleContext: [...existingContexts, aiExampleContext].slice(
+        0,
+        MAX_EXAMPLE_CONTEXTS,
+      ),
+    })
     .where(eq(flashcards.id, card.cardId));
+
+  revalidatePath("/");
+}
+
+export async function removeContextAction(formData: FormData) {
+  if (!hasDatabaseEnv()) {
+    return;
+  }
+
+  const cardId = String(formData.get("cardId") ?? "");
+  const contextIndex = Number(formData.get("contextIndex") ?? -1);
+  if (!cardId || contextIndex < 0) {
+    return;
+  }
+
+  const db = getDb();
+  const [card] = await db
+    .select({
+      aiExampleContext: flashcards.aiExampleContext,
+    })
+    .from(flashcards)
+    .where(eq(flashcards.id, cardId))
+    .limit(1);
+
+  if (!card) {
+    return;
+  }
+
+  const contexts = normalizeExampleContexts(card.aiExampleContext).filter(
+    (_context, index) => index !== contextIndex,
+  );
+
+  await db
+    .update(flashcards)
+    .set({ aiExampleContext: contexts })
+    .where(eq(flashcards.id, cardId));
 
   revalidatePath("/");
 }
