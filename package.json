@@ -6,20 +6,42 @@
     "dev": "DATABASE_URL=$CANOPY_DEV_DB_URL OPENAI_API_KEY=$CANOPY_DEV_OPENAI_KEY BETTER_AUTH_SECRET=$CANOPY_DEV_AUTH_SECRET next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit generate",
+    "db:push": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit push",
+    "db:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/seed.mjs",
+    "db:clear:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/clear-seed.mjs"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.68",
+    "@neondatabase/serverless": "^1.1.0",
+    "@node-rs/jieba": "^2.0.1",
+    "ai": "^6.0.197",
+    "better-auth": "^1.6.14",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
+    "kysely": "^0.28.17",
+    "lucide-react": "^1.17.0",
     "next": "16.2.7",
+    "openai": "^6.42.0",
+    "pinyin-pro": "^3.28.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.6.0",
+    "to-jyutping": "^3.1.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
