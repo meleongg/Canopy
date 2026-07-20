@@ -1,11 +1,11 @@
-import { betterAuth } from "better-auth";
+import { betterAuth } from "better-auth/minimal";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { getDb } from "@/db/client";
-import { getEnv } from "@/db/env";
+import { getAuthEnv } from "@/db/env";
 
 function createAuth() {
-  const env = getEnv();
+  const env = getAuthEnv();
 
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,

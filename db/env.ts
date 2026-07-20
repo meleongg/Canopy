@@ -10,6 +10,15 @@ const envSchema = z.object({
     .default(process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
 });
 
+const databaseEnvSchema = envSchema.pick({
+  DATABASE_URL: true,
+});
+
+const authEnvSchema = envSchema.pick({
+  BETTER_AUTH_SECRET: true,
+  BETTER_AUTH_URL: true,
+});
+
 export type AppEnv = z.infer<typeof envSchema>;
 
 export function getEnv(): AppEnv {
@@ -21,10 +30,27 @@ export function getEnv(): AppEnv {
   });
 }
 
+export function getDatabaseEnv() {
+  return databaseEnvSchema.parse({
+    DATABASE_URL: process.env.DATABASE_URL,
+  });
+}
+
+export function getAuthEnv() {
+  return authEnvSchema.parse({
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+  });
+}
+
 export function hasDatabaseEnv() {
   return Boolean(process.env.DATABASE_URL);
 }
 
 export function hasOpenAIEnv() {
   return Boolean(process.env.OPENAI_API_KEY);
+}
+
+export function hasAuthEnv() {
+  return Boolean(process.env.BETTER_AUTH_SECRET);
 }

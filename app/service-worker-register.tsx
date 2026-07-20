@@ -26,7 +26,7 @@ export function ServiceWorkerRegister() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-lg">
+    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm">
       Offline mode: the app shell is available, but AI and imports need a
       connection.
     </div>

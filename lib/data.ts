@@ -19,6 +19,7 @@ export type DashboardCard = {
   easiness: number;
   nextReviewAt: Date;
   lastReviewedAt: Date | null;
+  createdAt: Date;
   aiExampleContexts: ExampleContext[];
 };
 
@@ -43,13 +44,12 @@ export async function ensureDemoUser() {
   return DEMO_USER_ID;
 }
 
-export async function getDashboardData(): Promise<DashboardCard[]> {
+export async function getDashboardData(userId: string): Promise<DashboardCard[]> {
   if (!hasDatabaseEnv()) {
     return [];
   }
 
   const db = getDb();
-  await ensureDemoUser();
 
   const rows = await db
     .select({
@@ -63,11 +63,12 @@ export async function getDashboardData(): Promise<DashboardCard[]> {
       easiness: flashcards.easiness,
       nextReviewAt: flashcards.nextReviewAt,
       lastReviewedAt: flashcards.lastReviewedAt,
+      createdAt: flashcards.createdAt,
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
     .innerJoin(words, eq(flashcards.wordId, words.id))
-    .where(eq(flashcards.userId, DEMO_USER_ID))
+    .where(eq(flashcards.userId, userId))
     .orderBy(asc(flashcards.nextReviewAt))
     .limit(60);
 

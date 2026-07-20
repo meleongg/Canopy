@@ -1,11 +1,10 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
 import { flashcards, words } from "@/db/schema";
-import { ensureDemoUser } from "@/lib/data";
 import {
   databaseSetupMessage,
   isMissingDatabaseSchemaError,
@@ -16,7 +15,8 @@ import {
 } from "@/lib/ingestion";
 import { generateExampleContext } from "@/lib/openai";
 import { phoneticTextForSentence } from "@/lib/phonetics";
-import { calculateSm2 } from "@/lib/srs";
+import { requireAuth } from "@/lib/session";
+import { importVocabularyEntries, reviewCard } from "@/lib/cards";
 import {
   MAX_EXAMPLE_CONTEXTS,
   normalizeExampleContexts,
@@ -26,10 +26,6 @@ type ActionState = {
   ok: boolean;
   message: string;
 };
-
-function id() {
-  return crypto.randomUUID();
-}
 
 function entriesFromPreviewJson(value: string): ParsedVocabularyEntry[] {
   const parsed = JSON.parse(value) as Partial<ParsedVocabularyEntry>[];
@@ -62,6 +58,8 @@ function entriesFromPreviewJson(value: string): ParsedVocabularyEntry[] {
 async function upsertVocabularyEntries(
   entries: ParsedVocabularyEntry[],
 ): Promise<ActionState> {
+  const session = await requireAuth();
+
   if (!hasDatabaseEnv()) {
     return {
       ok: false,
@@ -73,75 +71,21 @@ async function upsertVocabularyEntries(
     return { ok: false, message: "Drop or paste at least one vocabulary row." };
   }
 
-  const db = getDb();
-  let userId: string;
-
   try {
-    userId = await ensureDemoUser();
+    const result = await importVocabularyEntries(session.user.id, entries);
+    revalidatePath("/dashboard");
+    revalidatePath("/overstory");
+    revalidatePath("/understory/setup");
+    return {
+      ok: true,
+      message: `Imported ${result.importedCount} new and updated ${result.updatedCount} existing vocabulary rows.`,
+    };
   } catch (error) {
     if (isMissingDatabaseSchemaError(error)) {
       return { ok: false, message: databaseSetupMessage() };
     }
-
     throw error;
   }
-
-  for (const entry of entries) {
-    try {
-      const [word] = await db
-        .insert(words)
-        .values({
-          id: id(),
-          languageCode: entry.languageCode,
-          targetText: entry.targetText,
-          phoneticReading: entry.phoneticReading,
-          definitions: entry.definitions,
-          linguisticMeta: entry.linguisticMeta,
-        })
-        .onConflictDoUpdate({
-          target: [words.languageCode, words.targetText],
-          set: {
-            phoneticReading: entry.phoneticReading,
-            definitions: entry.definitions,
-            linguisticMeta: entry.linguisticMeta,
-          },
-        })
-        .returning({ id: words.id });
-
-      if (entry.exampleContexts?.length) {
-        await db
-          .insert(flashcards)
-          .values({
-            id: id(),
-            userId,
-            wordId: word.id,
-            aiExampleContext: entry.exampleContexts,
-          })
-          .onConflictDoUpdate({
-            target: [flashcards.userId, flashcards.wordId],
-            set: { aiExampleContext: entry.exampleContexts },
-          });
-      } else {
-        await db
-          .insert(flashcards)
-          .values({
-            id: id(),
-            userId,
-            wordId: word.id,
-          })
-          .onConflictDoNothing();
-      }
-    } catch (error) {
-      if (isMissingDatabaseSchemaError(error)) {
-        return { ok: false, message: databaseSetupMessage() };
-      }
-
-      throw error;
-    }
-  }
-
-  revalidatePath("/");
-  return { ok: true, message: `Imported ${entries.length} vocabulary rows.` };
 }
 
 export async function importVocabularyAction(
@@ -214,34 +158,27 @@ export async function addFlashcardAction(
 }
 
 export async function reviewCardAction(formData: FormData) {
+  const session = await requireAuth();
+
   if (!hasDatabaseEnv()) {
     return;
   }
 
   const cardId = String(formData.get("cardId") ?? "");
   const quality = Number(formData.get("quality") ?? 0);
-  const db = getDb();
-  const [card] = await db
-    .select({
-      interval: flashcards.interval,
-      repetition: flashcards.repetition,
-      easiness: flashcards.easiness,
-    })
-    .from(flashcards)
-    .where(eq(flashcards.id, cardId))
-    .limit(1);
-
-  if (!card) {
+  if (![2, 3, 4, 5].includes(quality)) {
     return;
   }
+  await reviewCard(session.user.id, cardId, quality as 2 | 3 | 4 | 5);
 
-  const next = calculateSm2(card, quality);
-  await db.update(flashcards).set(next).where(eq(flashcards.id, cardId));
-
-  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/overstory");
+  revalidatePath("/understory/setup");
 }
 
 export async function generateContextAction(formData: FormData) {
+  const session = await requireAuth();
+
   if (!hasDatabaseEnv()) {
     return;
   }
@@ -259,7 +196,7 @@ export async function generateContextAction(formData: FormData) {
     })
     .from(flashcards)
     .innerJoin(words, eq(flashcards.wordId, words.id))
-    .where(eq(flashcards.id, cardId))
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)))
     .limit(1);
 
   if (!card) {
@@ -282,10 +219,14 @@ export async function generateContextAction(formData: FormData) {
     })
     .where(eq(flashcards.id, card.cardId));
 
-  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/overstory");
+  revalidatePath("/understory/setup");
 }
 
 export async function removeContextAction(formData: FormData) {
+  const session = await requireAuth();
+
   if (!hasDatabaseEnv()) {
     return;
   }
@@ -302,7 +243,7 @@ export async function removeContextAction(formData: FormData) {
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
-    .where(eq(flashcards.id, cardId))
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)))
     .limit(1);
 
   if (!card) {
@@ -316,7 +257,9 @@ export async function removeContextAction(formData: FormData) {
   await db
     .update(flashcards)
     .set({ aiExampleContext: contexts })
-    .where(eq(flashcards.id, cardId));
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)));
 
-  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/overstory");
+  revalidatePath("/understory/setup");
 }

@@ -1,14 +1,31 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { getEnv } from "@/db/env";
+import { getDatabaseEnv } from "@/db/env";
 import * as schema from "@/db/schema";
 
-let cachedDb: ReturnType<typeof drizzle<typeof schema>> | undefined;
+function createSql() {
+  const env = getDatabaseEnv();
+  return neon(env.DATABASE_URL);
+}
+
+function createDb() {
+  return drizzle(getSql(), { schema });
+}
+
+let cachedDb: ReturnType<typeof createDb> | undefined;
+let cachedSql: ReturnType<typeof createSql> | undefined;
+
+export function getSql() {
+  if (!cachedSql) {
+    cachedSql = createSql();
+  }
+
+  return cachedSql;
+}
 
 export function getDb() {
   if (!cachedDb) {
-    const env = getEnv();
-    cachedDb = drizzle(neon(env.DATABASE_URL), { schema });
+    cachedDb = createDb();
   }
 
   return cachedDb;
