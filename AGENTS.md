@@ -25,6 +25,7 @@
 * **Review Tier:** Recommend exactly one review tier based on the highest-risk change in the pull request: Auto-approve (formatting or standard documentation only), Spot-check (isolated low-risk UI or mechanical work), or Full review (architecture, business logic, auth, permissions, database, APIs, AI behavior, dependencies, or migrations).
 * **Human Control:** A recommended Auto-approve tier never authorizes an agent to merge. Only the user may approve, mark ready, or merge a pull request.
 * **Evidence:** Include screenshots for user-visible changes when reliable local capture is available; otherwise state why screenshots are unavailable.
+* **Draft Deliverable:** For substantial work that belongs on a feature branch, commit the completed work, push the branch, and publish a draft pull request using the template. The draft PR is the final deliverable. Small changes and experiments do not require a new draft PR; add them to an existing relevant draft when appropriate.
 
 ## Definition of "Done"
 
@@ -33,3 +34,4 @@ Before you present a task as complete or prompt for a commit, you must execute t
 1. **Linter & Type Checks:** Run the formatting, linting, and type-checking commands to ensure zero errors.
 2. **Local Verification:** Run the project's test suite and ensure all tests pass.
 3. **Diff Explanation:** Call the `/explain-diff-html` skill or produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks.
+4. **Draft PR for Feature Work:** For substantial feature-branch work, commit and push the validated changes, then publish the required draft PR. Do not mark it ready for review, approve it, or merge it.
