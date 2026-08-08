@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull, isNotNull } from "drizzle-orm";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
 import { flashcards, user, words } from "@/db/schema";
@@ -20,6 +20,7 @@ export type DashboardCard = {
   nextReviewAt: Date;
   lastReviewedAt: Date | null;
   createdAt: Date;
+  archivedAt: Date | null;
   aiExampleContexts: ExampleContext[];
 };
 
@@ -44,12 +45,22 @@ export async function ensureDemoUser() {
   return DEMO_USER_ID;
 }
 
-export async function getDashboardData(userId: string): Promise<DashboardCard[]> {
+export async function getDashboardData(
+  userId: string,
+  scope: "active" | "archived" | "all" = "active",
+): Promise<DashboardCard[]> {
   if (!hasDatabaseEnv()) {
     return [];
   }
 
   const db = getDb();
+
+  const scopeCondition =
+    scope === "active"
+      ? isNull(flashcards.archivedAt)
+      : scope === "archived"
+        ? isNotNull(flashcards.archivedAt)
+        : undefined;
 
   const rows = await db
     .select({
@@ -58,22 +69,41 @@ export async function getDashboardData(userId: string): Promise<DashboardCard[]>
       targetText: words.targetText,
       phoneticReading: words.phoneticReading,
       definitions: words.definitions,
+      targetTextOverride: flashcards.targetTextOverride,
+      phoneticReadingOverride: flashcards.phoneticReadingOverride,
+      definitionsOverride: flashcards.definitionsOverride,
       interval: flashcards.interval,
       repetition: flashcards.repetition,
       easiness: flashcards.easiness,
       nextReviewAt: flashcards.nextReviewAt,
       lastReviewedAt: flashcards.lastReviewedAt,
       createdAt: flashcards.createdAt,
+      archivedAt: flashcards.archivedAt,
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
     .innerJoin(words, eq(flashcards.wordId, words.id))
-    .where(eq(flashcards.userId, userId))
+    .where(
+      scopeCondition
+        ? and(eq(flashcards.userId, userId), scopeCondition)
+        : eq(flashcards.userId, userId),
+    )
     .orderBy(asc(flashcards.nextReviewAt))
     .limit(60);
 
-  return rows.map(({ aiExampleContext, ...card }) => ({
-    ...card,
-    aiExampleContexts: normalizeExampleContexts(aiExampleContext),
-  }));
+  return rows.map(
+    ({
+      aiExampleContext,
+      targetTextOverride,
+      phoneticReadingOverride,
+      definitionsOverride,
+      ...card
+    }) => ({
+      ...card,
+      targetText: targetTextOverride ?? card.targetText,
+      phoneticReading: phoneticReadingOverride ?? card.phoneticReading,
+      definitions: definitionsOverride ?? card.definitions,
+      aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+    }),
+  );
 }

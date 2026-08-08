@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Send, TreePine } from "lucide-react";
@@ -31,6 +31,29 @@ const fallbackSetup: UnderstorySetup = {
   setting: "a quiet airport cafe",
 };
 
+let cachedStoredSetup = fallbackSetup;
+let cachedStoredValue: string | null = null;
+
+function subscribeToSetup() {
+  return () => undefined;
+}
+
+function getStoredSetup() {
+  const stored = window.sessionStorage.getItem("canopy-understory-setup");
+  if (!stored) return fallbackSetup;
+  if (stored === cachedStoredValue) return cachedStoredSetup;
+
+  try {
+    const parsed = JSON.parse(stored) as UnderstorySetup;
+    cachedStoredValue = stored;
+    cachedStoredSetup = parsed;
+    return parsed;
+  } catch {
+    window.sessionStorage.removeItem("canopy-understory-setup");
+    return fallbackSetup;
+  }
+}
+
 export function UnderstoryChatView({
   initialCards,
 }: {
@@ -41,22 +64,11 @@ export function UnderstoryChatView({
     queryFn: fetchCards,
     initialData: initialCards,
   });
-  const [setup] = useState<UnderstorySetup>(() => {
-    if (typeof window === "undefined") {
-      return fallbackSetup;
-    }
-
-    const stored = window.sessionStorage.getItem("canopy-understory-setup");
-    if (!stored) {
-      return fallbackSetup;
-    }
-
-    try {
-      return JSON.parse(stored) as UnderstorySetup;
-    } catch {
-      return fallbackSetup;
-    }
-  });
+  const setup = useSyncExternalStore(
+    subscribeToSetup,
+    getStoredSetup,
+    () => fallbackSetup,
+  );
   const [chatInput, setChatInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -199,7 +211,9 @@ export function UnderstoryChatView({
             />
             <Button
               className="size-11"
-              disabled={isPending || seedCards.length === 0 || learnerTurnCount >= 3}
+              disabled={
+                isPending || seedCards.length === 0 || learnerTurnCount >= 3
+              }
               onClick={sendChatMessage}
               title="Send"
               type="button"

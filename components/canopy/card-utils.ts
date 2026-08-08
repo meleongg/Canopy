@@ -86,7 +86,11 @@ export function filterSeedCards(cards: WorkspaceCard[], filter: SeedFilter) {
 }
 
 export async function fetchCards() {
-  const response = await fetch("/api/cards");
+  return fetchCardsByScope("active");
+}
+
+export async function fetchCardsByScope(scope: "active" | "archived" | "all") {
+  const response = await fetch(`/api/cards?scope=${scope}`);
   if (!response.ok) {
     throw new Error(await response.text());
   }
