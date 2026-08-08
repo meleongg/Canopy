@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit generate",
@@ -18,8 +19,18 @@
     "@ai-sdk/openai": "^3.0.68",
     "@neondatabase/serverless": "^1.1.0",
     "@node-rs/jieba": "^2.0.1",
+    "@radix-ui/react-avatar": "^1.1.12",
+    "@radix-ui/react-dialog": "^1.1.16",
+    "@radix-ui/react-dropdown-menu": "^2.1.17",
+    "@radix-ui/react-select": "^2.3.0",
+    "@radix-ui/react-separator": "^1.1.9",
+    "@radix-ui/react-slot": "^1.2.5",
+    "@radix-ui/react-tabs": "^1.1.14",
+    "@radix-ui/react-tooltip": "^1.2.9",
+    "@tanstack/react-query": "^5.101.0",
     "ai": "^6.0.197",
     "better-auth": "^1.6.14",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "kysely": "^0.28.17",
@@ -43,6 +54,7 @@
     "eslint-config-next": "16.2.7",
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

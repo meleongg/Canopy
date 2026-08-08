@@ -1,27 +1,30 @@
 import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
 import { streamText } from "ai";
-import { getDb } from "@/db/client";
-import { hasDatabaseEnv, hasOpenAIEnv } from "@/db/env";
-import { aiSessions } from "@/db/schema";
-import { DEMO_USER_ID } from "@/lib/constants";
+import { hasOpenAIEnv } from "@/db/env";
+import { getCardSeeds } from "@/lib/cards";
 import { moderateText } from "@/lib/openai";
+import { requireApiAuth } from "@/lib/session";
 
 export const runtime = "edge";
 
-export async function POST(request: Request) {
-  const body = (await request.json()) as {
-    seeds?: {
-      id: string;
-      targetText: string;
-      phoneticReading: string[];
-      definitions: string[];
-      languageCode: string;
-    }[];
-  };
-  const seeds = (body.seeds ?? []).slice(0, 7);
+const sandboxSchema = z.object({
+  cardIds: z.array(z.string().uuid()).min(3).max(7),
+});
 
-  if (seeds.length < 3) {
+export async function POST(request: Request) {
+  const auth = await requireApiAuth();
+  if (auth.response) {
+    return auth.response;
+  }
+
+  const parsed = sandboxSchema.safeParse(await request.json());
+  if (!parsed.success) {
     return new Response("Choose between 3 and 7 seeds.", { status: 400 });
+  }
+  const seeds = await getCardSeeds(auth.session.user.id, parsed.data.cardIds);
+  if (seeds.length !== parsed.data.cardIds.length) {
+    return new Response("One or more selected cards could not be found.", { status: 404 });
   }
 
   if (!hasOpenAIEnv()) {
@@ -39,26 +42,10 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: openai("gpt-4o-mini"),
-    temperature: 0.4,
+    temperature: 0.3,
     system:
       "You are writing for The Overstory Sandbox. Write one short natural story paragraph for a language learner. Include every target term exactly once. Avoid lists and explanations.",
     prompt: JSON.stringify({ seeds }),
-    onFinish: async ({ text }) => {
-      if (!hasDatabaseEnv()) {
-        return;
-      }
-
-      await getDb()
-        .insert(aiSessions)
-        .values({
-          id: crypto.randomUUID(),
-          userId: DEMO_USER_ID,
-          sessionType: "story_sandbox",
-          languageCode: seeds[0]?.languageCode ?? "und",
-          seedWordIds: seeds.map((seed) => seed.id),
-          contentHistory: { storyParagraph: text },
-        });
-    },
   });
 
   return result.toTextStreamResponse();

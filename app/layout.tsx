@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Merriweather, Plus_Jakarta_Sans } from "next/font/google";
+import { AppShell } from "@/components/app-shell";
+import { Providers } from "@/app/providers";
 import { ServiceWorkerRegister } from "@/app/service-worker-register";
 import "./globals.css";
 
@@ -63,7 +65,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Canopy" />
       </head>
       <body className="min-h-full">
-        {children}
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
         <ServiceWorkerRegister />
       </body>
     </html>

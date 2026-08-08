@@ -26,6 +26,15 @@ function normalizeDefinitions(value: string | undefined) {
     .filter(Boolean);
 }
 
+function sanitizeImportedText(value: string) {
+  return value
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+    .replace(/\{[^}]*\}|\[[^\]]*\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function splitRow(row: string) {
   if (row.includes("\t")) {
     return row.split(/\t+/).map((column) => column.trim());
@@ -180,9 +189,15 @@ export async function parseVocabularyLog(
     .filter((line) => line && !isCommentRow(line));
 
   const entries = await Promise.all(
-    rows.map(async (row) => {
+    rows.map(async (row): Promise<ParsedVocabularyEntry | null> => {
       const columns = splitRow(row);
-      const [targetText, secondColumn, ...remainingColumns] = columns;
+      const [rawTargetText, rawSecondColumn, ...rawRemainingColumns] = columns;
+      const targetText = sanitizeImportedText(rawTargetText ?? "");
+      const secondColumn = sanitizeImportedText(rawSecondColumn ?? "");
+      const remainingColumns = rawRemainingColumns.map(sanitizeImportedText);
+      if (!targetText || (!secondColumn && remainingColumns.length === 0)) {
+        return null;
+      }
       const hasPlecoBody =
         columns.length >= 3 &&
         isLikelyReading(secondColumn) &&
@@ -196,9 +211,10 @@ export async function parseVocabularyLog(
         hasExplicitReading && !parsedPlecoBody
           ? remainingColumns
           : [secondColumn ?? ""];
-      const definitions = parsedPlecoBody?.definitions.length
+      const definitions = (parsedPlecoBody?.definitions.length
         ? parsedPlecoBody.definitions
-        : normalizeDefinitions(definitionColumns.join("; "));
+        : normalizeDefinitions(definitionColumns.join("; "))
+      ).map(sanitizeImportedText).filter(Boolean);
       const phoneticReading = phoneticTokensForText(
         languageCode,
         targetText,
@@ -238,7 +254,7 @@ export async function parseVocabularyLog(
   return Array.from(
     new Map(
       entries
-        .filter((entry) => entry.targetText)
+        .filter((entry): entry is ParsedVocabularyEntry => entry !== null)
         .map((entry) => [`${entry.languageCode}:${entry.targetText}`, entry]),
     ).values(),
   );
