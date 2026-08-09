@@ -11,36 +11,53 @@ The application uses a normalized vocabulary model rather than duplicating word 
 Better Auth owns the `user`, `session`, `account`, and `verification` tables. Its string user IDs are the foreign-key type used by application tables.
 
 ```ts
-export const words = pgTable("words", {
-  id: text("id").primaryKey(),
-  languageCode: text("language_code").notNull(),
-  targetText: text("target_text").notNull(),
-  phoneticReading: jsonb("phonetic_reading").$type<string[]>().notNull(),
-  definitions: jsonb("definitions").$type<string[]>().notNull(),
-  linguisticMeta: jsonb("linguistic_meta").$type<{
-    alternatives?: string[];
-    partOfSpeech?: string[];
-  }>(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  uniqueIndex("word_lang_target_idx").on(table.languageCode, table.targetText),
-]);
+export const words = pgTable(
+  "words",
+  {
+    id: text("id").primaryKey(),
+    languageCode: text("language_code").notNull(),
+    targetText: text("target_text").notNull(),
+    phoneticReading: jsonb("phonetic_reading").$type<string[]>().notNull(),
+    definitions: jsonb("definitions").$type<string[]>().notNull(),
+    linguisticMeta: jsonb("linguistic_meta").$type<{
+      alternatives?: string[];
+      partOfSpeech?: string[];
+    }>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("word_lang_target_idx").on(
+      table.languageCode,
+      table.targetText,
+    ),
+  ],
+);
 
-export const flashcards = pgTable("flashcards", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
-  wordId: text("word_id").notNull().references(() => words.id, { onDelete: "cascade" }),
-  interval: integer("interval").default(0).notNull(),
-  repetition: integer("repetition").default(0).notNull(),
-  easiness: integer("easiness").default(250).notNull(), // 250 = SM-2 EF 2.50
-  aiExampleContext: jsonb("ai_example_context").$type<ExampleContext[] | ExampleContext>(),
-  nextReviewAt: timestamp("next_review_at").defaultNow().notNull(),
-  lastReviewedAt: timestamp("last_reviewed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  uniqueIndex("flashcard_user_word_idx").on(table.userId, table.wordId),
-  index("user_review_queue_idx").on(table.userId, table.nextReviewAt),
-]);
+export const flashcards = pgTable(
+  "flashcards",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    wordId: text("word_id")
+      .notNull()
+      .references(() => words.id, { onDelete: "cascade" }),
+    interval: integer("interval").default(0).notNull(),
+    repetition: integer("repetition").default(0).notNull(),
+    easiness: integer("easiness").default(250).notNull(), // 250 = SM-2 EF 2.50
+    aiExampleContext: jsonb("ai_example_context").$type<
+      ExampleContext[] | ExampleContext
+    >(),
+    nextReviewAt: timestamp("next_review_at").defaultNow().notNull(),
+    lastReviewedAt: timestamp("last_reviewed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("flashcard_user_word_idx").on(table.userId, table.wordId),
+    index("user_review_queue_idx").on(table.userId, table.nextReviewAt),
+  ],
+);
 ```
 
 `ai_sessions` is retained for persisted AI-session history. It has a `userId`, `sessionType` (`story_sandbox` or `helper_chat`), `languageCode`, selected word IDs, and structured story or message content.
@@ -98,3 +115,17 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 ## 5. Verification
 
 Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpoint tests must cover malformed imports, repeated imports, rollback on a failed multi-row import, card ownership, SM-2 rating updates, 3–7 story limits, moderation rejection, and the three-turn chat limit.
+
+## 6. Private beta extensions
+
+Cards remain private to the authenticated learner. `PATCH /api/cards/:cardId`
+updates that learner's personal display overrides or archive state; it never mutates
+the shared `words` row. `DELETE /api/cards/:cardId` removes only that learner's
+flashcard. Archived cards do not appear in review queues or AI seed selection.
+
+Completed Overstory stories and completed three-turn Understory rounds are saved
+to `ai_sessions` with a vocabulary snapshot. `GET /api/sessions` and
+`DELETE /api/sessions/:sessionId` are owner-scoped. The private beta uses a
+dedicated OpenAI project with usage alerts and a conservative enforced spend cap.
+Server-side AI rate limiting is deferred until beta activity justifies it; if
+added, it must use Canopy-isolated credentials.

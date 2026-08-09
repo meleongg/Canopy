@@ -4,11 +4,14 @@ import { useActionState, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  Archive,
+  ArchiveRestore,
   CircleHelp,
   FileText,
   PencilLine,
   Search,
   Sparkles,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -22,7 +25,7 @@ import {
 import {
   contextGeneratedLabel,
   dueLabel,
-  fetchCards,
+  fetchCardsByScope,
   growthLabel,
   reviewLabels,
 } from "@/components/canopy/card-utils";
@@ -491,7 +494,13 @@ function AddCardPanel() {
   );
 }
 
-function ReviewQueue({ cards }: { cards: WorkspaceCard[] }) {
+function ReviewQueue({
+  cards,
+  archived,
+}: {
+  cards: WorkspaceCard[];
+  archived: boolean;
+}) {
   const queryClient = useQueryClient();
   const [queueFilter, setQueueFilter] = useState<"due" | "all">("due");
   const dueCount = cards.filter(
@@ -511,6 +520,42 @@ function ReviewQueue({ cards }: { cards: WorkspaceCard[] }) {
   ) {
     await action(formData);
     invalidate(queryClient);
+  }
+
+  async function updateCard(
+    cardId: string,
+    body: Record<string, unknown>,
+    method = "PATCH",
+  ) {
+    const response = await fetch(`/api/cards/${cardId}`, {
+      method,
+      headers:
+        method === "PATCH" ? { "Content-Type": "application/json" } : undefined,
+      body: method === "PATCH" ? JSON.stringify(body) : undefined,
+    });
+    if (response.ok) invalidate(queryClient);
+  }
+
+  async function editCard(card: WorkspaceCard) {
+    const targetText = window.prompt("Word or phrase", card.targetText);
+    if (!targetText) return;
+    const phoneticReading = window.prompt(
+      "Reading",
+      card.phoneticReading.join(" "),
+    );
+    const definitions = window.prompt(
+      "Definitions (separate with semicolons)",
+      card.definitions.join("; "),
+    );
+    if (!definitions) return;
+    await updateCard(card.id, {
+      targetText,
+      phoneticReading: phoneticReading?.split(/\s+/).filter(Boolean) ?? [],
+      definitions: definitions
+        .split(";")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    });
   }
 
   return (
@@ -564,6 +609,9 @@ function ReviewQueue({ cards }: { cards: WorkspaceCard[] }) {
             <CardDescription>
               Cards are sorted by next review date. Review buttons update their
               next interval.
+              {archived
+                ? " Archived cards are kept out of review and AI practice."
+                : ""}
             </CardDescription>
           </div>
           <Badge>{dueCount} due</Badge>
@@ -676,48 +724,86 @@ function ReviewQueue({ cards }: { cards: WorkspaceCard[] }) {
                 </div>
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
-                <p className="basis-full text-xs text-muted-foreground">
-                  Review: 2 Hard · 3 Pass · 4 Good · ✓ Easy
-                </p>
-                {[2, 3, 4, 5].map((quality) => (
-                  <form
-                    action={(formData) => runAction(reviewCardAction, formData)}
-                    key={quality}
-                  >
-                    <input name="cardId" type="hidden" value={card.id} />
-                    <input name="quality" type="hidden" value={quality} />
-                    <Button
-                      size="icon"
-                      title={`Review quality ${quality}: ${reviewLabels[quality]}`}
-                      type="submit"
-                      variant="outline"
-                    >
-                      {quality === 5 ? <Check /> : quality}
-                    </Button>
-                  </form>
-                ))}
-                <form
-                  action={(formData) =>
-                    runAction(generateContextAction, formData)
-                  }
+                <Button
+                  onClick={() => void editCard(card)}
+                  type="button"
+                  variant="outline"
                 >
-                  <input name="cardId" type="hidden" value={card.id} />
-                  <Button
-                    disabled={
-                      card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                  <PencilLine /> Edit
+                </Button>
+                <Button
+                  onClick={() =>
+                    void updateCard(card.id, { archived: !archived })
+                  }
+                  type="button"
+                  variant="outline"
+                >
+                  {archived ? <ArchiveRestore /> : <Archive />}
+                  {archived ? "Restore" : "Archive"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Delete ${card.targetText} from your collection? This cannot be undone.`,
+                      )
+                    ) {
+                      void updateCard(card.id, {}, "DELETE");
                     }
-                    title="Generate and save one more example sentence, reading, and translation for this card."
-                    type="submit"
-                    variant="outline"
-                  >
-                    <Sparkles />
-                    {card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
-                      ? "Max Contexts"
-                      : card.aiExampleContexts.length > 0
-                        ? "Generate Another"
-                        : "Generate Context"}
-                  </Button>
-                </form>
+                  }}
+                  type="button"
+                  variant="outline"
+                >
+                  <Trash2 /> Delete
+                </Button>
+                {!archived ? (
+                  <>
+                    <p className="basis-full text-xs text-muted-foreground">
+                      Review: 2 Hard · 3 Pass · 4 Good · ✓ Easy
+                    </p>
+                    {[2, 3, 4, 5].map((quality) => (
+                      <form
+                        action={(formData) =>
+                          runAction(reviewCardAction, formData)
+                        }
+                        key={quality}
+                      >
+                        <input name="cardId" type="hidden" value={card.id} />
+                        <input name="quality" type="hidden" value={quality} />
+                        <Button
+                          size="icon"
+                          title={`Review quality ${quality}: ${reviewLabels[quality]}`}
+                          type="submit"
+                          variant="outline"
+                        >
+                          {quality === 5 ? <Check /> : quality}
+                        </Button>
+                      </form>
+                    ))}
+                    <form
+                      action={(formData) =>
+                        runAction(generateContextAction, formData)
+                      }
+                    >
+                      <input name="cardId" type="hidden" value={card.id} />
+                      <Button
+                        disabled={
+                          card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                        }
+                        title="Generate and save one more example sentence, reading, and translation for this card."
+                        type="submit"
+                        variant="outline"
+                      >
+                        <Sparkles />
+                        {card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                          ? "Max Contexts"
+                          : card.aiExampleContexts.length > 0
+                            ? "Generate Another"
+                            : "Generate Context"}
+                      </Button>
+                    </form>
+                  </>
+                ) : null}
               </div>
             </article>
           ))}
@@ -739,13 +825,19 @@ function ConsistencyWell({ cards }: { cards: WorkspaceCard[] }) {
     <Card>
       <CardHeader>
         <CardTitle>Consistency Well</CardTitle>
-        <CardDescription>New seeds planted across the last seven days.</CardDescription>
+        <CardDescription>
+          New seeds planted across the last seven days.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-7 gap-2">
         {days.map((day) => {
           const count = cards.filter((card) => {
             const created = new Date(card.createdAt);
-            return created.getFullYear() === day.getFullYear() && created.getMonth() === day.getMonth() && created.getDate() === day.getDate();
+            return (
+              created.getFullYear() === day.getFullYear() &&
+              created.getMonth() === day.getMonth() &&
+              created.getDate() === day.getDate()
+            );
           }).length;
           return (
             <div className="text-center" key={day.toISOString()}>
@@ -761,7 +853,9 @@ function ConsistencyWell({ cards }: { cards: WorkspaceCard[] }) {
                 {count}
               </div>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                {new Intl.DateTimeFormat("en", { weekday: "narrow" }).format(day)}
+                {new Intl.DateTimeFormat("en", { weekday: "narrow" }).format(
+                  day,
+                )}
               </p>
             </div>
           );
@@ -776,9 +870,12 @@ export function DashboardView({
 }: {
   initialCards: WorkspaceCard[];
 }) {
+  const [collectionScope, setCollectionScope] = useState<"active" | "archived">(
+    "active",
+  );
   const { data: cards = initialCards } = useQuery({
-    queryKey: queryKeys.dashboardCards,
-    queryFn: fetchCards,
+    queryKey: [...queryKeys.dashboardCards, collectionScope],
+    queryFn: () => fetchCardsByScope(collectionScope),
     initialData: initialCards,
   });
   const dueCount = cards.filter(
@@ -825,7 +922,25 @@ export function DashboardView({
         <ConsistencyWell cards={cards} />
       </aside>
       <div className="grid gap-6">
-        <ReviewQueue cards={cards} />
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => setCollectionScope("active")}
+            size="sm"
+            type="button"
+            variant={collectionScope === "active" ? "default" : "outline"}
+          >
+            Active cards
+          </Button>
+          <Button
+            onClick={() => setCollectionScope("archived")}
+            size="sm"
+            type="button"
+            variant={collectionScope === "archived" ? "default" : "outline"}
+          >
+            Archived cards
+          </Button>
+        </div>
+        <ReviewQueue archived={collectionScope === "archived"} cards={cards} />
       </div>
     </main>
   );

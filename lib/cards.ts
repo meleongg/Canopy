@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb, getSql } from "@/db/client";
 import { flashcards, words } from "@/db/schema";
 import type { ParsedVocabularyEntry } from "@/lib/ingestion";
@@ -15,6 +15,13 @@ export type CardSeed = {
 export type ImportResult = {
   importedCount: number;
   updatedCount: number;
+};
+
+export type CardPatch = {
+  archived?: boolean;
+  targetText?: string;
+  phoneticReading?: string[];
+  definitions?: string[];
 };
 
 function id() {
@@ -93,7 +100,13 @@ export async function reviewCard(
       easiness: flashcards.easiness,
     })
     .from(flashcards)
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, userId)))
+    .where(
+      and(
+        eq(flashcards.id, cardId),
+        eq(flashcards.userId, userId),
+        isNull(flashcards.archivedAt),
+      ),
+    )
     .limit(1);
 
   if (!card) {
@@ -121,14 +134,87 @@ export async function getCardSeeds(userId: string, cardIds: string[]) {
       targetText: words.targetText,
       phoneticReading: words.phoneticReading,
       definitions: words.definitions,
+      targetTextOverride: flashcards.targetTextOverride,
+      phoneticReadingOverride: flashcards.phoneticReadingOverride,
+      definitionsOverride: flashcards.definitionsOverride,
     })
     .from(flashcards)
     .innerJoin(words, eq(flashcards.wordId, words.id))
-    .where(and(eq(flashcards.userId, userId), inArray(flashcards.id, cardIds)));
+    .where(
+      and(
+        eq(flashcards.userId, userId),
+        inArray(flashcards.id, cardIds),
+        isNull(flashcards.archivedAt),
+      ),
+    );
 
-  const seedsById = new Map(rows.map((row) => [row.id, row]));
+  const seedsById = new Map(
+    rows.map(
+      ({
+        targetTextOverride,
+        phoneticReadingOverride,
+        definitionsOverride,
+        ...row
+      }) => [
+        row.id,
+        {
+          ...row,
+          targetText: targetTextOverride ?? row.targetText,
+          phoneticReading: phoneticReadingOverride ?? row.phoneticReading,
+          definitions: definitionsOverride ?? row.definitions,
+        },
+      ],
+    ),
+  );
   return cardIds.flatMap((cardId) => {
     const seed = seedsById.get(cardId);
     return seed ? [seed] : [];
   });
+}
+
+export async function patchCard(
+  userId: string,
+  cardId: string,
+  patch: CardPatch,
+) {
+  const db = getDb();
+  const values: {
+    archivedAt?: Date | null;
+    targetTextOverride?: string | null;
+    phoneticReadingOverride?: string[] | null;
+    definitionsOverride?: string[] | null;
+  } = {};
+
+  if (patch.archived !== undefined) {
+    values.archivedAt = patch.archived ? new Date() : null;
+  }
+  if (patch.targetText !== undefined) {
+    values.targetTextOverride = patch.targetText || null;
+  }
+  if (patch.phoneticReading !== undefined) {
+    values.phoneticReadingOverride =
+      patch.phoneticReading.length > 0 ? patch.phoneticReading : null;
+  }
+  if (patch.definitions !== undefined) {
+    values.definitionsOverride =
+      patch.definitions.length > 0 ? patch.definitions : null;
+  }
+
+  const [card] = await db
+    .update(flashcards)
+    .set(values)
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, userId)))
+    .returning({ id: flashcards.id });
+
+  return card ?? null;
+}
+
+export async function deleteCard(userId: string, cardId: string) {
+  const db = getDb();
+  const [card] = await db
+    .delete(flashcards)
+    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, userId)))
+    .returning({ id: flashcards.id });
+
+  return card ?? null;
 }

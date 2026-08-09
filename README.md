@@ -17,6 +17,12 @@ The app does not create local `.env` files. Runtime configuration is validated t
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL` with a fallback of `http://localhost:3000`
 
+For the Vercel private beta, configure the same values in Preview and Production,
+run `npm run db:push` against the target Neon database before deployment, and keep
+OpenAI credentials server-only. Use a dedicated OpenAI project with usage alerts
+and a conservative enforced spend cap. Server-side rate limiting is intentionally
+deferred until real beta activity justifies it.
+
 ## Linguistic Processing
 
 - **Linguistic Processing (Pure JS / Pre-compiled Ecosystem):**

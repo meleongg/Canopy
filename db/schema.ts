@@ -98,6 +98,12 @@ export const flashcards = pgTable(
     aiExampleContext: jsonb("ai_example_context").$type<
       ExampleContext[] | ExampleContext
     >(),
+    targetTextOverride: text("target_text_override"),
+    phoneticReadingOverride: jsonb("phonetic_reading_override").$type<
+      string[]
+    >(),
+    definitionsOverride: jsonb("definitions_override").$type<string[]>(),
+    archivedAt: timestamp("archived_at"),
     nextReviewAt: timestamp("next_review_at").defaultNow().notNull(),
     lastReviewedAt: timestamp("last_reviewed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -105,6 +111,7 @@ export const flashcards = pgTable(
   (table) => [
     uniqueIndex("flashcard_user_word_idx").on(table.userId, table.wordId),
     index("user_review_queue_idx").on(table.userId, table.nextReviewAt),
+    index("user_archived_cards_idx").on(table.userId, table.archivedAt),
   ],
 );
 
@@ -120,6 +127,18 @@ export const aiSessions = pgTable(
     }).notNull(),
     languageCode: text("language_code").notNull(),
     seedWordIds: jsonb("seed_word_ids").$type<string[]>().notNull(),
+    seedSnapshot: jsonb("seed_snapshot")
+      .$type<
+        {
+          cardId: string;
+          targetText: string;
+          phoneticReading: string[];
+          definitions: string[];
+          languageCode: string;
+        }[]
+      >()
+      .notNull()
+      .default([]),
     contentHistory: jsonb("content_history")
       .$type<{
         storyParagraph?: string;

@@ -5,7 +5,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Leaf, LogIn, LogOut, Moon, Sun, TreePine } from "lucide-react";
+import {
+  History,
+  Leaf,
+  LogIn,
+  LogOut,
+  Moon,
+  Sun,
+  TreePine,
+} from "lucide-react";
 import logoDark from "@/app/assets/icons/canopy-logo-dark.svg";
 import logoLight from "@/app/assets/icons/canopy-logo-light.svg";
 import { useCanopyTheme } from "@/app/providers";
@@ -30,6 +38,7 @@ const privateNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/overstory", label: "The Overstory" },
   { href: "/understory/setup", label: "The Understory" },
+  { href: "/history", label: "History" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -145,6 +154,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/overstory">
                       <Leaf className="mr-2 size-4" />
                       The Overstory
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/history">
+                      <History className="mr-2 size-4" />
+                      Practice history
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
