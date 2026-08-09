@@ -5,7 +5,6 @@ import { hasOpenAIEnv } from "@/db/env";
 import { getCardSeeds } from "@/lib/cards";
 import { saveStorySession } from "@/lib/ai-sessions";
 import { moderateText } from "@/lib/openai";
-import { enforceAiRateLimit } from "@/lib/rate-limit";
 import { requireApiAuth } from "@/lib/session";
 
 export const runtime = "edge";
@@ -34,19 +33,6 @@ export async function POST(request: Request) {
   if (!hasOpenAIEnv()) {
     return new Response("OPENAI_API_KEY is required to generate stories.", {
       status: 503,
-    });
-  }
-
-  const rateLimit = await enforceAiRateLimit(
-    auth.session.user.id,
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown",
-  );
-  if (!rateLimit.allowed) {
-    return new Response(rateLimit.reason, {
-      status: rateLimit.retryAfter ? 429 : 503,
-      headers: rateLimit.retryAfter
-        ? { "Retry-After": String(rateLimit.retryAfter) }
-        : undefined,
     });
   }
 

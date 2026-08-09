@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "DATABASE_URL=$CANOPY_DEV_DB_URL OPENAI_API_KEY=$CANOPY_DEV_OPENAI_KEY BETTER_AUTH_SECRET=$CANOPY_DEV_AUTH_SECRET UPSTASH_REDIS_REST_URL=$CANOPY_DEV_UPSTASH_REDIS_REST_URL UPSTASH_REDIS_REST_TOKEN=$CANOPY_DEV_UPSTASH_REDIS_REST_TOKEN next dev",
+    "dev": "DATABASE_URL=$CANOPY_DEV_DB_URL OPENAI_API_KEY=$CANOPY_DEV_OPENAI_KEY BETTER_AUTH_SECRET=$CANOPY_DEV_AUTH_SECRET next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -28,8 +28,6 @@
     "@radix-ui/react-tabs": "^1.1.14",
     "@radix-ui/react-tooltip": "^1.2.9",
     "@tanstack/react-query": "^5.101.0",
-    "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.38.2",
     "ai": "^6.0.197",
     "better-auth": "^1.6.14",
     "class-variance-authority": "^0.7.1",

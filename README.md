@@ -16,16 +16,12 @@ The app does not create local `.env` files. Runtime configuration is validated t
 - `OPENAI_API_KEY`
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL` with a fallback of `http://localhost:3000`
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-
-Local development maps the latter two values from
-`CANOPY_DEV_UPSTASH_REDIS_REST_URL` and `CANOPY_DEV_UPSTASH_REDIS_REST_TOKEN`.
 
 For the Vercel private beta, configure the same values in Preview and Production,
 run `npm run db:push` against the target Neon database before deployment, and keep
-OpenAI credentials server-only. AI practice is limited to 10 requests per hour and
-30 requests per day for each signed-in user.
+OpenAI credentials server-only. Use a dedicated OpenAI project with usage alerts
+and a conservative enforced spend cap. Server-side rate limiting is intentionally
+deferred until real beta activity justifies it.
 
 ## Linguistic Processing
 

@@ -125,6 +125,7 @@ flashcard. Archived cards do not appear in review queues or AI seed selection.
 
 Completed Overstory stories and completed three-turn Understory rounds are saved
 to `ai_sessions` with a vocabulary snapshot. `GET /api/sessions` and
-`DELETE /api/sessions/:sessionId` are owner-scoped. AI generation is protected by
-Upstash limits: 10 requests/hour and 30/day per user, with IP ceilings of 20/hour
-and 60/day.
+`DELETE /api/sessions/:sessionId` are owner-scoped. The private beta uses a
+dedicated OpenAI project with usage alerts and a conservative enforced spend cap.
+Server-side AI rate limiting is deferred until beta activity justifies it; if
+added, it must use Canopy-isolated credentials.

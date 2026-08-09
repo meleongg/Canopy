@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  enforceAiRateLimit: vi.fn(),
   getCardSeeds: vi.fn(),
   requireApiAuth: vi.fn(),
 }));
@@ -13,20 +12,11 @@ vi.mock("@/lib/openai", () => ({
   GARDEN_BOUNDARY_MESSAGE: "blocked",
   moderateText: vi.fn(),
 }));
-vi.mock("@/lib/rate-limit", () => ({
-  enforceAiRateLimit: mocks.enforceAiRateLimit,
-}));
-
 describe("AI route guardrails", () => {
   beforeEach(() => {
     mocks.requireApiAuth.mockResolvedValue({
       session: { user: { id: "learner-1" } },
       response: null,
-    });
-    mocks.enforceAiRateLimit.mockResolvedValue({
-      allowed: true,
-      retryAfter: 0,
-      reason: "",
     });
     mocks.getCardSeeds.mockResolvedValue([
       {
@@ -78,32 +68,4 @@ describe("AI route guardrails", () => {
     expect(await response.text()).toContain("three learner turns");
   });
 
-  it("rejects an AI request before moderation when the quota is exhausted", async () => {
-    mocks.enforceAiRateLimit.mockResolvedValue({
-      allowed: false,
-      retryAfter: 60,
-      reason: "AI practice limit reached. Please return later.",
-    });
-    mocks.getCardSeeds.mockResolvedValue(
-      Array.from({ length: 3 }, () => ({
-        id: crypto.randomUUID(),
-        languageCode: "zh-CN",
-        targetText: "会议",
-        phoneticReading: ["huì", "yì"],
-        definitions: ["meeting"],
-      })),
-    );
-    const { POST } = await import("@/app/api/generate-sandbox/route");
-    const response = await POST(
-      new Request("http://test/api/generate-sandbox", {
-        method: "POST",
-        body: JSON.stringify({
-          cardIds: Array.from({ length: 3 }, () => crypto.randomUUID()),
-        }),
-      }),
-    );
-
-    expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("60");
-  });
 });
