@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  useTransition,
 } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -78,7 +77,8 @@ export function UnderstoryChatView({
     () => fallbackSetup,
   );
   const [chatInput, setChatInput] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [isOpening, setIsOpening] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState("");
   const openedRound = useRef<string | null>(null);
@@ -95,44 +95,65 @@ export function UnderstoryChatView({
     if (seedCards.length === 0 || openedRound.current === roundKey) return;
     openedRound.current = roundKey;
     setChatError("");
-    setMessages([{ role: "assistant", content: "" }]);
+    setMessages([]);
+    setIsOpening(true);
 
-    startTransition(async () => {
-      const response = await fetch("/api/generate-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardIds: seedCards.map((card) => card.id),
-          scenario: setup.setting,
-          persona: setup.persona,
-          messageHistory: [],
-        }),
-      });
-
-      if (!response.ok) {
-        setChatError(await response.text());
-        setMessages([]);
-        return;
-      }
-
-      await streamTextResponse(response, (token) => {
-        setMessages((current) => {
-          const copy = [...current];
-          const last = copy[copy.length - 1];
-          if (!last) return current;
-          copy[copy.length - 1] = {
-            role: "assistant",
-            content: `${last.content}${token}`,
-          };
-          return copy;
+    async function openRound() {
+      try {
+        const response = await fetch("/api/generate-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardIds: seedCards.map((card) => card.id),
+            scenario: setup.setting,
+            persona: setup.persona,
+            messageHistory: [],
+          }),
         });
-      });
-    });
-  }, [roundKey, seedCards, setup.persona, setup.setting, startTransition]);
+
+        if (!response.ok) {
+          setChatError(await response.text());
+          setMessages([]);
+          return;
+        }
+
+        await streamTextResponse(response, (token) => {
+          setMessages((current) => {
+            if (current.length === 0) {
+              return [{ role: "assistant", content: token }];
+            }
+            const copy = [...current];
+            const last = copy[copy.length - 1];
+            if (!last) return current;
+            copy[copy.length - 1] = {
+              role: "assistant",
+              content: `${last.content}${token}`,
+            };
+            return copy;
+          });
+        });
+      } catch {
+        setChatError(
+          "Your companion could not start the conversation. Please try a new practice round.",
+        );
+        setMessages([]);
+      } finally {
+        setIsOpening(false);
+      }
+    }
+
+    void openRound();
+  }, [roundKey, seedCards, setup.persona, setup.setting]);
 
   function sendChatMessage() {
     const content = chatInput.trim();
-    if (!content || seedCards.length === 0 || learnerTurnCount >= 3) {
+    if (
+      !content ||
+      seedCards.length === 0 ||
+      isOpening ||
+      isSending ||
+      learnerTurnCount >= 5
+    ) {
       return;
     }
 
@@ -141,39 +162,51 @@ export function UnderstoryChatView({
       { role: "user", content },
     ];
     setChatInput("");
-    setMessages([...nextMessages, { role: "assistant", content: "" }]);
+    setChatError("");
+    setMessages(nextMessages);
+    setIsSending(true);
 
-    startTransition(async () => {
-      const response = await fetch("/api/generate-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardIds: seedCards.map((card) => card.id),
-          scenario: setup.setting,
-          persona: setup.persona,
-          messageHistory: nextMessages,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        setChatError(error);
-        setMessages([...nextMessages, { role: "assistant", content: error }]);
-        return;
-      }
-
-      await streamTextResponse(response, (token) => {
-        setMessages((current) => {
-          const copy = [...current];
-          const last = copy[copy.length - 1];
-          copy[copy.length - 1] = {
-            role: "assistant",
-            content: `${last.content}${token}`,
-          };
-          return copy;
+    async function sendReply() {
+      try {
+        const response = await fetch("/api/generate-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardIds: seedCards.map((card) => card.id),
+            scenario: setup.setting,
+            persona: setup.persona,
+            messageHistory: nextMessages,
+          }),
         });
-      });
-    });
+
+        if (!response.ok) {
+          setChatError(await response.text());
+          return;
+        }
+
+        await streamTextResponse(response, (token) => {
+          setMessages((current) => {
+            if (current.length === nextMessages.length) {
+              return [...current, { role: "assistant", content: token }];
+            }
+            const copy = [...current];
+            const last = copy[copy.length - 1];
+            if (!last) return current;
+            copy[copy.length - 1] = {
+              role: "assistant",
+              content: `${last.content}${token}`,
+            };
+            return copy;
+          });
+        });
+      } catch {
+        setChatError("Your reply could not be sent. Please try again.");
+      } finally {
+        setIsSending(false);
+      }
+    }
+
+    void sendReply();
   }
 
   return (
@@ -192,8 +225,8 @@ export function UnderstoryChatView({
               </CardDescription>
             </div>
             <Avatar className="border border-primary bg-primary text-primary-foreground">
-              <AvatarFallback>
-                <TreePine className="size-5" />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                <TreePine className="size-5 text-primary-foreground" />
               </AvatarFallback>
             </Avatar>
           </div>
@@ -227,7 +260,7 @@ export function UnderstoryChatView({
             </div>
           ) : null}
           <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
-            {isPending && messages.length === 0 ? (
+            {isOpening && messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Your companion is preparing the first question…
               </p>
@@ -241,8 +274,8 @@ export function UnderstoryChatView({
                 key={`${message.role}-${index}`}
               >
                 {message.role === "assistant" ? (
-                  <span className="mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-foreground">
-                    <TreePine className="size-4" />
+                  <span className="mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <TreePine className="size-4 text-primary-foreground" />
                   </span>
                 ) : null}
                 <p
@@ -277,6 +310,12 @@ export function UnderstoryChatView({
           <div className="mt-3 flex gap-2">
             <Input
               className="h-11 min-w-0 flex-1"
+              disabled={
+                isOpening ||
+                isSending ||
+                seedCards.length === 0 ||
+                learnerTurnCount >= 5
+              }
               onChange={(event) => setChatInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -289,7 +328,10 @@ export function UnderstoryChatView({
             <Button
               className="size-11"
               disabled={
-                isPending || seedCards.length === 0 || learnerTurnCount >= 5
+                isOpening ||
+                isSending ||
+                seedCards.length === 0 ||
+                learnerTurnCount >= 5
               }
               onClick={sendChatMessage}
               title="Send"

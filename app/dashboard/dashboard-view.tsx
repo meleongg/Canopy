@@ -1025,8 +1025,8 @@ export function DashboardView({
   );
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:grid-cols-[380px_1fr] md:px-8">
-      <aside className="flex flex-col gap-6">
+    <main className="mx-auto grid w-full max-w-7xl items-start gap-6 px-4 py-6 md:grid-cols-[380px_1fr] md:px-8">
+      <aside className="flex self-start flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Dashboard</CardTitle>
@@ -1059,7 +1059,7 @@ export function DashboardView({
         <AddCardPanel />
         <ConsistencyWell cards={cards} />
       </aside>
-      <div className="grid gap-6">
+      <div className="grid self-start gap-6">
         <div className="flex justify-end gap-2">
           <Button
             onClick={() => setCollectionScope("active")}
