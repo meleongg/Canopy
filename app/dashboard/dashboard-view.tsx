@@ -1,13 +1,16 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   Archive,
   ArchiveRestore,
+  BookOpen,
   CircleHelp,
   FileText,
+  MessageCircle,
   PencilLine,
   Search,
   Sparkles,
@@ -51,6 +54,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   MAX_EXAMPLE_CONTEXTS,
   type ExampleContext,
@@ -1008,6 +1018,9 @@ export function DashboardView({
 }: {
   initialCards: WorkspaceCard[];
 }) {
+  const [acquisitionMode, setAcquisitionMode] = useState<
+    "import" | "add" | null
+  >(null);
   const [collectionScope, setCollectionScope] = useState<"active" | "archived">(
     "active",
   );
@@ -1025,41 +1038,65 @@ export function DashboardView({
   );
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl items-start gap-6 px-4 py-6 md:grid-cols-[380px_1fr] md:px-8">
-      <aside className="flex self-start flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Dashboard</CardTitle>
-            <CardDescription>
-              Import vocabulary, tend reviews, and monitor the current Canopy.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Cards
-              </p>
-              <p className="mt-1 text-2xl font-bold">{cards.length}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Due
-              </p>
-              <p className="mt-1 text-2xl font-bold">{dueCount}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Contexts
-              </p>
-              <p className="mt-1 text-2xl font-bold">{contextCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <ImportPanel />
-        <AddCardPanel />
-        <ConsistencyWell cards={cards} />
-      </aside>
-      <div className="grid self-start gap-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-8">
+      <section className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase text-primary">
+            Your grove
+          </p>
+          <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl">
+            Today&apos;s learning
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Review what is ready, then turn your vocabulary into reading and
+            conversation practice.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => setAcquisitionMode("import")}
+            type="button"
+            variant="outline"
+          >
+            <Upload />
+            Import vocabulary
+          </Button>
+          <Button
+            onClick={() => setAcquisitionMode("add")}
+            type="button"
+            variant="outline"
+          >
+            <FileText />
+            Add card
+          </Button>
+        </div>
+      </section>
+
+      <section
+        aria-label="Collection summary"
+        className="grid grid-cols-3 gap-3"
+      >
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Cards
+          </p>
+          <p className="mt-1 font-serif text-3xl font-bold">{cards.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Due now
+          </p>
+          <p className="mt-1 font-serif text-3xl font-bold">{dueCount}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Contexts
+          </p>
+          <p className="mt-1 font-serif text-3xl font-bold">{contextCount}</p>
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <div className="flex justify-end gap-2">
           <Button
             onClick={() => setCollectionScope("active")}
@@ -1083,7 +1120,58 @@ export function DashboardView({
           cards={cards}
           key={collectionScope}
         />
-      </div>
+      </section>
+
+      <section className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Continue practising</CardTitle>
+            <CardDescription>
+              Use active vocabulary in a short story or guided conversation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild>
+              <Link href="/overstory">
+                <BookOpen />
+                Open Overstory
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/understory/setup">
+                <MessageCircle />
+                Start Understory
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <ConsistencyWell cards={cards} />
+      </section>
+
+      <Sheet
+        onOpenChange={(open) => {
+          if (!open) setAcquisitionMode(null);
+        }}
+        open={acquisitionMode !== null}
+      >
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              {acquisitionMode === "import"
+                ? "Import vocabulary"
+                : "Add a card"}
+            </SheetTitle>
+            <SheetDescription>
+              {acquisitionMode === "import"
+                ? "Bring in a Pleco folder export or another vocabulary list, preview it, then create only the cards you want."
+                : "Add one word or phrase to your private learning collection."}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-5">
+            {acquisitionMode === "import" ? <ImportPanel /> : <AddCardPanel />}
+          </div>
+        </SheetContent>
+      </Sheet>
     </main>
   );
 }
