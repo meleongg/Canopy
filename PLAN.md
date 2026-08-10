@@ -20,3 +20,8 @@ Add server-side AI rate limiting (for example, a dedicated Redis/Valkey store or
 Vercel WAF rule) after observing enough real activity to justify the operational
 cost and configuration. It must use Canopy-isolated credentials; do not share a
 database token with another project.
+
+Refine practice history when saved-session volume justifies it: add All,
+Overstory, and Understory filters with scoped empty states, then introduce
+pagination or a load-more control rather than expanding the initial 60-session
+list indefinitely.
