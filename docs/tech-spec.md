@@ -116,7 +116,7 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 
 ## 5. Verification
 
-Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpoint tests must cover malformed imports, repeated imports, rollback on a failed multi-row import, card ownership, SM-2 rating updates, 3–7 story limits, moderation rejection, and the three-turn chat limit.
+Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpoint tests must cover malformed imports, repeated imports, rollback on a failed multi-row import, card ownership, SM-2 rating updates, 3–7 story limits, moderation rejection, and the five-turn chat limit.
 
 ## 6. Private beta extensions
 
