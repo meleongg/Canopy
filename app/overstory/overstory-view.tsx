@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Sparkles } from "lucide-react";
 import { SeedPicker } from "@/components/canopy/seed-picker";
@@ -78,6 +79,7 @@ export function OverstoryView({
     cards.slice(0, 3).map((card) => card.id),
   );
   const [story, setStory] = useState("");
+  const [isComplete, setIsComplete] = useState(false);
   const [isPending, startTransition] = useTransition();
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
@@ -87,6 +89,7 @@ export function OverstoryView({
   function generateSandbox() {
     startTransition(async () => {
       setStory("");
+      setIsComplete(false);
       const response = await fetch("/api/generate-sandbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -101,6 +104,7 @@ export function OverstoryView({
       await streamTextResponse(response, (token) =>
         setStory((current) => current + token),
       );
+      setIsComplete(true);
     });
   }
 
@@ -144,8 +148,23 @@ export function OverstoryView({
               type="button"
             >
               <Sparkles />
-              Generate Overstory
+              {isPending ? "Growing your story…" : "Generate Overstory"}
             </Button>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {cards.length < 3
+                ? "Add at least three active cards in your Dashboard before creating an Overstory."
+                : seedCards.length < 3
+                  ? "Choose at least three seeds to begin."
+                  : "Choose between three and seven active seeds. Completed stories are saved to your practice history."}
+              {cards.length < 3 ? (
+                <Link
+                  className="ml-1 font-semibold text-primary"
+                  href="/dashboard"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : null}
+            </p>
             <div className="mt-5 min-h-96 rounded-xl border border-border bg-background p-5 text-base leading-8">
               {story ? (
                 <p>{tokenizeStory(story, seedCards)}</p>
@@ -156,6 +175,17 @@ export function OverstoryView({
                 </p>
               )}
             </div>
+            {isComplete ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-card p-4">
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Your Overstory is complete and saved privately to your
+                  practice history.
+                </p>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/history">View practice history</Link>
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </section>

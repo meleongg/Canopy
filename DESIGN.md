@@ -74,3 +74,52 @@ Strictly use the two designated font families to maintain the organic book/garde
 - **DO** wrap character representations in the reader interface with hover tooltip components showing translations and phonetic metadata.
 - **DON'T** mix arbitrary custom border colors; strictly map visual elements back to the semantic token pairs defined in section 2.
 - **DON'T** introduce heavy, hyper-saturated neon colors. All interactive notifications, accents, and validation indicators must be soft, natural tones (like Moss, Sage, and Soft Mint).
+
+## 6. Design System & Component Ownership
+
+- **Styling:** Tailwind CSS v4 is the styling and responsive-layout system.
+- **UI primitives:** Use the local `components/ui` shadcn-style components as
+  the application design system. They are backed by Radix UI where accessible
+  primitives are useful, and may be extended in-repo to preserve a coherent
+  interface.
+- **Icons:** Use Lucide icons with visible text labels unless the action is
+  universally understood and has an accessible name.
+- **Extension rule:** Reuse or improve an existing local primitive before adding
+  a dependency or introducing an ad-hoc visual pattern.
+
+## 7. Interaction, Feedback & State Rules
+
+- Never use browser `alert`, `prompt`, or `confirm`. Editing happens in an
+  in-app form or dialog; irreversible actions use a clear confirmation dialog.
+- Use inline validation and inline workflow status for forms, AI generation,
+  streaming chat, loading, and recoverable errors. Use a brief toast only for
+  successful, independent mutations such as card edits, archive/restore, or
+  deletion.
+- Every workflow must describe unavailable actions and provide a recovery path:
+  empty collections link to import, unavailable AI generation explains its seed
+  requirement, and completed practice links to History.
+- Dialogs must be keyboard-operable, focus-managed, labelled, and include a
+  visible cancel path. Destructive confirmations must name the affected item and
+  state whether the action is irreversible.
+- Keep visible focus treatments and meet contrast needs in both themes. Do not
+  rely solely on color to convey selected, disabled, error, or completion state.
+
+## 8. Navigation & Responsive Rules
+
+- Desktop navigation may appear in the header. Authenticated mobile views use a
+  persistent compact bottom bar for Dashboard, Overstory, Understory, and
+  History. Each item must retain a text label and a comfortable tap target.
+- Account settings and sign-out stay in the profile menu to avoid crowding the
+  primary learning navigation.
+- Preserve sufficient bottom padding in page content so the mobile navigation
+  never covers actions or form fields.
+
+## 9. Learning-Flow Rules
+
+- The Overstory must show the 3–7 seed requirement before its primary action is
+  usable and link back to the Dashboard when there are too few active cards.
+- The Understory is a five-turn, focused practice round. The AI opens with the
+  first question; the active setting and selected vocabulary are visible before
+  the learner responds. Show explicit turn progress throughout the round.
+- A completed Overstory or Understory round clearly confirms that it has been
+  saved privately and offers History as the next action.

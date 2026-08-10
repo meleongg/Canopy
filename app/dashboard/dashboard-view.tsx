@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 import {
   MAX_EXAMPLE_CONTEXTS,
   type ExampleContext,
@@ -502,7 +503,13 @@ function ReviewQueue({
   archived: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [queueFilter, setQueueFilter] = useState<"due" | "all">("due");
+  const { toast } = useToast();
+  const [queueFilter, setQueueFilter] = useState<"due" | "all">(
+    archived ? "all" : "due",
+  );
+  const [editingCard, setEditingCard] = useState<WorkspaceCard | null>(null);
+  const [deletingCard, setDeletingCard] = useState<WorkspaceCard | null>(null);
+  const [actionMessage, setActionMessage] = useState("");
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
   ).length;
@@ -533,29 +540,54 @@ function ReviewQueue({
         method === "PATCH" ? { "Content-Type": "application/json" } : undefined,
       body: method === "PATCH" ? JSON.stringify(body) : undefined,
     });
-    if (response.ok) invalidate(queryClient);
+    if (!response.ok) {
+      setActionMessage("That change could not be saved. Please try again.");
+      return false;
+    }
+    invalidate(queryClient);
+    return true;
   }
 
-  async function editCard(card: WorkspaceCard) {
-    const targetText = window.prompt("Word or phrase", card.targetText);
-    if (!targetText) return;
-    const phoneticReading = window.prompt(
-      "Reading",
-      card.phoneticReading.join(" "),
-    );
-    const definitions = window.prompt(
-      "Definitions (separate with semicolons)",
-      card.definitions.join("; "),
-    );
-    if (!definitions) return;
-    await updateCard(card.id, {
+  async function saveCardEdit(formData: FormData) {
+    if (!editingCard) return;
+    const targetText = String(formData.get("targetText") ?? "").trim();
+    const definitions = String(formData.get("definitions") ?? "")
+      .split(";")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (!targetText || definitions.length === 0) {
+      setActionMessage("Add a word or phrase and at least one definition.");
+      return;
+    }
+    const saved = await updateCard(editingCard.id, {
       targetText,
-      phoneticReading: phoneticReading?.split(/\s+/).filter(Boolean) ?? [],
-      definitions: definitions
-        .split(";")
-        .map((value) => value.trim())
+      phoneticReading: String(formData.get("phoneticReading") ?? "")
+        .split(/\s+/)
         .filter(Boolean),
+      definitions,
     });
+    if (saved) {
+      setEditingCard(null);
+      toast("Card details saved.");
+    }
+  }
+
+  async function deleteSelectedCard() {
+    if (!deletingCard) return;
+    if (await updateCard(deletingCard.id, {}, "DELETE")) {
+      setDeletingCard(null);
+      toast("Card permanently deleted.");
+    }
+  }
+
+  async function toggleArchive(cardId: string) {
+    if (await updateCard(cardId, { archived: !archived })) {
+      toast(
+        archived
+          ? "Card restored to your active collection."
+          : "Card archived.",
+      );
+    }
   }
 
   return (
@@ -725,16 +757,14 @@ function ReviewQueue({
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button
-                  onClick={() => void editCard(card)}
+                  onClick={() => setEditingCard(card)}
                   type="button"
                   variant="outline"
                 >
                   <PencilLine /> Edit
                 </Button>
                 <Button
-                  onClick={() =>
-                    void updateCard(card.id, { archived: !archived })
-                  }
+                  onClick={() => void toggleArchive(card.id)}
                   type="button"
                   variant="outline"
                 >
@@ -742,15 +772,7 @@ function ReviewQueue({
                   {archived ? "Restore" : "Archive"}
                 </Button>
                 <Button
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Delete ${card.targetText} from your collection? This cannot be undone.`,
-                      )
-                    ) {
-                      void updateCard(card.id, {}, "DELETE");
-                    }
-                  }}
+                  onClick={() => setDeletingCard(card)}
                   type="button"
                   variant="outline"
                 >
@@ -807,8 +829,124 @@ function ReviewQueue({
               </div>
             </article>
           ))}
+          {actionMessage ? (
+            <p
+              className="mt-4 rounded-lg border border-primary/40 bg-card p-3 text-sm text-muted-foreground"
+              role="status"
+            >
+              {actionMessage}
+            </p>
+          ) : null}
         </div>
       </CardContent>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setEditingCard(null);
+        }}
+        open={Boolean(editingCard)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit card</DialogTitle>
+            <DialogDescription>
+              These details are private to your Canopy. The shared dictionary
+              entry remains unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          {editingCard ? (
+            <form action={saveCardEdit} className="mt-5 space-y-4">
+              <div>
+                <label
+                  className="text-sm font-semibold"
+                  htmlFor="edit-target-text"
+                >
+                  Word or phrase
+                </label>
+                <Input
+                  defaultValue={editingCard.targetText}
+                  id="edit-target-text"
+                  name="targetText"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold" htmlFor="edit-reading">
+                  Reading{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <Input
+                  defaultValue={editingCard.phoneticReading.join(" ")}
+                  id="edit-reading"
+                  name="phoneticReading"
+                />
+              </div>
+              <div>
+                <label
+                  className="text-sm font-semibold"
+                  htmlFor="edit-definitions"
+                >
+                  Definitions
+                </label>
+                <Textarea
+                  defaultValue={editingCard.definitions.join("; ")}
+                  id="edit-definitions"
+                  name="definitions"
+                  required
+                  rows={3}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Separate definitions with semicolons.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => setEditingCard(null)}
+                  type="button"
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Save card</Button>
+              </div>
+            </form>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setDeletingCard(null);
+        }}
+        open={Boolean(deletingCard)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this card?</DialogTitle>
+            <DialogDescription>
+              {deletingCard
+                ? `“${deletingCard.targetText}” will be permanently removed from your collection. This cannot be undone.`
+                : "This cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button
+              onClick={() => setDeletingCard(null)}
+              type="button"
+              variant="outline"
+            >
+              Keep card
+            </Button>
+            <Button
+              onClick={() => void deleteSelectedCard()}
+              type="button"
+              variant="destructive"
+            >
+              Delete permanently
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -873,10 +1011,10 @@ export function DashboardView({
   const [collectionScope, setCollectionScope] = useState<"active" | "archived">(
     "active",
   );
-  const { data: cards = initialCards } = useQuery({
+  const { data: cards = [] } = useQuery({
     queryKey: [...queryKeys.dashboardCards, collectionScope],
     queryFn: () => fetchCardsByScope(collectionScope),
-    initialData: initialCards,
+    initialData: collectionScope === "active" ? initialCards : undefined,
   });
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
@@ -940,7 +1078,11 @@ export function DashboardView({
             Archived cards
           </Button>
         </div>
-        <ReviewQueue archived={collectionScope === "archived"} cards={cards} />
+        <ReviewQueue
+          archived={collectionScope === "archived"}
+          cards={cards}
+          key={collectionScope}
+        />
       </div>
     </main>
   );

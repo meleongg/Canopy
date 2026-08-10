@@ -43,7 +43,7 @@ describe("AI route guardrails", () => {
     expect(response.status).toBe(400);
   });
 
-  it("stops dialogue after the third learner turn", async () => {
+  it("stops dialogue after the fifth learner turn", async () => {
     const { POST } = await import("@/app/api/generate-chat/route");
     const response = await POST(
       new Request("http://test/api/generate-chat", {
@@ -58,14 +58,17 @@ describe("AI route guardrails", () => {
             { role: "user", content: "three" },
             { role: "assistant", content: "four" },
             { role: "user", content: "five" },
-            { role: "user", content: "six" },
+            { role: "assistant", content: "six" },
+            { role: "user", content: "seven" },
+            { role: "assistant", content: "eight" },
+            { role: "user", content: "nine" },
+            { role: "user", content: "ten" },
           ],
         }),
       }),
     );
 
     expect(response.status).toBe(400);
-    expect(await response.text()).toContain("three learner turns");
+    expect(await response.text()).toContain("five learner turns");
   });
-
 });

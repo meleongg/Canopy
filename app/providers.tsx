@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ToastProvider } from "@/components/ui/toast";
 
 type Theme = "light" | "dark";
 
@@ -96,7 +97,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+        <TooltipProvider delayDuration={200}>
+          <ToastProvider>{children}</ToastProvider>
+        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

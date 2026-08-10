@@ -36,13 +36,19 @@ export function RegisterForm() {
         <label className="text-sm font-medium" htmlFor="name">
           Name
         </label>
-        <Input id="name" name="name" required />
+        <Input autoComplete="name" id="name" name="name" required />
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="email">
           Email
         </label>
-        <Input id="email" name="email" type="email" required />
+        <Input
+          autoComplete="email"
+          id="email"
+          name="email"
+          type="email"
+          required
+        />
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="password">
@@ -50,15 +56,20 @@ export function RegisterForm() {
         </label>
         <Input
           id="password"
+          autoComplete="new-password"
           name="password"
           minLength={8}
           type="password"
           required
         />
       </div>
-      {error ? <p className="text-sm text-primary">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-primary" role="alert">
+          {error}
+        </p>
+      ) : null}
       <Button className="w-full" disabled={isPending} type="submit">
-        Create account
+        {isPending ? "Creating account…" : "Create account"}
       </Button>
     </form>
   );
