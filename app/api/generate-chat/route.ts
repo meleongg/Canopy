@@ -20,7 +20,7 @@ const chatSchema = z.object({
         content: z.string().trim().min(1).max(4_000),
       }),
     )
-    .max(6),
+    .max(10),
 });
 
 export async function POST(request: Request) {
@@ -35,8 +35,8 @@ export async function POST(request: Request) {
   const userTurns = parsed.data.messageHistory.filter(
     (message) => message.role === "user",
   );
-  if (userTurns.length > 3) {
-    return new Response("The Understory ends after three learner turns.", {
+  if (userTurns.length > 5) {
+    return new Response("The Understory ends after five learner turns.", {
       status: 400,
     });
   }
@@ -79,14 +79,24 @@ export async function POST(request: Request) {
         : languageCode === "fr-FR"
           ? "French"
           : "the target language";
+  const conversation = parsed.data.messageHistory.length
+    ? { messages: parsed.data.messageHistory as ModelMessage[] }
+    : {
+        prompt:
+          "Open the selected scene now. Introduce yourself as the learner's companion, establish the setting, and ask the first natural question.",
+      };
+  const closingInstruction =
+    userTurns.length === 5
+      ? "This is the learner's fifth and final turn. Respond warmly, acknowledge their effort, naturally recap or reinforce useful vocabulary, and close the scene without asking another question."
+      : "End with one natural question that invites the learner to answer.";
 
   const result = streamText({
     model: openai("gpt-4o-mini"),
     temperature: 0.7,
-    system: `You are Bramble, Canopy's ${persona} for The Understory Chat. Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences and end with a natural question that invites the learner to answer. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. Selected vocabulary: ${targetWords}.`,
-    messages: parsed.data.messageHistory as ModelMessage[],
+    system: `You are Bramble, Canopy's ${persona} for The Understory Chat. Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. ${closingInstruction} Selected vocabulary: ${targetWords}.`,
+    ...conversation,
     onFinish: async ({ text }) => {
-      if (userTurns.length === 3 && text.trim()) {
+      if (userTurns.length === 5 && text.trim()) {
         try {
           await saveChatSession(auth.session.user.id, seeds, [
             ...parsed.data.messageHistory,

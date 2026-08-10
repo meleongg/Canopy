@@ -22,7 +22,7 @@ export function SheetContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed top-0 z-50 h-full w-[min(420px,calc(100%-2rem))] border-border bg-card p-5",
+          "fixed top-0 z-50 h-full w-[min(520px,calc(100%-2rem))] overflow-y-auto border-border bg-card p-5",
           side === "right" ? "right-0 border-l" : "left-0 border-r",
           className,
         )}

@@ -6,10 +6,17 @@ import { getAuthEnv } from "@/db/env";
 
 function createAuth() {
   const env = getAuthEnv();
+  const baseURL = process.env.VERCEL
+    ? {
+        allowedHosts: ["usecanopy.vercel.app", "canopy-*.vercel.app"],
+        fallback: env.BETTER_AUTH_URL,
+        protocol: "https" as const,
+      }
+    : env.BETTER_AUTH_URL;
 
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_URL,
+    baseURL,
     database: drizzleAdapter(getDb(), {
       provider: "pg",
     }),

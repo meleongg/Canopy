@@ -1,12 +1,19 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Send, TreePine } from "lucide-react";
+import { ArrowRight, History, Send, TreePine } from "lucide-react";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -70,14 +77,11 @@ export function UnderstoryChatView({
     () => fallbackSetup,
   );
   const [chatInput, setChatInput] = useState("");
-  const [isPending, startTransition] = useTransition();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        "Bramble is ready. Choose seeds, then step into a low-pressure dialogue.",
-    },
-  ]);
+  const [isOpening, setIsOpening] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatError, setChatError] = useState("");
+  const openedRound = useRef<string | null>(null);
   const seedCards = useMemo(
     () => cards.filter((card) => setup.seedIds.includes(card.id)),
     [cards, setup.seedIds],
@@ -85,54 +89,124 @@ export function UnderstoryChatView({
   const learnerTurnCount = messages.filter(
     (message) => message.role === "user",
   ).length;
+  const roundKey = `${setup.persona}:${setup.setting}:${setup.seedIds.join(",")}`;
+
+  useEffect(() => {
+    if (seedCards.length === 0 || openedRound.current === roundKey) return;
+    openedRound.current = roundKey;
+    setChatError("");
+    setMessages([]);
+    setIsOpening(true);
+
+    async function openRound() {
+      try {
+        const response = await fetch("/api/generate-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardIds: seedCards.map((card) => card.id),
+            scenario: setup.setting,
+            persona: setup.persona,
+            messageHistory: [],
+          }),
+        });
+
+        if (!response.ok) {
+          setChatError(await response.text());
+          setMessages([]);
+          return;
+        }
+
+        await streamTextResponse(response, (token) => {
+          setMessages((current) => {
+            if (current.length === 0) {
+              return [{ role: "assistant", content: token }];
+            }
+            const copy = [...current];
+            const last = copy[copy.length - 1];
+            if (!last) return current;
+            copy[copy.length - 1] = {
+              role: "assistant",
+              content: `${last.content}${token}`,
+            };
+            return copy;
+          });
+        });
+      } catch {
+        setChatError(
+          "Your companion could not start the conversation. Please try a new practice round.",
+        );
+        setMessages([]);
+      } finally {
+        setIsOpening(false);
+      }
+    }
+
+    void openRound();
+  }, [roundKey, seedCards, setup.persona, setup.setting]);
 
   function sendChatMessage() {
     const content = chatInput.trim();
-    if (!content || seedCards.length === 0 || learnerTurnCount >= 3) {
+    if (
+      !content ||
+      seedCards.length === 0 ||
+      isOpening ||
+      isSending ||
+      learnerTurnCount >= 5
+    ) {
       return;
     }
 
     const nextMessages: ChatMessage[] = [
-      ...messages.filter(
-        (message) =>
-          message.content !==
-          "Bramble is ready. Choose seeds, then step into a low-pressure dialogue.",
-      ),
+      ...messages,
       { role: "user", content },
     ];
     setChatInput("");
-    setMessages([...nextMessages, { role: "assistant", content: "" }]);
+    setChatError("");
+    setMessages(nextMessages);
+    setIsSending(true);
 
-    startTransition(async () => {
-      const response = await fetch("/api/generate-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardIds: seedCards.map((card) => card.id),
-          scenario: setup.setting,
-          persona: setup.persona,
-          messageHistory: nextMessages,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        setMessages([...nextMessages, { role: "assistant", content: error }]);
-        return;
-      }
-
-      await streamTextResponse(response, (token) => {
-        setMessages((current) => {
-          const copy = [...current];
-          const last = copy[copy.length - 1];
-          copy[copy.length - 1] = {
-            role: "assistant",
-            content: `${last.content}${token}`,
-          };
-          return copy;
+    async function sendReply() {
+      try {
+        const response = await fetch("/api/generate-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardIds: seedCards.map((card) => card.id),
+            scenario: setup.setting,
+            persona: setup.persona,
+            messageHistory: nextMessages,
+          }),
         });
-      });
-    });
+
+        if (!response.ok) {
+          setChatError(await response.text());
+          return;
+        }
+
+        await streamTextResponse(response, (token) => {
+          setMessages((current) => {
+            if (current.length === nextMessages.length) {
+              return [...current, { role: "assistant", content: token }];
+            }
+            const copy = [...current];
+            const last = copy[copy.length - 1];
+            if (!last) return current;
+            copy[copy.length - 1] = {
+              role: "assistant",
+              content: `${last.content}${token}`,
+            };
+            return copy;
+          });
+        });
+      } catch {
+        setChatError("Your reply could not be sent. Please try again.");
+      } finally {
+        setIsSending(false);
+      }
+    }
+
+    void sendReply();
   }
 
   return (
@@ -146,13 +220,13 @@ export function UnderstoryChatView({
               </p>
               <CardTitle>The Understory Chat</CardTitle>
               <CardDescription>
-                Drop your conversational roots. Step into a low-pressure
-                dialogue space with Bramble.
+                A focused five-turn conversation with{" "}
+                {setup.persona === "mossy" ? "Mossy" : "Bramble"}.
               </CardDescription>
             </div>
-            <Avatar>
-              <AvatarFallback>
-                <TreePine className="size-5" />
+            <Avatar className="border border-primary bg-primary text-primary-foreground">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                <TreePine className="size-5 text-primary-foreground" />
               </AvatarFallback>
             </Avatar>
           </div>
@@ -170,7 +244,27 @@ export function UnderstoryChatView({
               before chatting with Bramble.
             </div>
           ) : null}
+          {seedCards.length > 0 ? (
+            <div className="mt-4 rounded-xl border border-border bg-card p-4">
+              <p className="text-xs font-semibold uppercase text-primary">
+                Today&apos;s practice
+              </p>
+              <p className="mt-1 font-serif text-xl font-bold capitalize">
+                {setup.setting}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {seedCards.map((card) => (
+                  <Badge key={card.id}>{card.targetText}</Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
+            {isOpening && messages.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Your companion is preparing the first question…
+              </p>
+            ) : null}
             {messages.map((message, index) => (
               <div
                 className={cn(
@@ -180,8 +274,8 @@ export function UnderstoryChatView({
                 key={`${message.role}-${index}`}
               >
                 {message.role === "assistant" ? (
-                  <span className="mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-foreground">
-                    <TreePine className="size-4" />
+                  <span className="mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <TreePine className="size-4 text-primary-foreground" />
                   </span>
                 ) : null}
                 <p
@@ -197,9 +291,31 @@ export function UnderstoryChatView({
               </div>
             ))}
           </div>
+          {chatError ? (
+            <p
+              className="mt-3 rounded-lg border border-primary/40 bg-card p-3 text-sm text-muted-foreground"
+              role="status"
+            >
+              {chatError}
+            </p>
+          ) : null}
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+            <span className="font-semibold text-foreground">
+              Your reply: turn {Math.min(learnerTurnCount + 1, 5)} of 5
+            </span>
+            <span className="text-muted-foreground">
+              A short, focused conversation around your selected vocabulary.
+            </span>
+          </div>
           <div className="mt-3 flex gap-2">
             <Input
               className="h-11 min-w-0 flex-1"
+              disabled={
+                isOpening ||
+                isSending ||
+                seedCards.length === 0 ||
+                learnerTurnCount >= 5
+              }
               onChange={(event) => setChatInput(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -212,7 +328,10 @@ export function UnderstoryChatView({
             <Button
               className="size-11"
               disabled={
-                isPending || seedCards.length === 0 || learnerTurnCount >= 3
+                isOpening ||
+                isSending ||
+                seedCards.length === 0 ||
+                learnerTurnCount >= 5
               }
               onClick={sendChatMessage}
               title="Send"
@@ -221,10 +340,27 @@ export function UnderstoryChatView({
               <Send />
             </Button>
           </div>
-          {learnerTurnCount >= 3 ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              This three-turn practice has reached its natural stopping point.
-            </p>
+          {learnerTurnCount >= 5 ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-card p-4">
+              <p className="text-sm leading-6 text-muted-foreground">
+                This five-turn practice is complete and saved to your private
+                history.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/history">
+                    <History />
+                    View history
+                  </Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/understory/setup">
+                    New practice
+                    <ArrowRight />
+                  </Link>
+                </Button>
+              </div>
+            </div>
           ) : null}
         </CardContent>
       </Card>

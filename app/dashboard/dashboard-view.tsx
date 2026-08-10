@@ -1,13 +1,16 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   Archive,
   ArchiveRestore,
+  BookOpen,
   CircleHelp,
   FileText,
+  MessageCircle,
   PencilLine,
   Search,
   Sparkles,
@@ -50,6 +53,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   MAX_EXAMPLE_CONTEXTS,
   type ExampleContext,
@@ -502,7 +513,13 @@ function ReviewQueue({
   archived: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [queueFilter, setQueueFilter] = useState<"due" | "all">("due");
+  const { toast } = useToast();
+  const [queueFilter, setQueueFilter] = useState<"due" | "all">(
+    archived ? "all" : "due",
+  );
+  const [editingCard, setEditingCard] = useState<WorkspaceCard | null>(null);
+  const [deletingCard, setDeletingCard] = useState<WorkspaceCard | null>(null);
+  const [actionMessage, setActionMessage] = useState("");
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
   ).length;
@@ -533,29 +550,54 @@ function ReviewQueue({
         method === "PATCH" ? { "Content-Type": "application/json" } : undefined,
       body: method === "PATCH" ? JSON.stringify(body) : undefined,
     });
-    if (response.ok) invalidate(queryClient);
+    if (!response.ok) {
+      setActionMessage("That change could not be saved. Please try again.");
+      return false;
+    }
+    invalidate(queryClient);
+    return true;
   }
 
-  async function editCard(card: WorkspaceCard) {
-    const targetText = window.prompt("Word or phrase", card.targetText);
-    if (!targetText) return;
-    const phoneticReading = window.prompt(
-      "Reading",
-      card.phoneticReading.join(" "),
-    );
-    const definitions = window.prompt(
-      "Definitions (separate with semicolons)",
-      card.definitions.join("; "),
-    );
-    if (!definitions) return;
-    await updateCard(card.id, {
+  async function saveCardEdit(formData: FormData) {
+    if (!editingCard) return;
+    const targetText = String(formData.get("targetText") ?? "").trim();
+    const definitions = String(formData.get("definitions") ?? "")
+      .split(";")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (!targetText || definitions.length === 0) {
+      setActionMessage("Add a word or phrase and at least one definition.");
+      return;
+    }
+    const saved = await updateCard(editingCard.id, {
       targetText,
-      phoneticReading: phoneticReading?.split(/\s+/).filter(Boolean) ?? [],
-      definitions: definitions
-        .split(";")
-        .map((value) => value.trim())
+      phoneticReading: String(formData.get("phoneticReading") ?? "")
+        .split(/\s+/)
         .filter(Boolean),
+      definitions,
     });
+    if (saved) {
+      setEditingCard(null);
+      toast("Card details saved.");
+    }
+  }
+
+  async function deleteSelectedCard() {
+    if (!deletingCard) return;
+    if (await updateCard(deletingCard.id, {}, "DELETE")) {
+      setDeletingCard(null);
+      toast("Card permanently deleted.");
+    }
+  }
+
+  async function toggleArchive(cardId: string) {
+    if (await updateCard(cardId, { archived: !archived })) {
+      toast(
+        archived
+          ? "Card restored to your active collection."
+          : "Card archived.",
+      );
+    }
   }
 
   return (
@@ -725,16 +767,14 @@ function ReviewQueue({
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button
-                  onClick={() => void editCard(card)}
+                  onClick={() => setEditingCard(card)}
                   type="button"
                   variant="outline"
                 >
                   <PencilLine /> Edit
                 </Button>
                 <Button
-                  onClick={() =>
-                    void updateCard(card.id, { archived: !archived })
-                  }
+                  onClick={() => void toggleArchive(card.id)}
                   type="button"
                   variant="outline"
                 >
@@ -742,15 +782,7 @@ function ReviewQueue({
                   {archived ? "Restore" : "Archive"}
                 </Button>
                 <Button
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Delete ${card.targetText} from your collection? This cannot be undone.`,
-                      )
-                    ) {
-                      void updateCard(card.id, {}, "DELETE");
-                    }
-                  }}
+                  onClick={() => setDeletingCard(card)}
                   type="button"
                   variant="outline"
                 >
@@ -807,8 +839,124 @@ function ReviewQueue({
               </div>
             </article>
           ))}
+          {actionMessage ? (
+            <p
+              className="mt-4 rounded-lg border border-primary/40 bg-card p-3 text-sm text-muted-foreground"
+              role="status"
+            >
+              {actionMessage}
+            </p>
+          ) : null}
         </div>
       </CardContent>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setEditingCard(null);
+        }}
+        open={Boolean(editingCard)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit card</DialogTitle>
+            <DialogDescription>
+              These details are private to your Canopy. The shared dictionary
+              entry remains unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          {editingCard ? (
+            <form action={saveCardEdit} className="mt-5 space-y-4">
+              <div>
+                <label
+                  className="text-sm font-semibold"
+                  htmlFor="edit-target-text"
+                >
+                  Word or phrase
+                </label>
+                <Input
+                  defaultValue={editingCard.targetText}
+                  id="edit-target-text"
+                  name="targetText"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold" htmlFor="edit-reading">
+                  Reading{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <Input
+                  defaultValue={editingCard.phoneticReading.join(" ")}
+                  id="edit-reading"
+                  name="phoneticReading"
+                />
+              </div>
+              <div>
+                <label
+                  className="text-sm font-semibold"
+                  htmlFor="edit-definitions"
+                >
+                  Definitions
+                </label>
+                <Textarea
+                  defaultValue={editingCard.definitions.join("; ")}
+                  id="edit-definitions"
+                  name="definitions"
+                  required
+                  rows={3}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Separate definitions with semicolons.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={() => setEditingCard(null)}
+                  type="button"
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Save card</Button>
+              </div>
+            </form>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setDeletingCard(null);
+        }}
+        open={Boolean(deletingCard)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this card?</DialogTitle>
+            <DialogDescription>
+              {deletingCard
+                ? `“${deletingCard.targetText}” will be permanently removed from your collection. This cannot be undone.`
+                : "This cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button
+              onClick={() => setDeletingCard(null)}
+              type="button"
+              variant="outline"
+            >
+              Keep card
+            </Button>
+            <Button
+              onClick={() => void deleteSelectedCard()}
+              type="button"
+              variant="destructive"
+            >
+              Delete permanently
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -870,13 +1018,16 @@ export function DashboardView({
 }: {
   initialCards: WorkspaceCard[];
 }) {
+  const [acquisitionMode, setAcquisitionMode] = useState<
+    "import" | "add" | null
+  >(null);
   const [collectionScope, setCollectionScope] = useState<"active" | "archived">(
     "active",
   );
-  const { data: cards = initialCards } = useQuery({
+  const { data: cards = [] } = useQuery({
     queryKey: [...queryKeys.dashboardCards, collectionScope],
     queryFn: () => fetchCardsByScope(collectionScope),
-    initialData: initialCards,
+    initialData: collectionScope === "active" ? initialCards : undefined,
   });
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
@@ -887,41 +1038,65 @@ export function DashboardView({
   );
 
   return (
-    <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:grid-cols-[380px_1fr] md:px-8">
-      <aside className="flex flex-col gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Dashboard</CardTitle>
-            <CardDescription>
-              Import vocabulary, tend reviews, and monitor the current Canopy.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Cards
-              </p>
-              <p className="mt-1 text-2xl font-bold">{cards.length}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Due
-              </p>
-              <p className="mt-1 text-2xl font-bold">{dueCount}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background p-3">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Contexts
-              </p>
-              <p className="mt-1 text-2xl font-bold">{contextCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <ImportPanel />
-        <AddCardPanel />
-        <ConsistencyWell cards={cards} />
-      </aside>
-      <div className="grid gap-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-8">
+      <section className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase text-primary">
+            Your grove
+          </p>
+          <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl">
+            Today&apos;s learning
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Review what is ready, then turn your vocabulary into reading and
+            conversation practice.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => setAcquisitionMode("import")}
+            type="button"
+            variant="outline"
+          >
+            <Upload />
+            Import vocabulary
+          </Button>
+          <Button
+            onClick={() => setAcquisitionMode("add")}
+            type="button"
+            variant="outline"
+          >
+            <FileText />
+            Add card
+          </Button>
+        </div>
+      </section>
+
+      <section
+        aria-label="Collection summary"
+        className="grid grid-cols-3 gap-3"
+      >
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Cards
+          </p>
+          <p className="mt-1 font-serif text-3xl font-bold">{cards.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Due now
+          </p>
+          <p className="mt-1 font-serif text-3xl font-bold">{dueCount}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Contexts
+          </p>
+          <p className="mt-1 font-serif text-3xl font-bold">{contextCount}</p>
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <div className="flex justify-end gap-2">
           <Button
             onClick={() => setCollectionScope("active")}
@@ -940,8 +1115,63 @@ export function DashboardView({
             Archived cards
           </Button>
         </div>
-        <ReviewQueue archived={collectionScope === "archived"} cards={cards} />
-      </div>
+        <ReviewQueue
+          archived={collectionScope === "archived"}
+          cards={cards}
+          key={collectionScope}
+        />
+      </section>
+
+      <section className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Continue practising</CardTitle>
+            <CardDescription>
+              Use active vocabulary in a short story or guided conversation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild>
+              <Link href="/overstory">
+                <BookOpen />
+                Open Overstory
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/understory/setup">
+                <MessageCircle />
+                Start Understory
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <ConsistencyWell cards={cards} />
+      </section>
+
+      <Sheet
+        onOpenChange={(open) => {
+          if (!open) setAcquisitionMode(null);
+        }}
+        open={acquisitionMode !== null}
+      >
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              {acquisitionMode === "import"
+                ? "Import vocabulary"
+                : "Add a card"}
+            </SheetTitle>
+            <SheetDescription>
+              {acquisitionMode === "import"
+                ? "Bring in a Pleco folder export or another vocabulary list, preview it, then create only the cards you want."
+                : "Add one word or phrase to your private learning collection."}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-5">
+            {acquisitionMode === "import" ? <ImportPanel /> : <AddCardPanel />}
+          </div>
+        </SheetContent>
+      </Sheet>
     </main>
   );
 }

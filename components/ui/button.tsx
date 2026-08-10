@@ -8,8 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
         secondary:
           "border border-border bg-card text-foreground hover:bg-primary hover:text-primary-foreground",
         outline:
@@ -18,7 +17,7 @@ const buttonVariants = cva(
         paprika:
           "bg-[var(--paprika)] text-[var(--paprika-foreground)] hover:bg-[var(--paprika)]/90",
         destructive:
-          "border border-border bg-card text-foreground hover:bg-primary hover:text-primary-foreground",
+          "border border-[var(--paprika)] bg-card text-[var(--paprika)] hover:bg-[var(--paprika)] hover:text-[var(--paprika-foreground)]",
       },
       size: {
         default: "h-10 px-4 py-2",

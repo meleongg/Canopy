@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { BookOpen, MessageCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/toast";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -23,8 +31,12 @@ type SavedSession = {
 };
 
 export function HistoryView() {
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<SavedSession[]>([]);
   const [message, setMessage] = useState("Loading your completed practice…");
+  const [deletingSession, setDeletingSession] = useState<SavedSession | null>(
+    null,
+  );
 
   useEffect(() => {
     void fetch("/api/sessions")
@@ -43,14 +55,19 @@ export function HistoryView() {
       .catch(() => setMessage("Practice history could not be loaded."));
   }, []);
 
-  async function removeSession(sessionId: string) {
+  async function removeSession() {
+    if (!deletingSession) return;
+    const sessionId = deletingSession.id;
     const response = await fetch(`/api/sessions/${sessionId}`, {
       method: "DELETE",
     });
-    if (response.ok)
+    if (response.ok) {
       setSessions((current) =>
         current.filter((session) => session.id !== sessionId),
       );
+      setDeletingSession(null);
+      toast("Saved practice deleted.");
+    }
   }
 
   return (
@@ -97,7 +114,7 @@ export function HistoryView() {
                     </p>
                   </div>
                   <Button
-                    onClick={() => void removeSession(session.id)}
+                    onClick={() => setDeletingSession(session)}
                     size="icon"
                     title="Delete saved practice"
                     type="button"
@@ -133,6 +150,41 @@ export function HistoryView() {
           })}
         </CardContent>
       </Card>
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) setDeletingSession(null);
+        }}
+        open={Boolean(deletingSession)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete saved practice?</DialogTitle>
+            <DialogDescription>
+              This removes this completed{" "}
+              {deletingSession?.sessionType === "story_sandbox"
+                ? "Overstory"
+                : "Understory"}{" "}
+              session from your history. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button
+              onClick={() => setDeletingSession(null)}
+              type="button"
+              variant="outline"
+            >
+              Keep session
+            </Button>
+            <Button
+              onClick={() => void removeSession()}
+              type="button"
+              variant="destructive"
+            >
+              Delete permanently
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

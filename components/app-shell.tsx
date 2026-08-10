@@ -6,11 +6,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  BookOpen,
   History,
   Leaf,
   LogIn,
   LogOut,
   Moon,
+  MessageCircle,
+  Sprout,
   Sun,
   TreePine,
 } from "lucide-react";
@@ -39,6 +42,13 @@ const privateNav = [
   { href: "/overstory", label: "The Overstory" },
   { href: "/understory/setup", label: "The Understory" },
   { href: "/history", label: "History" },
+];
+
+const mobileNav = [
+  { href: "/dashboard", label: "Dashboard", icon: Sprout },
+  { href: "/overstory", label: "Overstory", icon: BookOpen },
+  { href: "/understory/setup", label: "Understory", icon: MessageCircle },
+  { href: "/history", label: "History", icon: History },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -181,7 +191,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="flex-1">{children}</div>
+      <div className={cn("flex-1", user && "pb-20 md:pb-0")}>{children}</div>
+
+      {user ? (
+        <nav
+          aria-label="Primary navigation"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
+        >
+          {mobileNav.map((item) => {
+            const Icon = item.icon;
+            const active =
+              pathname === item.href ||
+              (item.href === "/understory/setup" &&
+                pathname.startsWith("/understory/"));
+
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-background hover:text-foreground",
+                )}
+                href={item.href}
+                key={item.href}
+              >
+                <Icon className="size-4" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
 
       <footer className="border-t border-border bg-card/60">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">

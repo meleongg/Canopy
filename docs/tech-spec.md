@@ -104,7 +104,9 @@ The `/dashboard` Grove uses the Linen/Slate Night canvas, a paste and file drop-
 - Response: a raw streaming reply.
 - Requires authentication and server-side ownership checks for all selected cards.
 - The latest learner message is sent to OpenAI Moderation before it reaches the generation model. Flagged content receives an inline-safe error response.
-- The route permits exactly three learner turns. A fourth turn is rejected to bound cost and runtime.
+- The route permits exactly five learner turns. A sixth turn is rejected to
+  bound cost and runtime. The assistant opens the round with the first question;
+  the selected scenario and vocabulary remain visible in the client.
 
 `/understory/setup` selects 1–7 cards, Bramble or Mossy, and a scenario. `/understory/chat` renders the Root Canvas conversation with the active botanical companion.
 
@@ -114,7 +116,7 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 
 ## 5. Verification
 
-Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpoint tests must cover malformed imports, repeated imports, rollback on a failed multi-row import, card ownership, SM-2 rating updates, 3–7 story limits, moderation rejection, and the three-turn chat limit.
+Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpoint tests must cover malformed imports, repeated imports, rollback on a failed multi-row import, card ownership, SM-2 rating updates, 3–7 story limits, moderation rejection, and the five-turn chat limit.
 
 ## 6. Private beta extensions
 
@@ -123,7 +125,7 @@ updates that learner's personal display overrides or archive state; it never mut
 the shared `words` row. `DELETE /api/cards/:cardId` removes only that learner's
 flashcard. Archived cards do not appear in review queues or AI seed selection.
 
-Completed Overstory stories and completed three-turn Understory rounds are saved
+Completed Overstory stories and completed five-turn Understory rounds are saved
 to `ai_sessions` with a vocabulary snapshot. `GET /api/sessions` and
 `DELETE /api/sessions/:sessionId` are owner-scoped. The private beta uses a
 dedicated OpenAI project with usage alerts and a conservative enforced spend cap.

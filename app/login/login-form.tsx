@@ -35,17 +35,33 @@ export function LoginForm() {
         <label className="text-sm font-medium" htmlFor="email">
           Email
         </label>
-        <Input id="email" name="email" type="email" required />
+        <Input
+          autoComplete="email"
+          id="email"
+          name="email"
+          type="email"
+          required
+        />
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="password">
           Password
         </label>
-        <Input id="password" name="password" type="password" required />
+        <Input
+          autoComplete="current-password"
+          id="password"
+          name="password"
+          type="password"
+          required
+        />
       </div>
-      {error ? <p className="text-sm text-primary">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-primary" role="alert">
+          {error}
+        </p>
+      ) : null}
       <Button className="w-full" disabled={isPending} type="submit">
-        Sign in
+        {isPending ? "Signing in…" : "Sign in"}
       </Button>
     </form>
   );
