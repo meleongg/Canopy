@@ -4,7 +4,7 @@ import {
   dehydrate,
 } from "@tanstack/react-query";
 import { DashboardView } from "@/app/dashboard/dashboard-view";
-import { getDashboardData } from "@/lib/data";
+import { getDashboardData, getDashboardLearningRhythm } from "@/lib/data";
 import { queryKeys } from "@/lib/query-keys";
 import { requireAuth } from "@/lib/session";
 import { serializeDashboardCards } from "@/lib/serialization";
@@ -17,14 +17,21 @@ export default async function DashboardPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: 60_000 } },
   });
-  const cards = serializeDashboardCards(await getDashboardData(session.user.id));
+  const [dashboardCards, learningRhythm] = await Promise.all([
+    getDashboardData(session.user.id),
+    getDashboardLearningRhythm(session.user.id),
+  ]);
+  const cards = serializeDashboardCards(dashboardCards);
 
   queryClient.setQueryData(queryKeys.dashboardCards, cards);
   queryClient.setQueryData(queryKeys.reviewQueue, cards);
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <DashboardView initialCards={cards} />
+      <DashboardView
+        initialCards={cards}
+        initialLearningRhythm={learningRhythm}
+      />
     </HydrationBoundary>
   );
 }

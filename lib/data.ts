@@ -1,12 +1,16 @@
-import { and, asc, eq, isNull, isNotNull } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, isNotNull } from "drizzle-orm";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
-import { flashcards, user, words } from "@/db/schema";
+import { aiSessions, flashcards, user, words } from "@/db/schema";
 import { DEMO_USER_ID } from "@/lib/constants";
 import {
   type ExampleContext,
   normalizeExampleContexts,
 } from "@/lib/example-contexts";
+import {
+  buildLearningRhythm,
+  type LearningRhythmDay,
+} from "@/lib/learning-rhythm";
 
 export type DashboardCard = {
   id: string;
@@ -105,5 +109,40 @@ export async function getDashboardData(
       definitions: definitionsOverride ?? card.definitions,
       aiExampleContexts: normalizeExampleContexts(aiExampleContext),
     }),
+  );
+}
+
+export async function getDashboardLearningRhythm(
+  userId: string,
+): Promise<LearningRhythmDay[]> {
+  if (!hasDatabaseEnv()) {
+    return buildLearningRhythm([], []);
+  }
+
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - 6);
+  const db = getDb();
+  const [reviews, practices] = await Promise.all([
+    db
+      .select({ reviewedAt: flashcards.lastReviewedAt })
+      .from(flashcards)
+      .where(
+        and(
+          eq(flashcards.userId, userId),
+          gte(flashcards.lastReviewedAt, start),
+        ),
+      ),
+    db
+      .select({ createdAt: aiSessions.createdAt })
+      .from(aiSessions)
+      .where(
+        and(eq(aiSessions.userId, userId), gte(aiSessions.createdAt, start)),
+      ),
+  ]);
+
+  return buildLearningRhythm(
+    reviews.flatMap((review) => (review.reviewedAt ? [review.reviewedAt] : [])),
+    practices.map((practice) => practice.createdAt),
   );
 }
