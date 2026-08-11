@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -61,6 +61,7 @@ import {
   type ExampleContext,
 } from "@/lib/example-contexts";
 import { queryKeys } from "@/lib/query-keys";
+import type { LearningRhythmDay } from "@/lib/learning-rhythm";
 import { cn } from "@/lib/utils";
 
 const initialImportState = {
@@ -509,20 +510,12 @@ function ReviewQueue({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [queueFilter, setQueueFilter] = useState<"due" | "all">("all");
   const [editingCard, setEditingCard] = useState<WorkspaceCard | null>(null);
   const [deletingCard, setDeletingCard] = useState<WorkspaceCard | null>(null);
   const [actionMessage, setActionMessage] = useState("");
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
   ).length;
-  const queueCards = useMemo(() => {
-    if (queueFilter === "all") {
-      return cards;
-    }
-
-    return cards.filter((card) => new Date(card.nextReviewAt) <= new Date());
-  }, [cards, queueFilter]);
 
   async function runAction(
     action: (formData: FormData) => Promise<void>,
@@ -613,153 +606,135 @@ function ReviewQueue({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="inline-flex rounded-lg border border-border bg-background p-1 text-sm">
-          <Button
-            onClick={() => setQueueFilter("due")}
-            size="sm"
-            type="button"
-            variant={queueFilter === "due" ? "default" : "ghost"}
-          >
-            Due ({dueCount})
-          </Button>
-          <Button
-            onClick={() => setQueueFilter("all")}
-            size="sm"
-            type="button"
-            variant={queueFilter === "all" ? "default" : "ghost"}
-          >
-            All ({cards.length})
-          </Button>
-        </div>
-
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <div className="space-y-2">
           {cards.length === 0 ? (
             <div className="rounded-xl border border-border bg-background p-5 text-sm text-muted-foreground lg:col-span-2">
               No cards are available yet. Import vocabulary or run{" "}
               <code>npm run db:seed</code> after pushing the schema.
             </div>
           ) : null}
-          {cards.length > 0 && queueCards.length === 0 ? (
-            <div className="rounded-xl border border-border bg-background p-5 text-sm text-muted-foreground lg:col-span-2">
-              No cards are due right now. Switch to All to browse the full
-              collection.
-            </div>
-          ) : null}
-          {queueCards.map((card) => (
-            <article
-              className="rounded-xl border border-border bg-background p-5"
+          {cards.map((card) => (
+            <details
+              className="group rounded-xl border border-border bg-background"
               key={card.id}
             >
-              <div className="flex items-start justify-between gap-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 marker:content-none hover:bg-card [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase text-primary">
                     {growthLabel(card)} · {dueLabel(card)}
                   </p>
-                  <h3 className="mt-1 truncate font-serif text-3xl font-bold">
+                  <h3 className="mt-1 truncate font-serif text-xl font-bold">
                     {card.targetText}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {card.phoneticReading.join(" ")}
+                    {card.phoneticReading.join(" ") || card.definitions[0]}
                   </p>
                 </div>
-                <Badge>{card.languageCode}</Badge>
-              </div>
-              <p className="mt-4 text-sm leading-6">
-                {card.definitions.join("; ")}
-              </p>
-              {card.aiExampleContexts.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {card.aiExampleContexts.map((context, contextIndex) => (
-                    <div
-                      className="rounded-lg border border-border bg-card p-3 text-sm"
-                      key={`${context.sentence}-${contextIndex}`}
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase text-muted-foreground">
-                          Context {contextIndex + 1} generated{" "}
-                          {contextGeneratedLabel(context.generatedAt)}
-                        </p>
-                        <form
-                          action={(formData) =>
-                            runAction(removeContextAction, formData)
-                          }
-                        >
-                          <input name="cardId" type="hidden" value={card.id} />
-                          <input
-                            name="contextIndex"
-                            type="hidden"
-                            value={contextIndex}
-                          />
-                          <Button
-                            size="icon"
-                            title="Remove context"
-                            type="submit"
-                            variant="outline"
-                          >
-                            <X className="size-3" />
-                          </Button>
-                        </form>
-                      </div>
-                      <p className="font-semibold">{context.sentence}</p>
-                      <p className="mt-1 text-muted-foreground">
-                        {context.phonetic}
-                      </p>
-                      <p className="mt-1">{context.translation}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  onClick={() => setEditingCard(card)}
-                  type="button"
-                  variant="outline"
-                >
-                  <PencilLine /> Edit
-                </Button>
-                <Button
-                  onClick={() => void toggleArchive(card.id)}
-                  type="button"
-                  variant="outline"
-                >
-                  {archived ? <ArchiveRestore /> : <Archive />}
-                  {archived ? "Restore" : "Archive"}
-                </Button>
-                <Button
-                  onClick={() => setDeletingCard(card)}
-                  type="button"
-                  variant="outline"
-                >
-                  <Trash2 /> Delete
-                </Button>
-                {!archived ? (
-                  <>
-                    <form
-                      action={(formData) =>
-                        runAction(generateContextAction, formData)
-                      }
-                    >
-                      <input name="cardId" type="hidden" value={card.id} />
-                      <Button
-                        disabled={
-                          card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
-                        }
-                        title="Generate and save one more example sentence, reading, and translation for this card."
-                        type="submit"
-                        variant="outline"
+                <Badge>{card.languageCode} · Details</Badge>
+              </summary>
+              <div className="border-t border-border p-4">
+                <p className="text-sm leading-6">
+                  {card.definitions.join("; ")}
+                </p>
+                {card.aiExampleContexts.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    {card.aiExampleContexts.map((context, contextIndex) => (
+                      <div
+                        className="rounded-lg border border-border bg-card p-3 text-sm"
+                        key={`${context.sentence}-${contextIndex}`}
                       >
-                        <Sparkles />
-                        {card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
-                          ? "Max Contexts"
-                          : card.aiExampleContexts.length > 0
-                            ? "Generate Another"
-                            : "Generate Context"}
-                      </Button>
-                    </form>
-                  </>
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase text-muted-foreground">
+                            Context {contextIndex + 1} generated{" "}
+                            {contextGeneratedLabel(context.generatedAt)}
+                          </p>
+                          <form
+                            action={(formData) =>
+                              runAction(removeContextAction, formData)
+                            }
+                          >
+                            <input
+                              name="cardId"
+                              type="hidden"
+                              value={card.id}
+                            />
+                            <input
+                              name="contextIndex"
+                              type="hidden"
+                              value={contextIndex}
+                            />
+                            <Button
+                              size="icon"
+                              title="Remove context"
+                              type="submit"
+                              variant="outline"
+                            >
+                              <X className="size-3" />
+                            </Button>
+                          </form>
+                        </div>
+                        <p className="font-semibold">{context.sentence}</p>
+                        <p className="mt-1 text-muted-foreground">
+                          {context.phonetic}
+                        </p>
+                        <p className="mt-1">{context.translation}</p>
+                      </div>
+                    ))}
+                  </div>
                 ) : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => setEditingCard(card)}
+                    type="button"
+                    variant="outline"
+                  >
+                    <PencilLine /> Edit
+                  </Button>
+                  <Button
+                    onClick={() => void toggleArchive(card.id)}
+                    type="button"
+                    variant="outline"
+                  >
+                    {archived ? <ArchiveRestore /> : <Archive />}
+                    {archived ? "Restore" : "Archive"}
+                  </Button>
+                  <Button
+                    onClick={() => setDeletingCard(card)}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Trash2 /> Delete
+                  </Button>
+                  {!archived ? (
+                    <>
+                      <form
+                        action={(formData) =>
+                          runAction(generateContextAction, formData)
+                        }
+                      >
+                        <input name="cardId" type="hidden" value={card.id} />
+                        <Button
+                          disabled={
+                            card.aiExampleContexts.length >=
+                            MAX_EXAMPLE_CONTEXTS
+                          }
+                          title="Generate and save one more example sentence, reading, and translation for this card."
+                          type="submit"
+                          variant="outline"
+                        >
+                          <Sparkles />
+                          {card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                            ? "Max Contexts"
+                            : card.aiExampleContexts.length > 0
+                              ? "Generate Another"
+                              : "Generate Context"}
+                        </Button>
+                      </form>
+                    </>
+                  ) : null}
+                </div>
               </div>
-            </article>
+            </details>
           ))}
           {actionMessage ? (
             <p
@@ -883,34 +858,20 @@ function ReviewQueue({
   );
 }
 
-function ConsistencyWell({ cards }: { cards: WorkspaceCard[] }) {
-  const days = Array.from({ length: 7 }, (_, offset) => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - (6 - offset));
-    return date;
-  });
-
+function LearningRhythm({ days }: { days: LearningRhythmDay[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Consistency Well</CardTitle>
+        <CardTitle>Learning rhythm</CardTitle>
         <CardDescription>
-          New seeds planted across the last seven days.
+          A gentle look at your recent review and practice activity.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-7 gap-2">
         {days.map((day) => {
-          const count = cards.filter((card) => {
-            const created = new Date(card.createdAt);
-            return (
-              created.getFullYear() === day.getFullYear() &&
-              created.getMonth() === day.getMonth() &&
-              created.getDate() === day.getDate()
-            );
-          }).length;
+          const count = day.reviewCount + day.practiceCount;
           return (
-            <div className="text-center" key={day.toISOString()}>
+            <div className="text-center" key={day.date}>
               <div
                 className={cn(
                   "flex aspect-square items-center justify-center rounded-lg border text-xs font-semibold",
@@ -918,13 +879,13 @@ function ConsistencyWell({ cards }: { cards: WorkspaceCard[] }) {
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background text-muted-foreground",
                 )}
-                title={`${count} card${count === 1 ? "" : "s"} planted`}
+                title={`${day.reviewCount} review${day.reviewCount === 1 ? "" : "s"} and ${day.practiceCount} practice session${day.practiceCount === 1 ? "" : "s"}`}
               >
                 {count}
               </div>
               <p className="mt-1 text-[10px] text-muted-foreground">
                 {new Intl.DateTimeFormat("en", { weekday: "narrow" }).format(
-                  day,
+                  new Date(`${day.date}T12:00:00Z`),
                 )}
               </p>
             </div>
@@ -937,8 +898,10 @@ function ConsistencyWell({ cards }: { cards: WorkspaceCard[] }) {
 
 export function DashboardView({
   initialCards,
+  initialLearningRhythm,
 }: {
   initialCards: WorkspaceCard[];
+  initialLearningRhythm: LearningRhythmDay[];
 }) {
   const [acquisitionMode, setAcquisitionMode] = useState<
     "import" | "add" | null
@@ -1090,7 +1053,7 @@ export function DashboardView({
             </Button>
           </CardContent>
         </Card>
-        <ConsistencyWell cards={cards} />
+        <LearningRhythm days={initialLearningRhythm} />
       </section>
 
       <Sheet
