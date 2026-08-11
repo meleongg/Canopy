@@ -501,7 +501,7 @@ function AddCardPanel() {
   );
 }
 
-function ReviewQueue({
+export function ReviewQueue({
   cards,
   archived,
 }: {
@@ -907,13 +907,10 @@ export function DashboardView({
   const [acquisitionMode, setAcquisitionMode] = useState<
     "import" | "add" | null
   >(null);
-  const [collectionScope, setCollectionScope] = useState<"active" | "archived">(
-    "active",
-  );
   const { data: cards = [] } = useQuery({
-    queryKey: [...queryKeys.dashboardCards, collectionScope],
-    queryFn: () => fetchCardsByScope(collectionScope),
-    initialData: collectionScope === "active" ? initialCards : undefined,
+    queryKey: queryKeys.dashboardCards,
+    queryFn: () => fetchCardsByScope("active"),
+    initialData: initialCards,
   });
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
@@ -1003,32 +1000,45 @@ export function DashboardView({
             <Link href="/review">Start review</Link>
           </Button>
         </div>
+        {cards
+          .filter((card) => new Date(card.nextReviewAt) <= new Date())
+          .slice(0, 5).length > 0 ? (
+          <div className="mt-5 space-y-2 border-t border-border pt-4">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">
+              Ready now
+            </p>
+            {cards
+              .filter((card) => new Date(card.nextReviewAt) <= new Date())
+              .slice(0, 5)
+              .map((card) => (
+                <div
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2"
+                  key={card.id}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-serif text-lg font-semibold">
+                      {card.targetText}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {card.phoneticReading.join(" ") || card.definitions[0]}
+                    </p>
+                  </div>
+                  <Badge>{card.languageCode}</Badge>
+                </div>
+              ))}
+          </div>
+        ) : null}
       </section>
 
-      <section className="space-y-3">
-        <div className="flex justify-end gap-2">
-          <Button
-            onClick={() => setCollectionScope("active")}
-            size="sm"
-            type="button"
-            variant={collectionScope === "active" ? "default" : "outline"}
-          >
-            Active cards
-          </Button>
-          <Button
-            onClick={() => setCollectionScope("archived")}
-            size="sm"
-            type="button"
-            variant={collectionScope === "archived" ? "default" : "outline"}
-          >
-            Archived cards
-          </Button>
-        </div>
-        <ReviewQueue
-          archived={collectionScope === "archived"}
-          cards={cards}
-          key={collectionScope}
-        />
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="font-serif text-xl font-semibold">Your collection</h2>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          Browse, search, and care for every active or archived card in one
+          place.
+        </p>
+        <Button asChild className="mt-4" variant="outline">
+          <Link href="/collection">Open collection</Link>
+        </Button>
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">

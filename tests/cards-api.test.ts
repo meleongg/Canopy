@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  getCollectionPage: vi.fn(),
   importVocabularyEntries: vi.fn(),
   parseVocabularyLog: vi.fn(),
   requireApiAuth: vi.fn(),
@@ -12,7 +13,16 @@ vi.mock("@/lib/cards", () => ({
   importVocabularyEntries: mocks.importVocabularyEntries,
   reviewCard: mocks.reviewCard,
 }));
-vi.mock("@/lib/ingestion", () => ({ parseVocabularyLog: mocks.parseVocabularyLog }));
+vi.mock("@/lib/data", () => ({
+  getCollectionPage: mocks.getCollectionPage,
+  getDashboardData: vi.fn(),
+}));
+vi.mock("@/lib/serialization", () => ({
+  serializeDashboardCards: (cards: unknown) => cards,
+}));
+vi.mock("@/lib/ingestion", () => ({
+  parseVocabularyLog: mocks.parseVocabularyLog,
+}));
 vi.mock("@/lib/session", () => ({ requireApiAuth: mocks.requireApiAuth }));
 
 const authenticatedUser = {
@@ -37,12 +47,18 @@ describe("card API contracts", () => {
     const response = await POST(
       new Request("http://test/api/cards/import", {
         method: "POST",
-        body: JSON.stringify({ rawText: "会议\thui4yi4\tmeeting", languageCode: "zh-CN" }),
+        body: JSON.stringify({
+          rawText: "会议\thui4yi4\tmeeting",
+          languageCode: "zh-CN",
+        }),
       }),
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ importedCount: 1, updatedCount: 0 });
+    expect(await response.json()).toEqual({
+      importedCount: 1,
+      updatedCount: 0,
+    });
     expect(mocks.importVocabularyEntries).toHaveBeenCalledWith("learner-1", [
       { targetText: "会议" },
     ]);
@@ -95,6 +111,34 @@ describe("card API contracts", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(mocks.reviewCard).toHaveBeenCalledWith("learner-1", expect.any(String), 4);
+    expect(mocks.reviewCard).toHaveBeenCalledWith(
+      "learner-1",
+      expect.any(String),
+      4,
+    );
+  });
+
+  it("returns an owner-scoped collection page when pagination is requested", async () => {
+    mocks.getCollectionPage.mockResolvedValue({
+      cards: [{ id: "card-1" }],
+      total: 21,
+    });
+    const { GET } = await import("@/app/api/cards/route");
+    const response = await GET(
+      new Request("http://test/api/cards?scope=archived&query=tea&page=2"),
+    );
+
+    expect(mocks.getCollectionPage).toHaveBeenCalledWith("learner-1", {
+      scope: "archived",
+      query: "tea",
+      page: 2,
+      pageSize: 20,
+    });
+    expect(await response.json()).toEqual({
+      cards: [{ id: "card-1" }],
+      total: 21,
+      page: 2,
+      pageSize: 20,
+    });
   });
 });
