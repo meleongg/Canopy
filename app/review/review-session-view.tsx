@@ -295,13 +295,7 @@ export function ReviewSessionView({
                       key={option.rating}
                       onClick={() => void submitRating(option.rating)}
                       type="button"
-                      variant={
-                        option.rating === 5
-                          ? "default"
-                          : option.rating === 4
-                            ? "secondary"
-                            : "outline"
-                      }
+                      variant="outline"
                     >
                       <span className="flex w-full items-center justify-between gap-3">
                         {option.label}
