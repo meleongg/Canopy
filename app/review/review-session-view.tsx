@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Leaf } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCardsByScope } from "@/components/canopy/card-utils";
@@ -12,10 +12,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { queryKeys } from "@/lib/query-keys";
 
 const ratingOptions = [
-  { rating: 2, label: "Hard", description: "Needs another look" },
-  { rating: 3, label: "Pass", description: "Remembered with effort" },
-  { rating: 4, label: "Good", description: "Remembered" },
-  { rating: 5, label: "Easy", description: "Came back instantly" },
+  { rating: 2, label: "Hard", description: "Needs another look", key: "1" },
+  {
+    rating: 3,
+    label: "Pass",
+    description: "Remembered with effort",
+    key: "2",
+  },
+  { rating: 4, label: "Good", description: "Remembered", key: "3" },
+  {
+    rating: 5,
+    label: "Easy",
+    description: "Came back instantly",
+    key: "4",
+  },
 ] as const;
 
 type ReviewRating = (typeof ratingOptions)[number]["rating"];
@@ -30,7 +40,6 @@ export function ReviewSessionView({
   const [error, setError] = useState("");
   const [rating, setRating] = useState<ReviewRating | null>(null);
   const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
-  const [isAdvancing, setIsAdvancing] = useState(false);
   const { data: cards = [] } = useQuery({
     queryKey: queryKeys.reviewQueue,
     queryFn: async () => {
@@ -47,47 +56,83 @@ export function ReviewSessionView({
     (option) => option.rating === rating,
   );
 
-  async function submitRating(nextRating: ReviewRating) {
-    if (!card || rating !== null) return;
+  const submitRating = useCallback(
+    async (nextRating: ReviewRating) => {
+      if (!card || rating !== null) return;
 
-    setError("");
-    setRating(nextRating);
-    try {
-      const response = await fetch("/api/cards/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: card.id, rating: nextRating }),
-      });
-      if (!response.ok) {
-        throw new Error(await response.text());
+      setError("");
+      setRating(nextRating);
+      try {
+        const response = await fetch("/api/cards/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardId: card.id, rating: nextRating }),
+        });
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        queryClient.setQueryData<WorkspaceCard[]>(
+          queryKeys.reviewQueue,
+          (current = []) =>
+            current.filter((queuedCard) => queuedCard.id !== card.id),
+        );
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.dashboardCards,
+        });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.overstorySeeds,
+        });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.understorySeeds,
+        });
+        setRevealedCardId(null);
+      } catch {
+        setError("That rating could not be saved. Please try again.");
+      } finally {
+        setRating(null);
+      }
+    },
+    [card, queryClient, rating],
+  );
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target;
+      if (
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        (target instanceof HTMLElement &&
+          (target.closest("a") !== null ||
+            target.isContentEditable ||
+            ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)))
+      ) {
+        return;
       }
 
-      setIsAdvancing(true);
-      await new Promise<void>((resolve) => {
-        window.setTimeout(resolve, 260);
-      });
-      queryClient.setQueryData<WorkspaceCard[]>(
-        queryKeys.reviewQueue,
-        (current = []) =>
-          current.filter((queuedCard) => queuedCard.id !== card.id),
+      const key = event.key.toLowerCase();
+      if (!isRevealed && card && (key === " " || key === "enter")) {
+        event.preventDefault();
+        setRevealedCardId(card.id);
+        return;
+      }
+
+      if (!isRevealed || rating !== null) return;
+
+      const option = ratingOptions.find(
+        (candidate) =>
+          candidate.key === key || candidate.label[0].toLowerCase() === key,
       );
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboardCards,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.overstorySeeds,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.understorySeeds,
-      });
-      setRevealedCardId(null);
-    } catch {
-      setError("That rating could not be saved. Please try again.");
-    } finally {
-      setIsAdvancing(false);
-      setRating(null);
+      if (option) {
+        event.preventDefault();
+        void submitRating(option.rating);
+      }
     }
-  }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [card, isRevealed, rating, submitRating]);
 
   if (!card) {
     return (
@@ -144,9 +189,7 @@ export function ReviewSessionView({
         </p>
       </header>
 
-      <Card
-        className={`mt-6 transition-all duration-200 ${isAdvancing ? "translate-y-2 opacity-0" : "translate-y-0 opacity-100"}`}
-      >
+      <Card className="mt-6">
         <CardHeader className="border-b border-border">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -182,7 +225,10 @@ export function ReviewSessionView({
                 onClick={() => setRevealedCardId(card.id)}
                 type="button"
               >
-                Show answer
+                Show answer{" "}
+                <kbd className="rounded border border-current/40 px-1">
+                  Space
+                </kbd>
               </Button>
             </section>
           ) : (
@@ -257,7 +303,12 @@ export function ReviewSessionView({
                             : "outline"
                       }
                     >
-                      <span>{option.label}</span>
+                      <span className="flex w-full items-center justify-between gap-3">
+                        {option.label}
+                        <kbd className="rounded border border-current/40 px-1 text-[10px] font-semibold">
+                          {option.key}
+                        </kbd>
+                      </span>
                       <span className="text-xs font-normal opacity-80">
                         {option.description}
                       </span>
@@ -266,6 +317,8 @@ export function ReviewSessionView({
                 </div>
                 <p className="mt-3 text-xs leading-5 text-muted-foreground">
                   Your choice helps Canopy decide when to bring this card back.
+                  Use 1–4, or H, P, G, and E, to rate without reaching for the
+                  mouse.
                 </p>
                 {selectedRating ? (
                   <p
