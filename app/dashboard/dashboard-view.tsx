@@ -609,8 +609,9 @@ function ReviewQueue({
         <div className="space-y-2">
           {cards.length === 0 ? (
             <div className="rounded-xl border border-border bg-background p-5 text-sm text-muted-foreground lg:col-span-2">
-              No cards are available yet. Import vocabulary or run{" "}
-              <code>npm run db:seed</code> after pushing the schema.
+              {archived
+                ? "No archived cards yet. Cards you archive will rest here."
+                : "Your collection is ready for its first seed. Import vocabulary or add a card to begin."}
             </div>
           ) : null}
           {cards.map((card) => (
