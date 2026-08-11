@@ -14,7 +14,7 @@ const previews = [
   {
     title: "The Sprouting Queue",
     description:
-      "Review cards on SM-2 intervals so words return when they need attention.",
+      "Revisit cards when they need a little more time to take root.",
     icon: Sprout,
   },
   {

@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Check, Leaf } from "lucide-react";
+import { ArrowLeft, Leaf } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchCardsByScope,
-  reviewLabels,
-} from "@/components/canopy/card-utils";
+import { fetchCardsByScope } from "@/components/canopy/card-utils";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { queryKeys } from "@/lib/query-keys";
 
-const ratings = [2, 3, 4, 5] as const;
+const ratingOptions = [
+  { rating: 2, label: "Hard", description: "Needs another look" },
+  { rating: 3, label: "Pass", description: "Remembered with effort" },
+  { rating: 4, label: "Good", description: "Remembered" },
+  { rating: 5, label: "Easy", description: "Came back instantly" },
+] as const;
+
+type ReviewRating = (typeof ratingOptions)[number]["rating"];
 
 export function ReviewSessionView({
   initialDueCards,
@@ -24,7 +28,9 @@ export function ReviewSessionView({
   const queryClient = useQueryClient();
   const [initialCount] = useState(initialDueCards.length);
   const [error, setError] = useState("");
-  const [rating, setRating] = useState<number | null>(null);
+  const [rating, setRating] = useState<ReviewRating | null>(null);
+  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const { data: cards = [] } = useQuery({
     queryKey: queryKeys.reviewQueue,
     queryFn: async () => {
@@ -36,8 +42,12 @@ export function ReviewSessionView({
   });
   const card = cards[0];
   const reviewedCount = initialCount - cards.length;
+  const isRevealed = revealedCardId === card?.id;
+  const selectedRating = ratingOptions.find(
+    (option) => option.rating === rating,
+  );
 
-  async function submitRating(nextRating: (typeof ratings)[number]) {
+  async function submitRating(nextRating: ReviewRating) {
     if (!card || rating !== null) return;
 
     setError("");
@@ -52,6 +62,10 @@ export function ReviewSessionView({
         throw new Error(await response.text());
       }
 
+      setIsAdvancing(true);
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 260);
+      });
       queryClient.setQueryData<WorkspaceCard[]>(
         queryKeys.reviewQueue,
         (current = []) =>
@@ -66,9 +80,11 @@ export function ReviewSessionView({
       void queryClient.invalidateQueries({
         queryKey: queryKeys.understorySeeds,
       });
+      setRevealedCardId(null);
     } catch {
       setError("That rating could not be saved. Please try again.");
     } finally {
+      setIsAdvancing(false);
       setRating(null);
     }
   }
@@ -124,11 +140,13 @@ export function ReviewSessionView({
           Give this word a moment
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Choose the rating that best reflects how easily it came back to you.
+          Take a moment to recall the meaning before you reveal it.
         </p>
       </header>
 
-      <Card className="mt-6">
+      <Card
+        className={`mt-6 transition-all duration-200 ${isAdvancing ? "translate-y-2 opacity-0" : "translate-y-0 opacity-100"}`}
+      >
         <CardHeader className="border-b border-border">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -148,85 +166,126 @@ export function ReviewSessionView({
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          <section aria-labelledby="definitions-heading">
-            <h2
-              className="text-xs font-semibold uppercase text-muted-foreground"
-              id="definitions-heading"
-            >
-              Definitions
-            </h2>
-            <ul className="mt-3 space-y-2 text-base leading-7">
-              {card.definitions.map((definition) => (
-                <li key={definition}>{definition}</li>
-              ))}
-            </ul>
-          </section>
-
-          {card.aiExampleContexts.length > 0 ? (
-            <section aria-labelledby="context-heading">
+          {!isRevealed ? (
+            <section aria-labelledby="recall-heading">
               <h2
                 className="text-xs font-semibold uppercase text-muted-foreground"
-                id="context-heading"
+                id="recall-heading"
               >
-                Saved context
+                Recall the meaning
               </h2>
-              <div className="mt-3 space-y-3">
-                {card.aiExampleContexts.map((context, index) => (
-                  <div
-                    className="rounded-lg border border-border bg-background p-4"
-                    key={`${context.sentence}-${index}`}
-                  >
-                    <p className="font-medium leading-6">{context.sentence}</p>
-                    {context.phonetic ? (
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {context.phonetic}
-                      </p>
-                    ) : null}
-                    {context.translation ? (
-                      <p className="mt-2 text-sm leading-6">
-                        {context.translation}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section aria-labelledby="rating-heading">
-            <h2
-              className="text-xs font-semibold uppercase text-muted-foreground"
-              id="rating-heading"
-            >
-              How did it feel?
-            </h2>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {ratings.map((nextRating) => (
-                <Button
-                  disabled={rating !== null}
-                  key={nextRating}
-                  onClick={() => void submitRating(nextRating)}
-                  type="button"
-                  variant={nextRating >= 4 ? "default" : "outline"}
-                >
-                  {nextRating === 5 ? <Check /> : nextRating}{" "}
-                  {reviewLabels[nextRating]}
-                </Button>
-              ))}
-            </div>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              Hard returns tomorrow. Pass, Good, and Easy lengthen the next
-              interval based on your history.
-            </p>
-            {error ? (
-              <p
-                className="mt-3 rounded-lg border border-primary/40 bg-background p-3 text-sm"
-                role="alert"
-              >
-                {error}
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                When you have an answer in mind, reveal the card to compare it.
               </p>
-            ) : null}
-          </section>
+              <Button
+                className="mt-5 w-full sm:w-auto"
+                onClick={() => setRevealedCardId(card.id)}
+                type="button"
+              >
+                Show answer
+              </Button>
+            </section>
+          ) : (
+            <>
+              <section aria-labelledby="definitions-heading">
+                <h2
+                  className="text-xs font-semibold uppercase text-muted-foreground"
+                  id="definitions-heading"
+                >
+                  Answer
+                </h2>
+                <ul className="mt-3 space-y-2 text-base leading-7">
+                  {card.definitions.map((definition) => (
+                    <li key={definition}>{definition}</li>
+                  ))}
+                </ul>
+              </section>
+
+              {card.aiExampleContexts.length > 0 ? (
+                <section aria-labelledby="context-heading">
+                  <h2
+                    className="text-xs font-semibold uppercase text-muted-foreground"
+                    id="context-heading"
+                  >
+                    Saved context
+                  </h2>
+                  <div className="mt-3 space-y-3">
+                    {card.aiExampleContexts.map((context, index) => (
+                      <div
+                        className="rounded-lg border border-border bg-background p-4"
+                        key={`${context.sentence}-${index}`}
+                      >
+                        <p className="font-medium leading-6">
+                          {context.sentence}
+                        </p>
+                        {context.phonetic ? (
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {context.phonetic}
+                          </p>
+                        ) : null}
+                        {context.translation ? (
+                          <p className="mt-2 text-sm leading-6">
+                            {context.translation}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              <section aria-labelledby="rating-heading">
+                <h2
+                  className="text-xs font-semibold uppercase text-muted-foreground"
+                  id="rating-heading"
+                >
+                  How did it feel?
+                </h2>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {ratingOptions.map((option) => (
+                    <Button
+                      className="h-auto min-h-20 flex-col items-start gap-1 whitespace-normal px-4 py-3 text-left"
+                      disabled={rating !== null}
+                      key={option.rating}
+                      onClick={() => void submitRating(option.rating)}
+                      type="button"
+                      variant={
+                        option.rating === 5
+                          ? "default"
+                          : option.rating === 4
+                            ? "secondary"
+                            : "outline"
+                      }
+                    >
+                      <span>{option.label}</span>
+                      <span className="text-xs font-normal opacity-80">
+                        {option.description}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  Your choice helps Canopy decide when to bring this card back.
+                </p>
+                {selectedRating ? (
+                  <p
+                    className="mt-3 text-sm text-muted-foreground"
+                    role="status"
+                  >
+                    {selectedRating.label} — {selectedRating.description}
+                  </p>
+                ) : null}
+                {error ? (
+                  <p
+                    className="mt-3 rounded-lg border border-primary/40 bg-background p-3 text-sm"
+                    role="alert"
+                  >
+                    {error}
+                  </p>
+                ) : null}
+              </section>
+            </>
+          )}
         </CardContent>
       </Card>
     </main>

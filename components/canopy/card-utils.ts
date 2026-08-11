@@ -2,13 +2,6 @@ import type { WorkspaceCard } from "@/components/canopy/types";
 
 export type SeedFilter = "due" | "weak" | "recent";
 
-export const reviewLabels: Record<number, string> = {
-  2: "Hard",
-  3: "Pass",
-  4: "Good",
-  5: "Easy",
-};
-
 export const seedFilterLabels: Record<SeedFilter, string> = {
   due: "Due",
   weak: "Weak",

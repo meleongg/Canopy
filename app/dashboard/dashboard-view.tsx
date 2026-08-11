@@ -662,20 +662,11 @@ function ReviewQueue({
                     {card.phoneticReading.join(" ")}
                   </p>
                 </div>
-                <Badge title="Ease factor: higher means the card grows longer review intervals after successful reviews.">
-                  EF {(card.easiness / 100).toFixed(2)}
-                </Badge>
+                <Badge>{card.languageCode}</Badge>
               </div>
               <p className="mt-4 text-sm leading-6">
                 {card.definitions.join("; ")}
               </p>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                <span title="SM-2 interval: days until the next review.">
-                  Interval {card.interval}d
-                </span>
-                <span>Rep {card.repetition}</span>
-                <span>{card.languageCode}</span>
-              </div>
               {card.aiExampleContexts.length > 0 ? (
                 <div className="mt-4 space-y-3">
                   {card.aiExampleContexts.map((context, contextIndex) => (
