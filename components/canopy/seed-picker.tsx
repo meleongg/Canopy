@@ -166,9 +166,6 @@ export function SeedPicker({
                     {card.definitions.join(", ")}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  EF {(card.easiness / 100).toFixed(2)}
-                </span>
               </label>
             );
           })}

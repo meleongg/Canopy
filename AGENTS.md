@@ -33,5 +33,5 @@ Before you present a task as complete or prompt for a commit, you must execute t
 
 1. **Linter & Type Checks:** Run the formatting, linting, and type-checking commands to ensure zero errors.
 2. **Local Verification:** Run the project's test suite and ensure all tests pass.
-3. **Diff Explanation:** Call the `/explain-diff-html` skill or produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks.
+3. **Diff Explanation:** For substantial or high-risk changes, call the `/explain-diff-html` skill. For small follow-up fixes, produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks. In both cases, run `git diff --check`.
 4. **Draft PR for Feature Work:** For substantial feature-branch work, commit and push the validated changes, then publish the required draft PR. Do not mark it ready for review, approve it, or merge it.

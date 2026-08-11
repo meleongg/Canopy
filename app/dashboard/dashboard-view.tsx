@@ -4,11 +4,9 @@ import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
   Archive,
   ArchiveRestore,
   BookOpen,
-  CircleHelp,
   FileText,
   MessageCircle,
   PencilLine,
@@ -23,14 +21,12 @@ import {
   createFlashcardsFromPreviewAction,
   generateContextAction,
   removeContextAction,
-  reviewCardAction,
 } from "@/app/actions";
 import {
   contextGeneratedLabel,
   dueLabel,
   fetchCardsByScope,
   growthLabel,
-  reviewLabels,
 } from "@/components/canopy/card-utils";
 import { LanguageSelect } from "@/components/canopy/language-select";
 import type { ImportDraft, WorkspaceCard } from "@/components/canopy/types";
@@ -49,7 +45,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -514,9 +509,7 @@ function ReviewQueue({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [queueFilter, setQueueFilter] = useState<"due" | "all">(
-    archived ? "all" : "due",
-  );
+  const [queueFilter, setQueueFilter] = useState<"due" | "all">("all");
   const [editingCard, setEditingCard] = useState<WorkspaceCard | null>(null);
   const [deletingCard, setDeletingCard] = useState<WorkspaceCard | null>(null);
   const [actionMessage, setActionMessage] = useState("");
@@ -606,51 +599,11 @@ function ReviewQueue({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle>The Sprouting Queue</CardTitle>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    aria-label="How review scheduling works"
-                    size="icon"
-                    type="button"
-                    variant="outline"
-                  >
-                    <CircleHelp />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>SM-2 Review Scheduling</DialogTitle>
-                    <DialogDescription>
-                      Canopy uses the SuperMemo-2 pattern to decide when each
-                      card comes back.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="mt-5 space-y-4 text-sm leading-6">
-                    <p>
-                      <strong>Interval</strong> is the number of days until the
-                      next review. It grows after successful reviews.
-                    </p>
-                    <p>
-                      <strong>EF</strong> is the ease factor. Higher EF makes
-                      future intervals grow faster. Hard reviews lower it.
-                    </p>
-                    <p>
-                      The review buttons are quality scores:{" "}
-                      <strong>2 Hard</strong>, <strong>3 Pass</strong>,{" "}
-                      <strong>4 Good</strong>, and <strong>5 Easy</strong>.
-                    </p>
-                    <p>
-                      The queue defaults to Due cards. Use All to browse the
-                      whole collection.
-                    </p>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <CardTitle>Your collection</CardTitle>
             </div>
             <CardDescription>
-              Cards are sorted by next review date. Review buttons update their
-              next interval.
+              Browse and care for your vocabulary here. Due cards are reviewed
+              one at a time in a focused session.
               {archived
                 ? " Archived cards are kept out of review and AI practice."
                 : ""}
@@ -709,20 +662,11 @@ function ReviewQueue({
                     {card.phoneticReading.join(" ")}
                   </p>
                 </div>
-                <Badge title="Ease factor: higher means the card grows longer review intervals after successful reviews.">
-                  EF {(card.easiness / 100).toFixed(2)}
-                </Badge>
+                <Badge>{card.languageCode}</Badge>
               </div>
               <p className="mt-4 text-sm leading-6">
                 {card.definitions.join("; ")}
               </p>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                <span title="SM-2 interval: days until the next review.">
-                  Interval {card.interval}d
-                </span>
-                <span>Rep {card.repetition}</span>
-                <span>{card.languageCode}</span>
-              </div>
               {card.aiExampleContexts.length > 0 ? (
                 <div className="mt-4 space-y-3">
                   {card.aiExampleContexts.map((context, contextIndex) => (
@@ -790,28 +734,6 @@ function ReviewQueue({
                 </Button>
                 {!archived ? (
                   <>
-                    <p className="basis-full text-xs text-muted-foreground">
-                      Review: 2 Hard · 3 Pass · 4 Good · ✓ Easy
-                    </p>
-                    {[2, 3, 4, 5].map((quality) => (
-                      <form
-                        action={(formData) =>
-                          runAction(reviewCardAction, formData)
-                        }
-                        key={quality}
-                      >
-                        <input name="cardId" type="hidden" value={card.id} />
-                        <input name="quality" type="hidden" value={quality} />
-                        <Button
-                          size="icon"
-                          title={`Review quality ${quality}: ${reviewLabels[quality]}`}
-                          type="submit"
-                          variant="outline"
-                        >
-                          {quality === 5 ? <Check /> : quality}
-                        </Button>
-                      </form>
-                    ))}
                     <form
                       action={(formData) =>
                         runAction(generateContextAction, formData)
@@ -1093,6 +1015,29 @@ export function DashboardView({
             Contexts
           </p>
           <p className="mt-1 font-serif text-3xl font-bold">{contextCount}</p>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase text-primary">
+              Sprouting queue
+            </p>
+            <h2 className="mt-1 font-serif text-xl font-semibold">
+              {dueCount > 0
+                ? `${dueCount} card${dueCount === 1 ? "" : "s"} ready to revisit`
+                : "Your review queue is clear"}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {dueCount > 0
+                ? "Settle into a focused, one-card-at-a-time review."
+                : "Return later, or use your vocabulary in a story or conversation."}
+            </p>
+          </div>
+          <Button asChild disabled={dueCount === 0}>
+            <Link href="/review">Start review</Link>
+          </Button>
         </div>
       </section>
 

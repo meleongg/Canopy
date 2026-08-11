@@ -12,8 +12,9 @@ Canopy's beta finishes the personal learning loop: import vocabulary, review act
 6. Add contextual vocabulary assistance for generated Chinese: hover/focus pinyin and definitions for intentionally supported terms, plus a reviewed add-to-flashcard flow. Define the reliable lookup/source contract before implementation; do not infer unknown-word meanings solely from model output.
 7. Add a dedicated, mobile-friendly review session: the Dashboard becomes a compact launchpad and reference surface, while a focused route presents one due card at a time with progress, ratings, and a clear exit path.
 8. Refine Dashboard collection browsing after review is separated: use compact active/archived card rows with expandable details, and keep periodic import/manual card creation in a clearly available secondary acquisition flow rather than a permanent equal column. Replace the current creation-only Consistency Well with a gentle seven-day learning-rhythm view based on meaningful review and completed practice activity; do not add streak-loss mechanics, leaderboards, or advanced analytics.
-9. Investigate a Pleco acquisition workflow before building automation: validate the user-exported UTF-8 text/category flow, then determine whether a user-authorized cloud-folder import is worthwhile. Do not assume Pleco provides a server API, webhook, or unattended recent-search export.
-10. Deploy to Vercel + Neon with a dedicated OpenAI project, usage alerts, and a conservative enforced spend cap.
+9. Add optional Free practice as a separate, clearly labelled session alongside formal review: let the learner choose a small number of active cards for recall and answer reveal without changing next-review dates, intervals, or other scheduling state. It must not call the formal review mutation or imply that its controls affect the learner's review rhythm.
+10. Investigate a Pleco acquisition workflow before building automation: validate the user-exported UTF-8 text/category flow, then determine whether a user-authorized cloud-folder import is worthwhile. Do not assume Pleco provides a server API, webhook, or unattended recent-search export.
+11. Deploy to Vercel + Neon with a dedicated OpenAI project, usage alerts, and a conservative enforced spend cap.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
