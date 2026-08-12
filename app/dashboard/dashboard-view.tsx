@@ -996,10 +996,19 @@ export function DashboardView({
                 : "Return later, or use your vocabulary in a story or conversation."}
             </p>
           </div>
-          <Button asChild disabled={dueCount === 0}>
-            <Link href="/review">Start review</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild disabled={dueCount === 0}>
+              <Link href="/review">Start review</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/practice">Free practice</Link>
+            </Button>
+          </div>
         </div>
+        <p className="mt-4 border-t border-border pt-4 text-sm leading-6 text-muted-foreground">
+          Want a few extra repetitions? Free practice uses active cards without
+          changing when anything is due.
+        </p>
         {cards
           .filter((card) => new Date(card.nextReviewAt) <= new Date())
           .slice(0, 5).length > 0 ? (
