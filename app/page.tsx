@@ -35,9 +35,9 @@ export default async function LandingPage() {
   const href = session ? "/dashboard" : "/register";
 
   return (
-    <main>
-      <section className="border-b border-border bg-card/60">
-        <div className="mx-auto grid min-h-[calc(100vh-11rem)] w-full max-w-7xl content-center gap-10 px-4 py-12 md:grid-cols-[1.1fr_0.9fr] md:px-8">
+    <main className="flex flex-1 flex-col">
+      <section className="flex flex-1 border-b border-border bg-card/60">
+        <div className="mx-auto grid w-full max-w-7xl content-center gap-10 px-4 py-12 md:grid-cols-[1.1fr_0.9fr] md:px-8">
           <div className="flex flex-col justify-center">
             <p className="text-sm font-semibold uppercase text-primary">
               Canopy
