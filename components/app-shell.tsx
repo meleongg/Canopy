@@ -198,7 +198,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className={cn("flex-1", user && "pb-20 md:pb-0")}>{children}</div>
+      <div className={cn("flex flex-1 flex-col", user && "pb-20 md:pb-0")}>
+        {children}
+      </div>
 
       {user ? (
         <nav
