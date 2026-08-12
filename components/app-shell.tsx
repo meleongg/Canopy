@@ -232,12 +232,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       ) : null}
 
-      <footer className="border-t border-border bg-card/60">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
-          <p>Canopy grows vocabulary through review, context, and dialogue.</p>
-          <p>The Sprouting Queue · The Overstory · The Understory</p>
-        </div>
-      </footer>
+      {["/", "/privacy", "/terms"].includes(pathname) ? (
+        <footer className="border-t border-border bg-card/60">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
+            <p>
+              Canopy grows vocabulary through review, context, and dialogue.
+            </p>
+            <nav aria-label="Legal" className="flex gap-4">
+              <Link className="hover:text-foreground" href="/privacy">
+                Privacy
+              </Link>
+              <Link className="hover:text-foreground" href="/terms">
+                Terms
+              </Link>
+            </nav>
+          </div>
+        </footer>
+      ) : null}
     </div>
   );
 }
