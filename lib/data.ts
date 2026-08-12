@@ -1,4 +1,14 @@
-import { and, asc, eq, gte, isNull, isNotNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gte,
+  ilike,
+  isNull,
+  isNotNull,
+  or,
+} from "drizzle-orm";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
 import { aiSessions, flashcards, user, words } from "@/db/schema";
@@ -110,6 +120,93 @@ export async function getDashboardData(
       aiExampleContexts: normalizeExampleContexts(aiExampleContext),
     }),
   );
+}
+
+export type CollectionPage = {
+  cards: DashboardCard[];
+  total: number;
+};
+
+export async function getCollectionPage(
+  userId: string,
+  options: {
+    scope: "active" | "archived";
+    query: string;
+    page: number;
+    pageSize: number;
+  },
+): Promise<CollectionPage> {
+  if (!hasDatabaseEnv()) return { cards: [], total: 0 };
+
+  const db = getDb();
+  const query = options.query.trim();
+  const scopeCondition =
+    options.scope === "archived"
+      ? isNotNull(flashcards.archivedAt)
+      : isNull(flashcards.archivedAt);
+  const searchCondition = query
+    ? or(
+        ilike(words.targetText, `%${query}%`),
+        ilike(flashcards.targetTextOverride, `%${query}%`),
+      )
+    : undefined;
+  const where = and(
+    eq(flashcards.userId, userId),
+    scopeCondition,
+    searchCondition,
+  );
+  const offset = Math.max(0, options.page - 1) * options.pageSize;
+  const [rows, [totalRow]] = await Promise.all([
+    db
+      .select({
+        id: flashcards.id,
+        languageCode: words.languageCode,
+        targetText: words.targetText,
+        phoneticReading: words.phoneticReading,
+        definitions: words.definitions,
+        targetTextOverride: flashcards.targetTextOverride,
+        phoneticReadingOverride: flashcards.phoneticReadingOverride,
+        definitionsOverride: flashcards.definitionsOverride,
+        interval: flashcards.interval,
+        repetition: flashcards.repetition,
+        easiness: flashcards.easiness,
+        nextReviewAt: flashcards.nextReviewAt,
+        lastReviewedAt: flashcards.lastReviewedAt,
+        createdAt: flashcards.createdAt,
+        archivedAt: flashcards.archivedAt,
+        aiExampleContext: flashcards.aiExampleContext,
+      })
+      .from(flashcards)
+      .innerJoin(words, eq(flashcards.wordId, words.id))
+      .where(where)
+      .orderBy(asc(flashcards.nextReviewAt))
+      .limit(options.pageSize)
+      .offset(offset),
+    db
+      .select({ total: count() })
+      .from(flashcards)
+      .innerJoin(words, eq(flashcards.wordId, words.id))
+      .where(where),
+  ]);
+
+  return {
+    cards: rows.map(
+      ({
+        aiExampleContext,
+        targetTextOverride,
+        phoneticReadingOverride,
+        definitionsOverride,
+        ...card
+      }) => ({
+        ...card,
+        targetText: targetTextOverride ?? card.targetText,
+        phoneticReading: phoneticReadingOverride ?? card.phoneticReading,
+        definitions: definitionsOverride ?? card.definitions,
+        aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+      }),
+    ),
+    total: totalRow?.total ?? 0,
+  };
 }
 
 export async function getDashboardLearningRhythm(

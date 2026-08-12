@@ -39,6 +39,7 @@ type ShellUser = {
 
 const privateNav = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/collection", label: "Collection" },
   { href: "/overstory", label: "The Overstory" },
   { href: "/understory/setup", label: "The Understory" },
   { href: "/history", label: "History" },
@@ -158,6 +159,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/dashboard">
                       <TreePine className="mr-2 size-4" />
                       Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/collection">
+                      <BookOpen className="mr-2 size-4" />
+                      Collection
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
