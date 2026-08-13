@@ -2,6 +2,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   gte,
   ilike,
@@ -22,6 +23,7 @@ import {
   buildLearningRhythm,
   type LearningRhythmDay,
 } from "@/lib/learning-rhythm";
+import type { PracticeSource } from "@/lib/practice";
 
 export type DashboardCard = {
   id: string;
@@ -213,6 +215,7 @@ export async function getCollectionPage(
 export async function getPracticeCards(
   userId: string,
   count: number,
+  source: PracticeSource,
 ): Promise<DashboardCard[]> {
   if (!hasDatabaseEnv() || count <= 0) return [];
 
@@ -239,7 +242,13 @@ export async function getPracticeCards(
     .from(flashcards)
     .innerJoin(words, eq(flashcards.wordId, words.id))
     .where(and(eq(flashcards.userId, userId), isNull(flashcards.archivedAt)))
-    .orderBy(sql`random()`)
+    .orderBy(
+      source === "random"
+        ? sql`random()`
+        : source === "recent"
+          ? desc(flashcards.createdAt)
+          : asc(flashcards.createdAt),
+    )
     .limit(count);
 
   return rows.map(

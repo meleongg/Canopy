@@ -7,13 +7,16 @@ import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { practiceSourceLabel, type PracticeSource } from "@/lib/practice";
 
 export function PracticeSessionView({
   initialCards,
   requestedCount,
+  source,
 }: {
   initialCards: WorkspaceCard[];
   requestedCount: number;
+  source: PracticeSource;
 }) {
   const [cards, setCards] = useState(initialCards);
   const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
@@ -115,7 +118,7 @@ export function PracticeSessionView({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase text-muted-foreground">
-                {card.languageCode}
+                {practiceSourceLabel(source)} · {card.languageCode}
               </p>
               <CardTitle className="mt-2 font-serif text-4xl md:text-5xl">
                 {card.targetText}
