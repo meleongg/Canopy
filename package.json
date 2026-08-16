@@ -15,7 +15,8 @@
     "db:migrate": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit migrate",
     "db:push": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit push",
     "db:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/seed.mjs",
-    "db:clear:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/clear-seed.mjs"
+    "db:clear:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/clear-seed.mjs",
+    "dictionary:import": "node --no-warnings --experimental-strip-types scripts/import-cc-cedict.mts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.68",

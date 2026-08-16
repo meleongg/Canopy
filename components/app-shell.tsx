@@ -248,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       ) : null}
 
-      {["/", "/privacy", "/terms"].includes(pathname) ? (
+      {["/", "/privacy", "/terms", "/attributions"].includes(pathname) ? (
         <footer className="border-t border-border bg-card/60">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
             <p>
@@ -260,6 +260,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
               <Link className="hover:text-foreground" href="/terms">
                 Terms
+              </Link>
+              <Link className="hover:text-foreground" href="/attributions">
+                Attributions
               </Link>
             </nav>
           </div>
