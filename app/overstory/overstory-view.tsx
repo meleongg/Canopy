@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Sparkles } from "lucide-react";
 import { SeedPicker } from "@/components/canopy/seed-picker";
+import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
@@ -167,7 +168,13 @@ export function OverstoryView({
             </p>
             <div className="mt-5 min-h-96 rounded-xl border border-border bg-background p-5 text-base leading-8">
               {story ? (
-                <p>{tokenizeStory(story, seedCards)}</p>
+                <p>
+                  {isComplete ? (
+                    <ContextualChineseText text={story} />
+                  ) : (
+                    tokenizeStory(story, seedCards)
+                  )}
+                </p>
               ) : (
                 <p className="text-muted-foreground">
                   The Overstory will stream here. Hover highlighted vocabulary

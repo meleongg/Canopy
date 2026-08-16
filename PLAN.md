@@ -24,6 +24,28 @@ Decks, analytics, social features, and push notifications remain out of scope fo
 
 ## Nice-to-have after beta activity justifies it
 
+Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
+data without turning its full corpus into learner cards or scheduled review:
+
+- A dedicated dictionary explorer with Simplified, Traditional, pinyin, and
+  English-gloss search plus an explicit add-to-collection action.
+- Optional contextual discovery around terms a learner already studies, such as
+  exact compounds containing a shared character; clearly label this as
+  exploration rather than a semantic or curriculum recommendation.
+- Pinyin and tone contrast practice, Traditional/Simplified recognition, and
+  sense-selection exercises that remain outside the learner's formal review
+  rhythm until they choose to add a card.
+- Personal lookup history and a separate, curated “Explore Chinese” practice
+  mode with deliberate topic/level filters rather than a random draw from the
+  whole dictionary.
+- Dictionary-backed hints for learner-authored Chinese in Understory, with
+  concise readings and definitions rather than unverified model-invented
+  meanings.
+
+CC-CEDICT supplies forms, readings, and English glosses. Frequency, level,
+semantic relationships, and example sentences require a separate reliable
+source or carefully constrained generation before they can drive recommendations.
+
 Add server-side AI rate limiting (for example, a dedicated Redis/Valkey store or
 Vercel WAF rule) after observing enough real activity to justify the operational
 cost and configuration. It must use Canopy-isolated credentials; do not share a

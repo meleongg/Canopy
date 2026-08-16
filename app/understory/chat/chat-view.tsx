@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, History, Send, TreePine } from "lucide-react";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
+import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -286,7 +287,11 @@ export function UnderstoryChatView({
                       : "bg-card text-foreground",
                   )}
                 >
-                  {message.content}
+                  {message.role === "assistant" ? (
+                    <ContextualChineseText text={message.content} />
+                  ) : (
+                    message.content
+                  )}
                 </p>
               </div>
             ))}
