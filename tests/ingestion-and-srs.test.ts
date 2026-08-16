@@ -25,6 +25,20 @@ describe("vocabulary ingestion", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]?.definitions).toEqual(["welfare"]);
   });
+
+  it("accepts UTF-8 Pleco text exports and ignores category headers", async () => {
+    const entries = await parseVocabularyLog(
+      "//Textbook/Chapter 3\n福利\tfu2li4\tmaterial benefit; welfare",
+      "zh-CN",
+    );
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      targetText: "福利",
+      phoneticReading: ["fú", "lì"],
+      definitions: ["material benefit", "welfare"],
+    });
+  });
 });
 
 describe("SM-2 scheduling", () => {
