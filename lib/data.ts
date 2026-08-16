@@ -2,12 +2,14 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   gte,
   ilike,
   isNull,
   isNotNull,
   or,
+  sql,
 } from "drizzle-orm";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
@@ -21,6 +23,7 @@ import {
   buildLearningRhythm,
   type LearningRhythmDay,
 } from "@/lib/learning-rhythm";
+import type { PracticeSource } from "@/lib/practice";
 
 export type DashboardCard = {
   id: string;
@@ -207,6 +210,62 @@ export async function getCollectionPage(
     ),
     total: totalRow?.total ?? 0,
   };
+}
+
+export async function getPracticeCards(
+  userId: string,
+  count: number,
+  source: PracticeSource,
+): Promise<DashboardCard[]> {
+  if (!hasDatabaseEnv() || count <= 0) return [];
+
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: flashcards.id,
+      languageCode: words.languageCode,
+      targetText: words.targetText,
+      phoneticReading: words.phoneticReading,
+      definitions: words.definitions,
+      targetTextOverride: flashcards.targetTextOverride,
+      phoneticReadingOverride: flashcards.phoneticReadingOverride,
+      definitionsOverride: flashcards.definitionsOverride,
+      interval: flashcards.interval,
+      repetition: flashcards.repetition,
+      easiness: flashcards.easiness,
+      nextReviewAt: flashcards.nextReviewAt,
+      lastReviewedAt: flashcards.lastReviewedAt,
+      createdAt: flashcards.createdAt,
+      archivedAt: flashcards.archivedAt,
+      aiExampleContext: flashcards.aiExampleContext,
+    })
+    .from(flashcards)
+    .innerJoin(words, eq(flashcards.wordId, words.id))
+    .where(and(eq(flashcards.userId, userId), isNull(flashcards.archivedAt)))
+    .orderBy(
+      source === "random"
+        ? sql`random()`
+        : source === "recent"
+          ? desc(flashcards.createdAt)
+          : asc(flashcards.createdAt),
+    )
+    .limit(count);
+
+  return rows.map(
+    ({
+      aiExampleContext,
+      targetTextOverride,
+      phoneticReadingOverride,
+      definitionsOverride,
+      ...card
+    }) => ({
+      ...card,
+      targetText: targetTextOverride ?? card.targetText,
+      phoneticReading: phoneticReadingOverride ?? card.phoneticReading,
+      definitions: definitionsOverride ?? card.definitions,
+      aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+    }),
+  );
 }
 
 export async function getDashboardLearningRhythm(
