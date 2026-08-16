@@ -33,6 +33,8 @@ deferred until real beta activity justifies it.
 ## Validation
 
 ```bash
-npm run lint
-npm run build
+npm run validate
 ```
+
+Run this before opening or updating a pull request. It runs linting, strict
+TypeScript checks, and the unit test suite in order.

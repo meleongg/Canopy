@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "validate": "npm run lint && tsc --noEmit && npm run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit generate",
