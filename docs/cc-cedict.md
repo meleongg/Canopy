@@ -34,5 +34,8 @@ npm run dictionary:import -- ~/Downloads/cedict_1_0_ts_utf-8_mdbg.txt.gz \
 ```
 
 The importer validates the parsed count before writes, computes a SHA-256
-digest for the downloaded artifact, and upserts rows in bounded batches. It
-does not download data or create learner flashcards.
+digest for the downloaded artifact, and upserts rows in bounded batches. Once
+the complete release is present, it atomically makes that release active and
+cleans up entries belonging to older releases. A failed import leaves the prior
+active dictionary available. It does not download data or create learner
+flashcards.

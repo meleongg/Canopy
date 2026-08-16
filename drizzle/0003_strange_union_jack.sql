@@ -1,0 +1,2 @@
+ALTER TABLE "dictionary_releases" ADD COLUMN "is_active" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "dictionary_active_release_source_idx" ON "dictionary_releases" USING btree ("source") WHERE "dictionary_releases"."is_active" = true;

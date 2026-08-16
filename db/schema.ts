@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { ExampleContext } from "@/lib/example-contexts";
 
 export const user = pgTable("user", {
@@ -141,6 +142,7 @@ export const dictionaryReleases = pgTable(
     sourceReleasedAt: timestamp("source_released_at").notNull(),
     sourceEntryCount: integer("source_entry_count").notNull(),
     sourceSha256: text("source_sha256").notNull(),
+    isActive: boolean("is_active").default(false).notNull(),
     importedAt: timestamp("imported_at").defaultNow().notNull(),
   },
   (table) => [
@@ -148,6 +150,9 @@ export const dictionaryReleases = pgTable(
       table.source,
       table.sourceVersion,
     ),
+    uniqueIndex("dictionary_active_release_source_idx")
+      .on(table.source)
+      .where(sql`${table.isActive} = true`),
   ],
 );
 

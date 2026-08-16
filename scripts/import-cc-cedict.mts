@@ -127,7 +127,7 @@ async function main() {
   const sql = neon(databaseUrl);
   const sourceVersion = options.releasedAt.toISOString();
   const [existingRelease] = await sql`
-    select id, source_sha256
+    select id, source_sha256, is_active
     from dictionary_releases
     where source = 'cc-cedict' and source_version = ${sourceVersion}
   `;
@@ -135,6 +135,12 @@ async function main() {
     throw new Error(
       "A different file is already recorded for this CC-CEDICT release timestamp. Use the original artifact or provide the timestamp for the downloaded release.",
     );
+  }
+  if (existingRelease?.is_active) {
+    console.log(
+      `CC-CEDICT ${sourceVersion} is already the active release; nothing to import.`,
+    );
+    return;
   }
 
   const release =
@@ -194,8 +200,29 @@ async function main() {
   }
   await writeBatch();
 
+  await sql.transaction([
+    sql`
+      update dictionary_releases
+      set is_active = false
+      where source = 'cc-cedict' and is_active = true
+    `,
+    sql`
+      update dictionary_releases
+      set is_active = true
+      where id = ${release.id}
+    `,
+  ]);
+  await sql`
+    delete from dictionary_entries
+    where release_id in (
+      select id
+      from dictionary_releases
+      where source = 'cc-cedict' and is_active = false
+    )
+  `;
+
   console.log(
-    `Imported CC-CEDICT ${sourceVersion} (${actualEntryCount} entries, sha256 ${sourceSha256}).`,
+    `Activated CC-CEDICT ${sourceVersion} (${actualEntryCount} entries, sha256 ${sourceSha256}).`,
   );
 }
 
