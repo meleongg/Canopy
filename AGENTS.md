@@ -11,7 +11,7 @@
 * **Install Dependencies:** `npm install`
 * **Run Local Server:** `npm run dev`
 * **Run Test Suite:** `npm run test`
-* **Format / Lint:** `npm run lint && npx tsc --noEmit`
+* **Local Validation:** `npm run validate` (lint, TypeScript, and unit tests)
 
 ## Core Agent Boundaries
 
@@ -29,9 +29,9 @@
 
 ## Definition of "Done"
 
-Before you present a task as complete or prompt for a commit, you must execute these validation gates in order:
+Before you present a task as complete or draft a pull request, you must execute
+these validation gates in order:
 
-1. **Linter & Type Checks:** Run the formatting, linting, and type-checking commands to ensure zero errors.
-2. **Local Verification:** Run the project's test suite and ensure all tests pass.
-3. **Diff Explanation:** For substantial or high-risk changes, call the `/explain-diff-html` skill. For small follow-up fixes, produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks. In both cases, run `git diff --check`.
-4. **Draft PR for Feature Work:** For substantial feature-branch work, commit and push the validated changes, then publish the required draft PR. Do not mark it ready for review, approve it, or merge it.
+1. **Local Validation:** Run `npm run validate` and ensure linting, TypeScript, and unit tests have zero errors.
+2. **Diff Explanation:** For substantial or high-risk changes, call the `/explain-diff-html` skill. For small follow-up fixes, produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks. In both cases, run `git diff --check`.
+3. **Draft PR for Feature Work:** For substantial feature-branch work, commit and push the validated changes, then publish the required draft PR. Do not mark it ready for review, approve it, or merge it.
