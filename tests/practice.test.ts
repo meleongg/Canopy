@@ -6,7 +6,8 @@ import {
 } from "@/lib/practice";
 
 describe("free practice request options", () => {
-  it("accepts only the supported round sizes", () => {
+  it("accepts supported session sizes and small collection fallbacks", () => {
+    expect(practiceCountFrom("2")).toBe(2);
     expect(practiceCountFrom("5")).toBe(5);
     expect(practiceCountFrom(["20", "5"])).toBe(20);
     expect(practiceCountFrom("12")).toBeNull();

@@ -22,7 +22,11 @@ export type PracticeSource = (typeof PRACTICE_SOURCES)[number]["value"];
 
 export function practiceCountFrom(value: string | string[] | undefined) {
   const count = Number(Array.isArray(value) ? value[0] : value);
-  return PRACTICE_COUNTS.includes(count as (typeof PRACTICE_COUNTS)[number])
+  const isFallbackCount =
+    Number.isInteger(count) && count > 0 && count < PRACTICE_COUNTS[0];
+
+  return PRACTICE_COUNTS.includes(count as (typeof PRACTICE_COUNTS)[number]) ||
+    isFallbackCount
     ? count
     : null;
 }
