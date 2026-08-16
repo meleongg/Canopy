@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { LanguageSelect } from "@/components/canopy/language-select";
 import { authClient } from "@/lib/auth-client";
 import type { UserPreferences } from "@/lib/user-preferences";
@@ -34,19 +35,22 @@ export function SettingsView({
 }) {
   const router = useRouter();
   const { setTheme } = useCanopyTheme();
+  const { toast } = useToast();
   const [name, setName] = useState(initialName);
   const [preferences, setPreferences] = useState(initialPreferences);
-  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [passwordFormKey, setPasswordFormKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isPending, startTransition] = useTransition();
 
   function run(action: () => Promise<void>) {
-    setMessage("");
+    setErrorMessage("");
     startTransition(async () => {
       try {
         await action();
       } catch {
-        setMessage("Something went wrong. Please try again.");
+        setErrorMessage("Something went wrong. Please try again.");
       }
     });
   }
@@ -57,7 +61,7 @@ export function SettingsView({
         name: String(formData.get("name") ?? "").trim(),
       });
       if (result.error) throw new Error(result.error.message);
-      setMessage("Profile saved.");
+      toast("Profile saved.");
       router.refresh();
     });
   }
@@ -72,7 +76,8 @@ export function SettingsView({
         revokeOtherSessions: true,
       });
       if (result.error) throw new Error(result.error.message);
-      setMessage("Password updated. Other sessions were signed out.");
+      setPasswordFormKey((current) => current + 1);
+      toast("Password updated. Other sessions were signed out.");
     });
   }
 
@@ -86,12 +91,13 @@ export function SettingsView({
       if (!response.ok) throw new Error();
       setPreferences(nextPreferences);
       setTheme(nextPreferences.theme);
-      setMessage("Learning preferences saved.");
+      toast("Learning preferences saved.");
     });
   }
 
   function deleteAccount(formData: FormData) {
     const password = String(formData.get("deletePassword") ?? "");
+    if (deleteConfirmation !== "DELETE") return;
     run(async () => {
       const result = await authClient.deleteUser({ password });
       if (result.error) throw new Error(result.error.message);
@@ -117,9 +123,9 @@ export function SettingsView({
           Manage your profile, learning defaults, and account security.
         </p>
       </header>
-      {message ? (
-        <p className="mt-4 text-sm text-muted-foreground" role="status">
-          {message}
+      {errorMessage ? (
+        <p className="mt-4 text-sm text-primary" role="alert">
+          {errorMessage}
         </p>
       ) : null}
       <div className="mt-6 space-y-5">
@@ -207,7 +213,11 @@ export function SettingsView({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={savePassword} className="space-y-3">
+            <form
+              action={savePassword}
+              className="space-y-3"
+              key={passwordFormKey}
+            >
               <Input
                 autoComplete="current-password"
                 name="currentPassword"
@@ -248,7 +258,13 @@ export function SettingsView({
           </CardContent>
         </Card>
       </div>
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setDeleteConfirmation("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete your Canopy account?</DialogTitle>
@@ -265,6 +281,21 @@ export function SettingsView({
               required
               type="password"
             />
+            <div>
+              <label
+                className="text-sm font-medium"
+                htmlFor="deleteConfirmation"
+              >
+                Type DELETE to confirm
+              </label>
+              <Input
+                className="mt-2"
+                id="deleteConfirmation"
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                required
+                value={deleteConfirmation}
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button
                 onClick={() => setDeleteOpen(false)}
@@ -273,7 +304,11 @@ export function SettingsView({
               >
                 Cancel
               </Button>
-              <Button disabled={isPending} type="submit" variant="destructive">
+              <Button
+                disabled={isPending || deleteConfirmation !== "DELETE"}
+                type="submit"
+                variant="destructive"
+              >
                 Delete permanently
               </Button>
             </div>
