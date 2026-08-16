@@ -8,8 +8,10 @@ import {
 import {
   type ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -68,16 +70,16 @@ function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  function setTheme(nextTheme: Theme) {
+  const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
     window.localStorage.setItem("canopy-theme", nextTheme);
-  }
+  }, []);
+
+  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 

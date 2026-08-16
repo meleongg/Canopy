@@ -60,6 +60,21 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at"),
 });
 
+export const userPreferences = pgTable("user_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  theme: text("theme", { enum: ["light", "dark"] })
+    .notNull()
+    .default("dark"),
+  importLanguage: text("import_language", {
+    enum: ["zh-CN", "zh-HK", "fr-FR", "und"],
+  })
+    .notNull()
+    .default("zh-CN"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const words = pgTable(
   "words",
   {

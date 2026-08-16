@@ -17,10 +17,18 @@ The app does not create local `.env` files. Runtime configuration is validated t
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL` with a fallback of `http://localhost:3000`
 
-For the Vercel private beta, configure the same values in Preview and Production,
-run `npm run db:push` against the target Neon database before deployment, and keep
-OpenAI credentials server-only. Use a dedicated OpenAI project with usage alerts
-and a conservative enforced spend cap. Server-side rate limiting is intentionally
+For the Vercel private beta, configure the same values in Preview and Production
+and keep OpenAI credentials server-only. Apply committed Drizzle migrations to
+the target Neon database before deploying code that depends on them:
+
+```bash
+DATABASE_URL="$CANOPY_PROD_DB_URL" npm run db:migrate
+```
+
+Use `npm run db:push` only for an intentional direct schema sync, such as local
+development; it does not provide the versioned deployment history of
+`db:migrate`. Use a dedicated OpenAI project with usage alerts and a
+conservative enforced spend cap. Server-side rate limiting is intentionally
 deferred until real beta activity justifies it.
 
 ## Linguistic Processing

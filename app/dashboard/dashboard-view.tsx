@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -104,6 +104,16 @@ function ImportPanel() {
   const [importDrafts, setImportDrafts] = useState<ImportDraft[]>([]);
   const [importPreviewMessage, setImportPreviewMessage] = useState("");
   const [importPreviewPending, setImportPreviewPending] = useState(false);
+
+  useEffect(() => {
+    void fetch("/api/settings")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((preferences: { importLanguage?: string } | null) => {
+        if (preferences?.importLanguage) {
+          setImportLanguage(preferences.importLanguage);
+        }
+      });
+  }, []);
 
   async function readImportFile(file: File) {
     const text = await file.text();
