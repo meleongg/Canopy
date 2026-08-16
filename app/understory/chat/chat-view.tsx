@@ -9,8 +9,9 @@ import {
 } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, History, Send, TreePine } from "lucide-react";
+import { ArrowRight, BookOpen, History, Send, TreePine } from "lucide-react";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
+import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +82,7 @@ export function UnderstoryChatView({
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState("");
+  const [dictionaryHelp, setDictionaryHelp] = useState(false);
   const openedRound = useRef<string | null>(null);
   const seedCards = useMemo(
     () => cards.filter((card) => setup.seedIds.includes(card.id)),
@@ -259,6 +261,25 @@ export function UnderstoryChatView({
               </div>
             </div>
           ) : null}
+          <div className="mt-4 rounded-lg border border-border bg-card p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                aria-pressed={dictionaryHelp}
+                onClick={() => setDictionaryHelp((current) => !current)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <BookOpen />
+                Dictionary help: {dictionaryHelp ? "On" : "Off"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                {dictionaryHelp
+                  ? "On: hover, focus, or tap a Chinese phrase for a definition."
+                  : "Look up unfamiliar Chinese phrases without changing your cards."}
+              </p>
+            </div>
+          </div>
           <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
             {isOpening && messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -286,7 +307,15 @@ export function UnderstoryChatView({
                       : "bg-card text-foreground",
                   )}
                 >
-                  {message.content}
+                  {message.role === "assistant" ? (
+                    <ContextualChineseText
+                      lookupEnabled={dictionaryHelp}
+                      seedCards={seedCards}
+                      text={message.content}
+                    />
+                  ) : (
+                    message.content
+                  )}
                 </p>
               </div>
             ))}

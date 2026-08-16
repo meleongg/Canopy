@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Sparkles } from "lucide-react";
 import { SeedPicker } from "@/components/canopy/seed-picker";
+import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
@@ -16,54 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { queryKeys } from "@/lib/query-keys";
-
-function tokenizeStory(story: string, seeds: WorkspaceCard[]) {
-  if (!story) {
-    return null;
-  }
-
-  const terms = seeds
-    .map((seed) => seed.targetText)
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
-
-  if (!terms.length) {
-    return story;
-  }
-
-  const pattern = new RegExp(
-    `(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
-    "g",
-  );
-
-  return story.split(pattern).map((part, index) => {
-    const seed = seeds.find((candidate) => candidate.targetText === part);
-    if (!seed) {
-      return part;
-    }
-
-    return (
-      <Tooltip key={`${part}-${index}`}>
-        <TooltipTrigger asChild>
-          <mark className="rounded bg-[var(--paprika)] px-1 text-[var(--paprika-foreground)]">
-            {part}
-          </mark>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-semibold">{seed.targetText}</p>
-          <p>{seed.phoneticReading.join(" ")}</p>
-          <p>{seed.definitions.join("; ")}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  });
-}
 
 export function OverstoryView({
   initialCards,
@@ -80,6 +34,7 @@ export function OverstoryView({
   );
   const [story, setStory] = useState("");
   const [isComplete, setIsComplete] = useState(false);
+  const [dictionaryHelp, setDictionaryHelp] = useState(false);
   const [isPending, startTransition] = useTransition();
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
@@ -150,6 +105,22 @@ export function OverstoryView({
               <Sparkles />
               {isPending ? "Growing your story…" : "Generate Overstory"}
             </Button>
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+              <Button
+                aria-pressed={dictionaryHelp}
+                onClick={() => setDictionaryHelp((current) => !current)}
+                type="button"
+                variant="outline"
+              >
+                <BookOpen />
+                Dictionary help: {dictionaryHelp ? "On" : "Off"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                {dictionaryHelp
+                  ? "On: hover, focus, or tap a Chinese phrase for a definition."
+                  : "Look up unfamiliar Chinese phrases without changing your cards."}
+              </p>
+            </div>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {cards.length < 3
                 ? "Add at least three active cards in your Dashboard before creating an Overstory."
@@ -167,7 +138,13 @@ export function OverstoryView({
             </p>
             <div className="mt-5 min-h-96 rounded-xl border border-border bg-background p-5 text-base leading-8">
               {story ? (
-                <p>{tokenizeStory(story, seedCards)}</p>
+                <p>
+                  <ContextualChineseText
+                    lookupEnabled={isComplete && dictionaryHelp}
+                    seedCards={seedCards}
+                    text={story}
+                  />
+                </p>
               ) : (
                 <p className="text-muted-foreground">
                   The Overstory will stream here. Hover highlighted vocabulary
