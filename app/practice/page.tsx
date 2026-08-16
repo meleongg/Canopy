@@ -84,7 +84,9 @@ export default async function PracticePage({
           ) : (
             <div className="space-y-6">
               <section>
-                <h2 className="text-sm font-semibold">Choose cards</h2>
+                <h2 className="text-sm font-semibold">
+                  1. Pick what to practise
+                </h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   {PRACTICE_SOURCES.map((option) => (
                     <Link
@@ -101,7 +103,9 @@ export default async function PracticePage({
                 </div>
               </section>
               <section>
-                <h2 className="text-sm font-semibold">Choose a round</h2>
+                <h2 className="text-sm font-semibold">
+                  2. Choose session size
+                </h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   {(choices.length > 0 ? choices : [fallback]).map((choice) =>
                     choice ? (
@@ -113,9 +117,9 @@ export default async function PracticePage({
                         <Link
                           href={`/practice?source=${source}&count=${choice}`}
                         >
-                          Practice {choice}
+                          Start a {choice}-card practice
                           <span className="text-xs font-normal opacity-80">
-                            {selectedSource.label} cards
+                            {selectedSource.label} selection
                           </span>
                         </Link>
                       </Button>
