@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
-import { aiSessions, flashcards, user, words } from "@/db/schema";
+import { aiSessions, flashcards, user } from "@/db/schema";
 import { DEMO_USER_ID } from "@/lib/constants";
 import {
   type ExampleContext,
@@ -82,13 +82,10 @@ export async function getDashboardData(
   const rows = await db
     .select({
       id: flashcards.id,
-      languageCode: words.languageCode,
-      targetText: words.targetText,
-      phoneticReading: words.phoneticReading,
-      definitions: words.definitions,
-      targetTextOverride: flashcards.targetTextOverride,
-      phoneticReadingOverride: flashcards.phoneticReadingOverride,
-      definitionsOverride: flashcards.definitionsOverride,
+      languageCode: flashcards.languageCode,
+      targetText: flashcards.targetText,
+      phoneticReading: flashcards.phoneticReading,
+      definitions: flashcards.definitions,
       interval: flashcards.interval,
       repetition: flashcards.repetition,
       easiness: flashcards.easiness,
@@ -99,7 +96,6 @@ export async function getDashboardData(
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
-    .innerJoin(words, eq(flashcards.wordId, words.id))
     .where(
       scopeCondition
         ? and(eq(flashcards.userId, userId), scopeCondition)
@@ -108,21 +104,10 @@ export async function getDashboardData(
     .orderBy(asc(flashcards.nextReviewAt))
     .limit(60);
 
-  return rows.map(
-    ({
-      aiExampleContext,
-      targetTextOverride,
-      phoneticReadingOverride,
-      definitionsOverride,
-      ...card
-    }) => ({
-      ...card,
-      targetText: targetTextOverride ?? card.targetText,
-      phoneticReading: phoneticReadingOverride ?? card.phoneticReading,
-      definitions: definitionsOverride ?? card.definitions,
-      aiExampleContexts: normalizeExampleContexts(aiExampleContext),
-    }),
-  );
+  return rows.map(({ aiExampleContext, ...card }) => ({
+    ...card,
+    aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+  }));
 }
 
 export type CollectionPage = {
@@ -148,10 +133,7 @@ export async function getCollectionPage(
       ? isNotNull(flashcards.archivedAt)
       : isNull(flashcards.archivedAt);
   const searchCondition = query
-    ? or(
-        ilike(words.targetText, `%${query}%`),
-        ilike(flashcards.targetTextOverride, `%${query}%`),
-      )
+    ? or(ilike(flashcards.targetText, `%${query}%`))
     : undefined;
   const where = and(
     eq(flashcards.userId, userId),
@@ -163,13 +145,10 @@ export async function getCollectionPage(
     db
       .select({
         id: flashcards.id,
-        languageCode: words.languageCode,
-        targetText: words.targetText,
-        phoneticReading: words.phoneticReading,
-        definitions: words.definitions,
-        targetTextOverride: flashcards.targetTextOverride,
-        phoneticReadingOverride: flashcards.phoneticReadingOverride,
-        definitionsOverride: flashcards.definitionsOverride,
+        languageCode: flashcards.languageCode,
+        targetText: flashcards.targetText,
+        phoneticReading: flashcards.phoneticReading,
+        definitions: flashcards.definitions,
         interval: flashcards.interval,
         repetition: flashcards.repetition,
         easiness: flashcards.easiness,
@@ -180,34 +159,18 @@ export async function getCollectionPage(
         aiExampleContext: flashcards.aiExampleContext,
       })
       .from(flashcards)
-      .innerJoin(words, eq(flashcards.wordId, words.id))
       .where(where)
       .orderBy(asc(flashcards.nextReviewAt))
       .limit(options.pageSize)
       .offset(offset),
-    db
-      .select({ total: count() })
-      .from(flashcards)
-      .innerJoin(words, eq(flashcards.wordId, words.id))
-      .where(where),
+    db.select({ total: count() }).from(flashcards).where(where),
   ]);
 
   return {
-    cards: rows.map(
-      ({
-        aiExampleContext,
-        targetTextOverride,
-        phoneticReadingOverride,
-        definitionsOverride,
-        ...card
-      }) => ({
-        ...card,
-        targetText: targetTextOverride ?? card.targetText,
-        phoneticReading: phoneticReadingOverride ?? card.phoneticReading,
-        definitions: definitionsOverride ?? card.definitions,
-        aiExampleContexts: normalizeExampleContexts(aiExampleContext),
-      }),
-    ),
+    cards: rows.map(({ aiExampleContext, ...card }) => ({
+      ...card,
+      aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+    })),
     total: totalRow?.total ?? 0,
   };
 }
@@ -223,13 +186,10 @@ export async function getPracticeCards(
   const rows = await db
     .select({
       id: flashcards.id,
-      languageCode: words.languageCode,
-      targetText: words.targetText,
-      phoneticReading: words.phoneticReading,
-      definitions: words.definitions,
-      targetTextOverride: flashcards.targetTextOverride,
-      phoneticReadingOverride: flashcards.phoneticReadingOverride,
-      definitionsOverride: flashcards.definitionsOverride,
+      languageCode: flashcards.languageCode,
+      targetText: flashcards.targetText,
+      phoneticReading: flashcards.phoneticReading,
+      definitions: flashcards.definitions,
       interval: flashcards.interval,
       repetition: flashcards.repetition,
       easiness: flashcards.easiness,
@@ -240,7 +200,6 @@ export async function getPracticeCards(
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
-    .innerJoin(words, eq(flashcards.wordId, words.id))
     .where(and(eq(flashcards.userId, userId), isNull(flashcards.archivedAt)))
     .orderBy(
       source === "random"
@@ -251,21 +210,10 @@ export async function getPracticeCards(
     )
     .limit(count);
 
-  return rows.map(
-    ({
-      aiExampleContext,
-      targetTextOverride,
-      phoneticReadingOverride,
-      definitionsOverride,
-      ...card
-    }) => ({
-      ...card,
-      targetText: targetTextOverride ?? card.targetText,
-      phoneticReading: phoneticReadingOverride ?? card.phoneticReading,
-      definitions: definitionsOverride ?? card.definitions,
-      aiExampleContexts: normalizeExampleContexts(aiExampleContext),
-    }),
-  );
+  return rows.map(({ aiExampleContext, ...card }) => ({
+    ...card,
+    aiExampleContexts: normalizeExampleContexts(aiExampleContext),
+  }));
 }
 
 export async function getDashboardLearningRhythm(

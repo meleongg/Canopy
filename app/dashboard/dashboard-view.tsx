@@ -767,8 +767,8 @@ export function ReviewQueue({
           <DialogHeader>
             <DialogTitle>Edit card</DialogTitle>
             <DialogDescription>
-              These details are private to your Canopy. The shared dictionary
-              entry remains unchanged.
+              These details belong to your Canopy collection. Reference
+              dictionary data remains separate.
             </DialogDescription>
           </DialogHeader>
           {editingCard ? (

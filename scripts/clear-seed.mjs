@@ -10,13 +10,8 @@ if (!databaseUrl) {
 
 const sql = neon(databaseUrl);
 const userId = "local-canopy-user";
-const wordIds = ["seed-word-ying-gai", "seed-word-fu-jin", "seed-word-pai-dui"];
-
 await sql`delete from "ai_sessions" where "user_id" = ${userId}`;
 await sql`delete from "flashcards" where "user_id" = ${userId}`;
-for (const wordId of wordIds) {
-  await sql`delete from "words" where "id" = ${wordId}`;
-}
 await sql`delete from "session" where "user_id" = ${userId}`;
 await sql`delete from "account" where "user_id" = ${userId}`;
 await sql`delete from "user" where "id" = ${userId}`;

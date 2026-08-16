@@ -11,7 +11,6 @@ const userId = "local-canopy-user";
 
 const rows = [
   {
-    id: "seed-word-ying-gai",
     flashcardId: "seed-card-ying-gai",
     languageCode: "zh-CN",
     targetText: "应该",
@@ -22,7 +21,6 @@ const rows = [
     easiness: 250,
   },
   {
-    id: "seed-word-fu-jin",
     flashcardId: "seed-card-fu-jin",
     languageCode: "zh-CN",
     targetText: "附近",
@@ -33,7 +31,6 @@ const rows = [
     easiness: 235,
   },
   {
-    id: "seed-word-pai-dui",
     flashcardId: "seed-card-pai-dui",
     languageCode: "zh-CN",
     targetText: "排队",
@@ -67,33 +64,13 @@ await sql`
 
 for (const row of rows) {
   await sql`
-    insert into "words" (
+    insert into "flashcards" (
       "id",
+      "user_id",
       "language_code",
       "target_text",
       "phonetic_reading",
       "definitions",
-      "created_at"
-    )
-    values (
-      ${row.id},
-      ${row.languageCode},
-      ${row.targetText},
-      ${JSON.stringify(row.phoneticReading)}::jsonb,
-      ${JSON.stringify(row.definitions)}::jsonb,
-      now()
-    )
-    on conflict ("language_code", "target_text")
-    do update set
-      "phonetic_reading" = excluded."phonetic_reading",
-      "definitions" = excluded."definitions"
-  `;
-
-  await sql`
-    insert into "flashcards" (
-      "id",
-      "user_id",
-      "word_id",
       "interval",
       "repetition",
       "easiness",
@@ -103,14 +80,17 @@ for (const row of rows) {
     values (
       ${row.flashcardId},
       ${userId},
-      ${row.id},
+      ${row.languageCode},
+      ${row.targetText},
+      ${JSON.stringify(row.phoneticReading)}::jsonb,
+      ${JSON.stringify(row.definitions)}::jsonb,
       ${row.interval},
       ${row.repetition},
       ${row.easiness},
       now(),
       now()
     )
-    on conflict ("user_id", "word_id") do nothing
+    on conflict ("user_id", "language_code", "target_text") do nothing
   `;
 }
 
