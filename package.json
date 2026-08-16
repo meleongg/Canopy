@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit generate",
+    "db:migrate": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit migrate",
     "db:push": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} drizzle-kit push",
     "db:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/seed.mjs",
     "db:clear:seed": "DATABASE_URL=${CANOPY_DEV_DB_URL:-$DATABASE_URL} node scripts/clear-seed.mjs"
