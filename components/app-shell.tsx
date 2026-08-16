@@ -16,6 +16,7 @@ import {
   Sprout,
   Sun,
   TreePine,
+  Settings,
 } from "lucide-react";
 import logoDark from "@/app/assets/icons/canopy-logo-dark.svg";
 import logoLight from "@/app/assets/icons/canopy-logo-light.svg";
@@ -66,6 +67,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .then((session: { user?: ShellUser } | null) => {
         if (active) {
           setUser(session?.user ?? null);
+          if (session?.user) {
+            void fetch("/api/settings")
+              .then((response) => (response.ok ? response.json() : null))
+              .then((preferences: { theme?: "light" | "dark" } | null) => {
+                if (preferences?.theme && active) setTheme(preferences.theme);
+              });
+          }
         }
       })
       .catch(() => {
@@ -77,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [pathname]);
+  }, [pathname, setTheme]);
 
   async function signOut() {
     await authClient.signOut();
@@ -177,6 +185,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/history">
                       <History className="mr-2 size-4" />
                       Practice history
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <Settings className="mr-2 size-4" />
+                      Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
