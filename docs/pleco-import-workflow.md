@@ -21,6 +21,9 @@ by tab-delimited card rows:
 
 Each card row may include a headword, pronunciation, and definition. Definitions
 depend on Pleco's export options and the dictionaries used for the source cards.
+For Chinese exports, Canopy also preserves Pleco's inline Chinese example
+sentences, readings, and translations as editable contexts; numbered pinyin is
+normalized to tone-mark pinyin.
 
 ## In Canopy
 
