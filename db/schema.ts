@@ -76,10 +76,13 @@ export const userPreferences = pgTable("user_preferences", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const words = pgTable(
-  "words",
+export const flashcards = pgTable(
+  "flashcards",
   {
     id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     languageCode: text("language_code").notNull(),
     targetText: text("target_text").notNull(),
     phoneticReading: jsonb("phonetic_reading").$type<string[]>().notNull(),
@@ -88,44 +91,23 @@ export const words = pgTable(
       alternatives?: string[];
       partOfSpeech?: string[];
     }>(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    uniqueIndex("word_lang_target_idx").on(
-      table.languageCode,
-      table.targetText,
-    ),
-  ],
-);
-
-export const flashcards = pgTable(
-  "flashcards",
-  {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    wordId: text("word_id")
-      .notNull()
-      .references(() => words.id, { onDelete: "cascade" }),
     interval: integer("interval").default(0).notNull(),
     repetition: integer("repetition").default(0).notNull(),
     easiness: integer("easiness").default(250).notNull(),
     aiExampleContext: jsonb("ai_example_context").$type<
       ExampleContext[] | ExampleContext
     >(),
-    targetTextOverride: text("target_text_override"),
-    phoneticReadingOverride: jsonb("phonetic_reading_override").$type<
-      string[]
-    >(),
-    definitionsOverride: jsonb("definitions_override").$type<string[]>(),
     archivedAt: timestamp("archived_at"),
     nextReviewAt: timestamp("next_review_at").defaultNow().notNull(),
     lastReviewedAt: timestamp("last_reviewed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("flashcard_user_word_idx").on(table.userId, table.wordId),
+    uniqueIndex("flashcard_user_term_idx").on(
+      table.userId,
+      table.languageCode,
+      table.targetText,
+    ),
     index("user_review_queue_idx").on(table.userId, table.nextReviewAt),
     index("user_archived_cards_idx").on(table.userId, table.archivedAt),
   ],

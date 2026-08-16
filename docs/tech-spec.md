@@ -4,17 +4,23 @@
 
 Canopy is a Next.js 16 App Router application with TypeScript, Better Auth, Neon PostgreSQL through Drizzle ORM, and TanStack Query v5 for client-side server-state caching. Protected pages and API routes resolve the authenticated Better Auth user; no application route may read or mutate another user’s vocabulary.
 
-The application uses a normalized vocabulary model rather than duplicating word data for every learner. `words` stores shared linguistic data. `flashcards` stores each learner’s scheduling and saved context for a word. This permits an individual learner’s review state to remain private while preserving a single canonical spelling, reading, and definition set.
+Vocabulary cards are owned by the learner. Each `flashcards` row stores its own
+language, text, reading, definitions, optional linguistic metadata, scheduling,
+and saved context. This prevents one learner’s import or edits from changing
+another learner’s vocabulary.
 
 ## 2. Data Schema
 
 Better Auth owns the `user`, `session`, `account`, and `verification` tables. Its string user IDs are the foreign-key type used by application tables.
 
 ```ts
-export const words = pgTable(
-  "words",
+export const flashcards = pgTable(
+  "flashcards",
   {
     id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     languageCode: text("language_code").notNull(),
     targetText: text("target_text").notNull(),
     phoneticReading: jsonb("phonetic_reading").$type<string[]>().notNull(),
@@ -23,26 +29,6 @@ export const words = pgTable(
       alternatives?: string[];
       partOfSpeech?: string[];
     }>(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    uniqueIndex("word_lang_target_idx").on(
-      table.languageCode,
-      table.targetText,
-    ),
-  ],
-);
-
-export const flashcards = pgTable(
-  "flashcards",
-  {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    wordId: text("word_id")
-      .notNull()
-      .references(() => words.id, { onDelete: "cascade" }),
     interval: integer("interval").default(0).notNull(),
     repetition: integer("repetition").default(0).notNull(),
     easiness: integer("easiness").default(250).notNull(), // 250 = SM-2 EF 2.50
@@ -54,7 +40,11 @@ export const flashcards = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("flashcard_user_word_idx").on(table.userId, table.wordId),
+    uniqueIndex("flashcard_user_term_idx").on(
+      table.userId,
+      table.languageCode,
+      table.targetText,
+    ),
     index("user_review_queue_idx").on(table.userId, table.nextReviewAt),
   ],
 );
@@ -72,7 +62,7 @@ export const flashcards = pgTable(
 - Response: `{ importedCount: number, updatedCount: number }`
 - Requires authentication.
 - Parses tab-separated, CSV-like, and Pleco-style rows. It skips blank/comment rows, normalizes Unicode, removes control characters and bracketed parsing syntax from persisted fields, and deduplicates in the request.
-- **Atomic persistence:** Parse and validate the complete payload before opening a transaction. Then upsert vocabulary by `(languageCode, targetText)` and cards by `(userId, wordId)` in one database transaction. If any write fails, roll back the entire import and return an error; never leave a partial batch of words or flashcards. Keep the transaction limited to database writes so parsing and phonetic segmentation do not hold locks.
+- **Atomic persistence:** Parse and validate the complete payload before opening a transaction. Then upsert cards by `(userId, languageCode, targetText)` in one database transaction. If any write fails, roll back the entire import and return an error; never leave a partial batch of cards. Keep the transaction limited to database writes so parsing and phonetic segmentation do not hold locks.
 
 `POST /api/cards/review`
 
@@ -121,9 +111,9 @@ Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpo
 ## 6. Private beta extensions
 
 Cards remain private to the authenticated learner. `PATCH /api/cards/:cardId`
-updates that learner's personal display overrides or archive state; it never mutates
-the shared `words` row. `DELETE /api/cards/:cardId` removes only that learner's
-flashcard. Archived cards do not appear in review queues or AI seed selection.
+updates that learner's card content or archive state. `DELETE /api/cards/:cardId`
+removes only that learner's flashcard. Archived cards do not appear in review
+queues or AI seed selection.
 
 Completed Overstory stories and completed five-turn Understory rounds are saved
 to `ai_sessions` with a vocabulary snapshot. `GET /api/sessions` and

@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { hasDatabaseEnv } from "@/db/env";
 import { getDb } from "@/db/client";
-import { flashcards, words } from "@/db/schema";
+import { flashcards } from "@/db/schema";
 import {
   databaseSetupMessage,
   isMissingDatabaseSchemaError,
@@ -188,15 +188,16 @@ export async function generateContextAction(formData: FormData) {
   const [card] = await db
     .select({
       cardId: flashcards.id,
-      targetText: words.targetText,
-      phoneticReading: words.phoneticReading,
-      definitions: words.definitions,
-      languageCode: words.languageCode,
+      targetText: flashcards.targetText,
+      phoneticReading: flashcards.phoneticReading,
+      definitions: flashcards.definitions,
+      languageCode: flashcards.languageCode,
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
-    .innerJoin(words, eq(flashcards.wordId, words.id))
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)))
+    .where(
+      and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)),
+    )
     .limit(1);
 
   if (!card) {
@@ -243,7 +244,9 @@ export async function removeContextAction(formData: FormData) {
       aiExampleContext: flashcards.aiExampleContext,
     })
     .from(flashcards)
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)))
+    .where(
+      and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)),
+    )
     .limit(1);
 
   if (!card) {
@@ -257,7 +260,9 @@ export async function removeContextAction(formData: FormData) {
   await db
     .update(flashcards)
     .set({ aiExampleContext: contexts })
-    .where(and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)));
+    .where(
+      and(eq(flashcards.id, cardId), eq(flashcards.userId, session.user.id)),
+    );
 
   revalidatePath("/dashboard");
   revalidatePath("/overstory");

@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb, getSql } from "@/db/client";
-import { flashcards, words } from "@/db/schema";
+import { flashcards } from "@/db/schema";
 import type { ParsedVocabularyEntry } from "@/lib/ingestion";
 import { calculateSm2 } from "@/lib/srs";
 
@@ -46,35 +46,25 @@ export async function importVocabularyEntries(
         : null;
 
       return sql`
-        with upserted_word as (
-          insert into words (
-            id, language_code, target_text, phonetic_reading, definitions, linguistic_meta
-          ) values (
-            ${id()},
-            ${entry.languageCode},
-            ${entry.targetText},
-            ${JSON.stringify(entry.phoneticReading)}::jsonb,
-            ${JSON.stringify(entry.definitions)}::jsonb,
-            ${linguisticMeta}::jsonb
-          )
-          on conflict (language_code, target_text) do update set
-            phonetic_reading = excluded.phonetic_reading,
-            definitions = excluded.definitions,
-            linguistic_meta = excluded.linguistic_meta
-          returning id
-        ), upserted_card as (
-          insert into flashcards (id, user_id, word_id, ai_example_context)
-          select ${id()}, ${userId}, id, ${exampleContexts}::jsonb
-          from upserted_word
-          on conflict (user_id, word_id) do update set
-            ai_example_context = case
-              when ${exampleContexts !== null}
-                then excluded.ai_example_context
-              else flashcards.ai_example_context
-            end
-          returning xmax = 0 as inserted
+        insert into flashcards (
+          id, user_id, language_code, target_text, phonetic_reading, definitions,
+          linguistic_meta, ai_example_context
+        ) values (
+          ${id()}, ${userId}, ${entry.languageCode}, ${entry.targetText},
+          ${JSON.stringify(entry.phoneticReading)}::jsonb,
+          ${JSON.stringify(entry.definitions)}::jsonb, ${linguisticMeta}::jsonb,
+          ${exampleContexts}::jsonb
         )
-        select inserted from upserted_card
+        on conflict (user_id, language_code, target_text) do update set
+          phonetic_reading = excluded.phonetic_reading,
+          definitions = excluded.definitions,
+          linguistic_meta = excluded.linguistic_meta,
+          ai_example_context = case
+            when ${exampleContexts !== null}
+              then excluded.ai_example_context
+            else flashcards.ai_example_context
+          end
+        returning xmax = 0 as inserted
       `;
     }),
   );
@@ -130,16 +120,12 @@ export async function getCardSeeds(userId: string, cardIds: string[]) {
   const rows = await db
     .select({
       id: flashcards.id,
-      languageCode: words.languageCode,
-      targetText: words.targetText,
-      phoneticReading: words.phoneticReading,
-      definitions: words.definitions,
-      targetTextOverride: flashcards.targetTextOverride,
-      phoneticReadingOverride: flashcards.phoneticReadingOverride,
-      definitionsOverride: flashcards.definitionsOverride,
+      languageCode: flashcards.languageCode,
+      targetText: flashcards.targetText,
+      phoneticReading: flashcards.phoneticReading,
+      definitions: flashcards.definitions,
     })
     .from(flashcards)
-    .innerJoin(words, eq(flashcards.wordId, words.id))
     .where(
       and(
         eq(flashcards.userId, userId),
@@ -148,24 +134,7 @@ export async function getCardSeeds(userId: string, cardIds: string[]) {
       ),
     );
 
-  const seedsById = new Map(
-    rows.map(
-      ({
-        targetTextOverride,
-        phoneticReadingOverride,
-        definitionsOverride,
-        ...row
-      }) => [
-        row.id,
-        {
-          ...row,
-          targetText: targetTextOverride ?? row.targetText,
-          phoneticReading: phoneticReadingOverride ?? row.phoneticReading,
-          definitions: definitionsOverride ?? row.definitions,
-        },
-      ],
-    ),
-  );
+  const seedsById = new Map(rows.map((row) => [row.id, row]));
   return cardIds.flatMap((cardId) => {
     const seed = seedsById.get(cardId);
     return seed ? [seed] : [];
@@ -180,24 +149,22 @@ export async function patchCard(
   const db = getDb();
   const values: {
     archivedAt?: Date | null;
-    targetTextOverride?: string | null;
-    phoneticReadingOverride?: string[] | null;
-    definitionsOverride?: string[] | null;
+    targetText?: string;
+    phoneticReading?: string[];
+    definitions?: string[];
   } = {};
 
   if (patch.archived !== undefined) {
     values.archivedAt = patch.archived ? new Date() : null;
   }
   if (patch.targetText !== undefined) {
-    values.targetTextOverride = patch.targetText || null;
+    values.targetText = patch.targetText;
   }
   if (patch.phoneticReading !== undefined) {
-    values.phoneticReadingOverride =
-      patch.phoneticReading.length > 0 ? patch.phoneticReading : null;
+    values.phoneticReading = patch.phoneticReading;
   }
   if (patch.definitions !== undefined) {
-    values.definitionsOverride =
-      patch.definitions.length > 0 ? patch.definitions : null;
+    values.definitions = patch.definitions;
   }
 
   const [card] = await db
