@@ -105,16 +105,22 @@ export function OverstoryView({
               <Sparkles />
               {isPending ? "Growing your story…" : "Generate Overstory"}
             </Button>
-            <Button
-              aria-pressed={dictionaryHelp}
-              className="ml-2"
-              onClick={() => setDictionaryHelp((current) => !current)}
-              type="button"
-              variant="outline"
-            >
-              <BookOpen />
-              {dictionaryHelp ? "Dictionary help on" : "Dictionary help"}
-            </Button>
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+              <Button
+                aria-pressed={dictionaryHelp}
+                onClick={() => setDictionaryHelp((current) => !current)}
+                type="button"
+                variant="outline"
+              >
+                <BookOpen />
+                Dictionary help: {dictionaryHelp ? "On" : "Off"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                {dictionaryHelp
+                  ? "On: hover, focus, or tap a Chinese phrase for a definition."
+                  : "Look up unfamiliar Chinese phrases without changing your cards."}
+              </p>
+            </div>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {cards.length < 3
                 ? "Add at least three active cards in your Dashboard before creating an Overstory."
@@ -146,12 +152,6 @@ export function OverstoryView({
                 </p>
               )}
             </div>
-            {dictionaryHelp && isComplete ? (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Dictionary help is on. Hover, focus, or tap a phrase for a
-                definition.
-              </p>
-            ) : null}
             {isComplete ? (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-card p-4">
                 <p className="text-sm leading-6 text-muted-foreground">

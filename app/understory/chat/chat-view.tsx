@@ -261,8 +261,8 @@ export function UnderstoryChatView({
               </div>
             </div>
           ) : null}
-          <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
-            <div className="flex justify-end">
+          <div className="mt-4 rounded-lg border border-border bg-card p-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 aria-pressed={dictionaryHelp}
                 onClick={() => setDictionaryHelp((current) => !current)}
@@ -271,9 +271,16 @@ export function UnderstoryChatView({
                 variant="outline"
               >
                 <BookOpen />
-                {dictionaryHelp ? "Dictionary help on" : "Dictionary help"}
+                Dictionary help: {dictionaryHelp ? "On" : "Off"}
               </Button>
+              <p className="text-sm text-muted-foreground">
+                {dictionaryHelp
+                  ? "On: hover, focus, or tap a Chinese phrase for a definition."
+                  : "Look up unfamiliar Chinese phrases without changing your cards."}
+              </p>
             </div>
+          </div>
+          <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
             {isOpening && messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Your companion is preparing the first question…

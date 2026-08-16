@@ -13,29 +13,26 @@ export type DictionaryLookup = {
   card?: { id: string; phoneticReading: string[]; definitions: string[] };
 };
 
-function candidateTerms(text: string) {
-  const hanRuns = text.match(/\p{Script=Han}+/gu) ?? [];
-  return [
-    ...new Set(
-      hanRuns.flatMap((run) => {
-        const terms: string[] = [];
-        for (let start = 0; start < run.length; start += 1) {
-          for (
-            let length = 2;
-            length <= 6 && start + length <= run.length;
-            length += 1
-          ) {
-            terms.push(run.slice(start, start + length));
-          }
-        }
-        return terms;
-      }),
-    ),
-  ].slice(0, 500);
+async function candidateTerms(text: string) {
+  try {
+    const [{ Jieba }, { dict }] = await Promise.all([
+      import("@node-rs/jieba"),
+      import("@node-rs/jieba/dict"),
+    ]);
+    return [
+      ...new Set(
+        Jieba.withDict(dict)
+          .cut(text, false)
+          .filter((term) => /\p{Script=Han}/u.test(term) && term.length >= 2),
+      ),
+    ].slice(0, 500);
+  } catch {
+    return (text.match(/\p{Script=Han}{2,}/gu) ?? []).slice(0, 500);
+  }
 }
 
 export async function lookupActiveDictionary(userId: string, text: string) {
-  const terms = candidateTerms(text);
+  const terms = await candidateTerms(text);
   if (terms.length === 0) return [] as DictionaryLookup[];
 
   const db = getDb();
