@@ -31,6 +31,21 @@ development; it does not provide the versioned deployment history of
 conservative enforced spend cap. Server-side rate limiting is intentionally
 deferred until real beta activity justifies it.
 
+### Adopting an older local database
+
+If a development database was created with `db:push` before migrations were
+tracked, do not run `db:push` again once data migrations exist. First run the
+one-time adoption command, which verifies the old baseline schema before
+recording only migrations it already reflects, then apply pending migrations:
+
+```bash
+npm run db:adopt-baseline
+npm run db:migrate
+```
+
+The adoption command stops if migration history already exists or the expected
+baseline columns are absent. It does not apply new migrations itself.
+
 ## Linguistic Processing
 
 - **Linguistic Processing (Pure JS / Pre-compiled Ecosystem):**
