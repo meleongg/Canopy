@@ -21,7 +21,7 @@ function candidateTerms(text: string) {
         const terms: string[] = [];
         for (let start = 0; start < run.length; start += 1) {
           for (
-            let length = 1;
+            let length = 2;
             length <= 6 && start + length <= run.length;
             length += 1
           ) {

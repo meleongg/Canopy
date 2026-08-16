@@ -17,54 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { queryKeys } from "@/lib/query-keys";
-
-function tokenizeStory(story: string, seeds: WorkspaceCard[]) {
-  if (!story) {
-    return null;
-  }
-
-  const terms = seeds
-    .map((seed) => seed.targetText)
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
-
-  if (!terms.length) {
-    return story;
-  }
-
-  const pattern = new RegExp(
-    `(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
-    "g",
-  );
-
-  return story.split(pattern).map((part, index) => {
-    const seed = seeds.find((candidate) => candidate.targetText === part);
-    if (!seed) {
-      return part;
-    }
-
-    return (
-      <Tooltip key={`${part}-${index}`}>
-        <TooltipTrigger asChild>
-          <mark className="rounded bg-[var(--paprika)] px-1 text-[var(--paprika-foreground)]">
-            {part}
-          </mark>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-semibold">{seed.targetText}</p>
-          <p>{seed.phoneticReading.join(" ")}</p>
-          <p>{seed.definitions.join("; ")}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  });
-}
 
 export function OverstoryView({
   initialCards,
@@ -81,6 +34,7 @@ export function OverstoryView({
   );
   const [story, setStory] = useState("");
   const [isComplete, setIsComplete] = useState(false);
+  const [dictionaryHelp, setDictionaryHelp] = useState(false);
   const [isPending, startTransition] = useTransition();
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
@@ -151,6 +105,16 @@ export function OverstoryView({
               <Sparkles />
               {isPending ? "Growing your story…" : "Generate Overstory"}
             </Button>
+            <Button
+              aria-pressed={dictionaryHelp}
+              className="ml-2"
+              onClick={() => setDictionaryHelp((current) => !current)}
+              type="button"
+              variant="outline"
+            >
+              <BookOpen />
+              {dictionaryHelp ? "Dictionary help on" : "Dictionary help"}
+            </Button>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {cards.length < 3
                 ? "Add at least three active cards in your Dashboard before creating an Overstory."
@@ -169,11 +133,11 @@ export function OverstoryView({
             <div className="mt-5 min-h-96 rounded-xl border border-border bg-background p-5 text-base leading-8">
               {story ? (
                 <p>
-                  {isComplete ? (
-                    <ContextualChineseText text={story} />
-                  ) : (
-                    tokenizeStory(story, seedCards)
-                  )}
+                  <ContextualChineseText
+                    lookupEnabled={isComplete && dictionaryHelp}
+                    seedCards={seedCards}
+                    text={story}
+                  />
                 </p>
               ) : (
                 <p className="text-muted-foreground">
@@ -182,6 +146,12 @@ export function OverstoryView({
                 </p>
               )}
             </div>
+            {dictionaryHelp && isComplete ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Dictionary help is on. Hover, focus, or tap a phrase for a
+                definition.
+              </p>
+            ) : null}
             {isComplete ? (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-card p-4">
                 <p className="text-sm leading-6 text-muted-foreground">

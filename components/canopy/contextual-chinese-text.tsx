@@ -7,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { WorkspaceCard } from "@/components/canopy/types";
 
 type Lookup = {
   entryId: string;
@@ -16,11 +17,21 @@ type Lookup = {
   card?: { id: string; phoneticReading: string[]; definitions: string[] };
 };
 
-export function ContextualChineseText({ text }: { text: string }) {
+export function ContextualChineseText({
+  text,
+  lookupEnabled,
+  seedCards,
+}: {
+  text: string;
+  lookupEnabled: boolean;
+  seedCards: WorkspaceCard[];
+}) {
   const [entries, setEntries] = useState<Lookup[]>([]);
   const [added, setAdded] = useState<string[]>([]);
   useEffect(() => {
-    if (!text.match(/\p{Script=Han}/u)) return;
+    if (!lookupEnabled || !text.match(/\p{Script=Han}/u)) {
+      return;
+    }
     void fetch("/api/dictionary/lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -31,23 +42,42 @@ export function ContextualChineseText({ text }: { text: string }) {
       )
       .then((payload: { entries: Lookup[] }) => setEntries(payload.entries))
       .catch(() => setEntries([]));
-  }, [text]);
+  }, [lookupEnabled, text]);
+  const seedEntries = useMemo<Lookup[]>(
+    () =>
+      seedCards.map((card) => ({
+        entryId: card.id,
+        text: card.targetText,
+        pinyin: card.phoneticReading.join(" "),
+        definitions: card.definitions,
+        card: {
+          id: card.id,
+          phoneticReading: card.phoneticReading,
+          definitions: card.definitions,
+        },
+      })),
+    [seedCards],
+  );
+  const visibleEntries = useMemo(
+    () => [...seedEntries, ...(lookupEnabled ? entries : [])],
+    [entries, lookupEnabled, seedEntries],
+  );
   const byText = useMemo(
-    () => new Map(entries.map((entry) => [entry.text, entry])),
-    [entries],
+    () => new Map(visibleEntries.map((entry) => [entry.text, entry])),
+    [visibleEntries],
   );
   const pattern = useMemo(
     () =>
-      entries.length
+      visibleEntries.length
         ? new RegExp(
-            `(${entries
-              .map((entry) => entry.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+            `(${[...new Set(visibleEntries.map((entry) => entry.text))]
+              .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
               .sort((a, b) => b.length - a.length)
               .join("|")})`,
             "g",
           )
         : null,
-    [entries],
+    [visibleEntries],
   );
   if (!pattern) return <>{text}</>;
   return (
@@ -61,7 +91,11 @@ export function ContextualChineseText({ text }: { text: string }) {
           <Tooltip key={`${part}-${index}`}>
             <TooltipTrigger asChild>
               <button
-                className="rounded bg-primary/15 px-0.5 text-inherit underline decoration-primary/50 underline-offset-4"
+                className={
+                  entry.card
+                    ? "rounded bg-[var(--paprika)] px-1 text-[var(--paprika-foreground)]"
+                    : "rounded px-0.5 text-inherit hover:underline hover:decoration-primary/70 hover:underline-offset-4 focus-visible:underline focus-visible:decoration-primary/70 focus-visible:underline-offset-4"
+                }
                 type="button"
               >
                 {part}

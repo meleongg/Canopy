@@ -9,7 +9,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, History, Send, TreePine } from "lucide-react";
+import { ArrowRight, BookOpen, History, Send, TreePine } from "lucide-react";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
@@ -82,6 +82,7 @@ export function UnderstoryChatView({
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState("");
+  const [dictionaryHelp, setDictionaryHelp] = useState(false);
   const openedRound = useRef<string | null>(null);
   const seedCards = useMemo(
     () => cards.filter((card) => setup.seedIds.includes(card.id)),
@@ -261,6 +262,18 @@ export function UnderstoryChatView({
             </div>
           ) : null}
           <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
+            <div className="flex justify-end">
+              <Button
+                aria-pressed={dictionaryHelp}
+                onClick={() => setDictionaryHelp((current) => !current)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <BookOpen />
+                {dictionaryHelp ? "Dictionary help on" : "Dictionary help"}
+              </Button>
+            </div>
             {isOpening && messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Your companion is preparing the first question…
@@ -288,7 +301,11 @@ export function UnderstoryChatView({
                   )}
                 >
                   {message.role === "assistant" ? (
-                    <ContextualChineseText text={message.content} />
+                    <ContextualChineseText
+                      lookupEnabled={dictionaryHelp}
+                      seedCards={seedCards}
+                      text={message.content}
+                    />
                   ) : (
                     message.content
                   )}
