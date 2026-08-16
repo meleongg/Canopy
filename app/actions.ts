@@ -74,6 +74,7 @@ async function upsertVocabularyEntries(
   try {
     const result = await importVocabularyEntries(session.user.id, entries);
     revalidatePath("/dashboard");
+    revalidatePath("/collection");
     revalidatePath("/overstory");
     revalidatePath("/understory/setup");
     return {
@@ -172,6 +173,7 @@ export async function reviewCardAction(formData: FormData) {
   await reviewCard(session.user.id, cardId, quality as 2 | 3 | 4 | 5);
 
   revalidatePath("/dashboard");
+  revalidatePath("/collection");
   revalidatePath("/overstory");
   revalidatePath("/understory/setup");
 }
@@ -221,6 +223,7 @@ export async function generateContextAction(formData: FormData) {
     .where(eq(flashcards.id, card.cardId));
 
   revalidatePath("/dashboard");
+  revalidatePath("/collection");
   revalidatePath("/overstory");
   revalidatePath("/understory/setup");
 }
@@ -265,6 +268,7 @@ export async function removeContextAction(formData: FormData) {
     );
 
   revalidatePath("/dashboard");
+  revalidatePath("/collection");
   revalidatePath("/overstory");
   revalidatePath("/understory/setup");
 }
