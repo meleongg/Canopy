@@ -38,11 +38,14 @@ export function PracticeSourcePicker({ source }: { source: PracticeSource }) {
             type="button"
           >
             {isSelected ? (
-              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
-                <Check aria-hidden="true" className="size-3" /> Selected
+              <span
+                aria-hidden="true"
+                className="absolute right-3 top-3 inline-flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground"
+              >
+                <Check className="size-4" />
               </span>
             ) : null}
-            <p className="pr-20 font-semibold">{option.label}</p>
+            <p className="pr-8 font-semibold">{option.label}</p>
             <p className="mt-1 text-sm leading-5 text-muted-foreground">
               {option.description}
             </p>
