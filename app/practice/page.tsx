@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Leaf } from "lucide-react";
 import { PracticeSessionView } from "@/app/practice/practice-session-view";
+import { PracticeSourcePicker } from "@/components/canopy/practice-source-picker";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -58,6 +59,7 @@ export default async function PracticePage({
   });
   const choices = PRACTICE_COUNTS.filter((choice) => choice <= total);
   const fallback = total > 0 ? Math.min(total, PRACTICE_COUNTS[0]) : null;
+  const hasSessionSizeChoices = choices.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6 md:px-8 md:py-10">
@@ -87,43 +89,39 @@ export default async function PracticePage({
                 <h2 className="text-sm font-semibold">
                   1. Pick what to practise
                 </h2>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  {PRACTICE_SOURCES.map((option) => (
-                    <Link
-                      className={`rounded-lg border p-4 transition-colors hover:border-primary ${source === option.value ? "border-primary bg-primary/5" : "border-border bg-background"}`}
-                      href={`/practice?source=${option.value}`}
-                      key={option.value}
-                    >
-                      <p className="font-semibold">{option.label}</p>
-                      <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                        {option.description}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
+                <PracticeSourcePicker key={source} source={source} />
               </section>
               <section>
                 <h2 className="text-sm font-semibold">
-                  2. Choose session size
+                  {hasSessionSizeChoices
+                    ? "2. Choose session size"
+                    : "Your practice session"}
                 </h2>
+                {!hasSessionSizeChoices ? (
+                  <p className="mt-2 text-sm leading-5 text-muted-foreground">
+                    You have {total} active card{total === 1 ? "" : "s"}, so
+                    this session will include them all.
+                  </p>
+                ) : null}
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  {(choices.length > 0 ? choices : [fallback]).map((choice) =>
-                    choice ? (
-                      <Button
-                        asChild
-                        className="h-auto min-h-20 flex-col"
-                        key={choice}
-                      >
-                        <Link
-                          href={`/practice?source=${source}&count=${choice}`}
+                  {(hasSessionSizeChoices ? choices : [fallback]).map(
+                    (choice) =>
+                      choice ? (
+                        <Button
+                          asChild
+                          className="h-auto min-h-20 flex-col"
+                          key={choice}
                         >
-                          Start a {choice}-card practice
-                          <span className="text-xs font-normal opacity-80">
-                            {selectedSource.label} selection
-                          </span>
-                        </Link>
-                      </Button>
-                    ) : null,
+                          <Link
+                            href={`/practice?source=${source}&count=${choice}`}
+                          >
+                            Start a {choice}-card practice
+                            <span className="text-xs font-normal opacity-80">
+                              {selectedSource.label} selection
+                            </span>
+                          </Link>
+                        </Button>
+                      ) : null,
                   )}
                 </div>
               </section>
