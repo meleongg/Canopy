@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { ExampleContext } from "@/lib/example-contexts";
 
 export const user = pgTable("user", {
@@ -127,6 +128,54 @@ export const flashcards = pgTable(
     uniqueIndex("flashcard_user_word_idx").on(table.userId, table.wordId),
     index("user_review_queue_idx").on(table.userId, table.nextReviewAt),
     index("user_archived_cards_idx").on(table.userId, table.archivedAt),
+  ],
+);
+
+export const dictionaryReleases = pgTable(
+  "dictionary_releases",
+  {
+    id: text("id").primaryKey(),
+    source: text("source").notNull(),
+    sourceVersion: text("source_version").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    licenseUrl: text("license_url").notNull(),
+    sourceReleasedAt: timestamp("source_released_at").notNull(),
+    sourceEntryCount: integer("source_entry_count").notNull(),
+    sourceSha256: text("source_sha256").notNull(),
+    isActive: boolean("is_active").default(false).notNull(),
+    importedAt: timestamp("imported_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("dictionary_release_source_version_idx").on(
+      table.source,
+      table.sourceVersion,
+    ),
+    uniqueIndex("dictionary_active_release_source_idx")
+      .on(table.source)
+      .where(sql`${table.isActive} = true`),
+  ],
+);
+
+export const dictionaryEntries = pgTable(
+  "dictionary_entries",
+  {
+    id: text("id").primaryKey(),
+    releaseId: text("release_id")
+      .notNull()
+      .references(() => dictionaryReleases.id, { onDelete: "cascade" }),
+    sourceEntryId: text("source_entry_id").notNull(),
+    traditional: text("traditional").notNull(),
+    simplified: text("simplified").notNull(),
+    pinyin: text("pinyin").notNull(),
+    definitions: jsonb("definitions").$type<string[]>().notNull(),
+  },
+  (table) => [
+    uniqueIndex("dictionary_entry_release_source_idx").on(
+      table.releaseId,
+      table.sourceEntryId,
+    ),
+    index("dictionary_entry_simplified_idx").on(table.simplified),
+    index("dictionary_entry_traditional_idx").on(table.traditional),
   ],
 );
 

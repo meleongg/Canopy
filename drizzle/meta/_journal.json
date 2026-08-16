@@ -15,6 +15,20 @@
       "when": 1786857146327,
       "tag": "0001_nice_proemial_gods",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786908454601,
+      "tag": "0002_fine_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786909540837,
+      "tag": "0003_strange_union_jack",
+      "breakpoints": true
     }
   ]
 }
