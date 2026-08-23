@@ -4,7 +4,7 @@ Canopy's beta finishes the personal learning loop: import vocabulary, review act
 
 ## Completed
 
-The following roadmap items have been delivered and verified in the codebase:
+The following roadmap items have been delivered and verified:
 
 1. Pull-request validation (`npm run validate`) and approval guidance.
 2. Learner-owned card lifecycle: overrides, archive, restore, and deletion.
@@ -19,11 +19,8 @@ The following roadmap items have been delivered and verified in the codebase:
 11. Public Privacy and Terms pages plus authenticated-surface cleanup.
 12. Optional Free practice that does not affect scheduling.
 13. Validated manual Pleco UTF-8 export workflow; cloud-folder automation is deferred.
-
-## Remaining delivery order
-
-11. Complete the dedicated Collection view: retain compact expandable rows and server-backed search, filters, and pagination, then bring personal card edit, archive/restore, deletion, and context actions into that view. This PR is in progress.
-12. Verify the operational deployment checklist in Vercel, Neon, and the dedicated OpenAI project: production migrations, usage alerts, and a conservative enforced spend cap. These settings are intentionally external to the repository.
+14. Dedicated Collection view with server-backed full-text search, active/archived browsing, pagination, personal card management, and context actions.
+15. Production deployment checklist verified in Vercel, Neon, and the dedicated OpenAI project, including migrations, usage alerts, and a conservative enforced spend cap.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
