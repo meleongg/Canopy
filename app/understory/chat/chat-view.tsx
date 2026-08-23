@@ -9,7 +9,14 @@ import {
 } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BookOpen, History, Send, TreePine } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  History,
+  Send,
+  Sprout,
+  TreePine,
+} from "lucide-react";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
@@ -25,6 +32,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { queryKeys } from "@/lib/query-keys";
+import { understoryPersonas } from "@/lib/understory";
 import { cn } from "@/lib/utils";
 
 type UnderstorySetup = {
@@ -92,6 +100,8 @@ export function UnderstoryChatView({
     (message) => message.role === "user",
   ).length;
   const roundKey = `${setup.persona}:${setup.setting}:${setup.seedIds.join(",")}`;
+  const companion = understoryPersonas[setup.persona];
+  const CompanionIcon = setup.persona === "mossy" ? Sprout : TreePine;
 
   useEffect(() => {
     if (seedCards.length === 0 || openedRound.current === roundKey) return;
@@ -222,13 +232,12 @@ export function UnderstoryChatView({
               </p>
               <CardTitle>The Understory Chat</CardTitle>
               <CardDescription>
-                A focused five-turn conversation with{" "}
-                {setup.persona === "mossy" ? "Mossy" : "Bramble"}.
+                A focused five-turn conversation with {companion.name}.
               </CardDescription>
             </div>
             <Avatar className="border border-primary bg-primary text-primary-foreground">
               <AvatarFallback className="bg-primary text-primary-foreground">
-                <TreePine className="size-5 text-primary-foreground" />
+                <CompanionIcon className="size-5 text-primary-foreground" />
               </AvatarFallback>
             </Avatar>
           </div>
@@ -243,7 +252,7 @@ export function UnderstoryChatView({
               >
                 Choose seeds
               </Link>{" "}
-              before chatting with Bramble.
+              before chatting with a companion.
             </div>
           ) : null}
           {seedCards.length > 0 ? (
@@ -296,7 +305,7 @@ export function UnderstoryChatView({
               >
                 {message.role === "assistant" ? (
                   <span className="mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <TreePine className="size-4 text-primary-foreground" />
+                    <CompanionIcon className="size-4 text-primary-foreground" />
                   </span>
                 ) : null}
                 <p
@@ -351,7 +360,7 @@ export function UnderstoryChatView({
                   sendChatMessage();
                 }
               }}
-              placeholder="Reply to Bramble"
+              placeholder={`Reply to ${companion.name}`}
               value={chatInput}
             />
             <Button

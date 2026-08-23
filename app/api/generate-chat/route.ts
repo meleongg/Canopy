@@ -6,6 +6,7 @@ import { getCardSeeds } from "@/lib/cards";
 import { saveChatSession } from "@/lib/ai-sessions";
 import { GARDEN_BOUNDARY_MESSAGE, moderateText } from "@/lib/openai";
 import { requireApiAuth } from "@/lib/session";
+import { understoryPersonas } from "@/lib/understory";
 
 export const runtime = "edge";
 
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
     .join("; ");
   const setting = parsed.data.scenario;
   const persona = parsed.data.persona;
+  const companion = understoryPersonas[persona];
   const languageCode = seeds[0]?.languageCode ?? "und";
   const targetLanguage =
     languageCode === "zh-CN"
@@ -93,7 +95,7 @@ export async function POST(request: Request) {
   const result = streamText({
     model: openai("gpt-4o-mini"),
     temperature: 0.7,
-    system: `You are Bramble, Canopy's ${persona} for The Understory Chat. Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. ${closingInstruction} Selected vocabulary: ${targetWords}.`,
+    system: `You are ${companion.name}, Canopy's companion for The Understory Chat. ${companion.prompt} Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. ${closingInstruction} Selected vocabulary: ${targetWords}.`,
     ...conversation,
     onFinish: async ({ text }) => {
       if (userTurns.length === 5 && text.trim()) {
