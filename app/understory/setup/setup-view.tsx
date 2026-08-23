@@ -3,9 +3,18 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Leaf, MessageCircle, TreePine } from "lucide-react";
-import { SeedPicker } from "@/components/canopy/seed-picker";
+import {
+  CloudRain,
+  Library,
+  MapPin,
+  MessageCircle,
+  PencilLine,
+  ShoppingBasket,
+  Sprout,
+  TreePine,
+} from "lucide-react";
 import { fetchCards } from "@/components/canopy/card-utils";
+import { SeedPicker } from "@/components/canopy/seed-picker";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,24 +24,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { queryKeys } from "@/lib/query-keys";
-
-const personas = ["bramble", "mossy"] as const;
+import { understoryPersonas, type UnderstoryPersona } from "@/lib/understory";
+import { cn } from "@/lib/utils";
 
 const settings = [
-  "a quiet airport cafe",
-  "a neighborhood market",
-  "a library study table",
-  "a rainy bus stop",
-];
+  {
+    value: "a neighborhood market",
+    title: "Neighborhood market",
+    description: "Ask for groceries and make a small purchase.",
+    icon: ShoppingBasket,
+  },
+  {
+    value: "a library study table",
+    title: "Library study table",
+    description: "Compare notes and make a plan together.",
+    icon: Library,
+  },
+  {
+    value: "a rainy bus stop",
+    title: "Rainy bus stop",
+    description: "Pass the time while waiting for a ride.",
+    icon: CloudRain,
+  },
+  {
+    value: "a quiet airport cafe",
+    title: "Airport cafe",
+    description: "Order a drink before a journey.",
+    icon: MapPin,
+  },
+] as const;
 
 export function UnderstorySetupView({
   initialCards,
@@ -48,12 +70,18 @@ export function UnderstorySetupView({
   const [seedIds, setSeedIds] = useState<string[]>(
     cards.slice(0, 3).map((card) => card.id),
   );
-  const [persona, setPersona] = useState<(typeof personas)[number]>(personas[0]);
-  const [setting, setSetting] = useState(settings[0]);
+  const [persona, setPersona] = useState<UnderstoryPersona>("bramble");
+  const [selectedSetting, setSelectedSetting] = useState<string>(
+    settings[0].value,
+  );
+  const [customSetting, setCustomSetting] = useState("");
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
     [cards, seedIds],
   );
+  const setting =
+    selectedSetting === "custom" ? customSetting.trim() : selectedSetting;
+  const companion = understoryPersonas[persona];
 
   function continueToChat() {
     window.sessionStorage.setItem(
@@ -67,8 +95,8 @@ export function UnderstorySetupView({
     <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:grid-cols-[380px_1fr] md:px-8">
       <aside>
         <SeedPicker
-          title="The Understory Seeds"
-          description="Choose 1 to 7 cards that Bramble should weave into The Understory Chat."
+          title="Vocabulary for this round"
+          description="Choose 1 to 7 cards your companion can naturally bring into the conversation."
           cards={cards}
           selectedIds={seedIds}
           setSelectedIds={setSeedIds}
@@ -83,10 +111,9 @@ export function UnderstorySetupView({
                 <p className="text-xs font-semibold uppercase text-primary">
                   The Understory
                 </p>
-                <CardTitle>The Understory Chat</CardTitle>
+                <CardTitle>Build a conversation</CardTitle>
                 <CardDescription>
-                  Drop your conversational roots. Step into a low-pressure
-                  dialogue space with Bramble.
+                  Set up all three parts of a focused, five-turn practice round.
                 </CardDescription>
               </div>
               <span className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-background text-primary">
@@ -94,69 +121,149 @@ export function UnderstorySetupView({
               </span>
             </div>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="seeds">
-              <TabsList>
-                <TabsTrigger value="seeds">
-                  <Leaf className="mr-2 size-4" />
-                  Seeds
-                </TabsTrigger>
-                <TabsTrigger value="persona">Persona</TabsTrigger>
-                <TabsTrigger value="setting">Setting</TabsTrigger>
-              </TabsList>
-              <TabsContent value="seeds">
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {seedCards.length} selected seed
-                  {seedCards.length === 1 ? "" : "s"} will guide Bramble&apos;s
-                  vocabulary choices.
+          <CardContent className="space-y-8">
+            <section aria-labelledby="companion-heading">
+              <div>
+                <p className="text-xs font-semibold uppercase text-primary">
+                  1. Companion
                 </p>
-              </TabsContent>
-              <TabsContent value="persona">
-                <label className="text-sm font-medium">Bramble style</label>
-                <Select
-                  value={persona}
-                  onValueChange={(value) => {
-                    if (value === "bramble" || value === "mossy") {
-                      setPersona(value);
-                    }
-                  }}
+                <h2 className="mt-1 font-serif text-xl font-semibold" id="companion-heading">
+                  Who should meet you there?
+                </h2>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {(Object.entries(understoryPersonas) as [
+                  UnderstoryPersona,
+                  (typeof understoryPersonas)[UnderstoryPersona],
+                ][]).map(([item, details]) => {
+                  const Icon = item === "bramble" ? TreePine : Sprout;
+                  const selected = persona === item;
+                  return (
+                    <Button
+                      aria-pressed={selected}
+                      className={cn(
+                        "h-auto items-start justify-start whitespace-normal p-4 text-left",
+                        selected && "border-primary bg-primary text-primary-foreground",
+                      )}
+                      key={item}
+                      onClick={() => setPersona(item)}
+                      type="button"
+                      variant="outline"
+                    >
+                      <Icon className="mt-0.5 size-5" />
+                      <span>
+                        <span className="block font-serif text-lg font-bold">
+                          {details.name}
+                        </span>
+                        <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
+                          {details.description}
+                        </span>
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section aria-labelledby="setting-heading">
+              <div>
+                <p className="text-xs font-semibold uppercase text-primary">
+                  2. Setting
+                </p>
+                <h2 className="mt-1 font-serif text-xl font-semibold" id="setting-heading">
+                  Where does the conversation happen?
+                </h2>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {settings.map((item) => {
+                  const Icon = item.icon;
+                  const selected = selectedSetting === item.value;
+                  return (
+                    <Button
+                      aria-pressed={selected}
+                      className={cn(
+                        "h-auto items-start justify-start whitespace-normal p-4 text-left",
+                        selected && "border-primary bg-primary text-primary-foreground",
+                      )}
+                      key={item.value}
+                      onClick={() => setSelectedSetting(item.value)}
+                      type="button"
+                      variant="outline"
+                    >
+                      <Icon className="mt-0.5 size-5" />
+                      <span>
+                        <span className="block font-semibold">{item.title}</span>
+                        <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
+                          {item.description}
+                        </span>
+                      </span>
+                    </Button>
+                  );
+                })}
+                <Button
+                  aria-pressed={selectedSetting === "custom"}
+                  className={cn(
+                    "h-auto items-start justify-start whitespace-normal p-4 text-left sm:col-span-2",
+                    selectedSetting === "custom" &&
+                      "border-primary bg-primary text-primary-foreground",
+                  )}
+                  onClick={() => setSelectedSetting("custom")}
+                  type="button"
+                  variant="outline"
                 >
-                  <SelectTrigger className="mt-2 max-w-md">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {personas.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TabsContent>
-              <TabsContent value="setting">
-                <label className="text-sm font-medium">Scene</label>
-                <Select value={setting} onValueChange={setSetting}>
-                  <SelectTrigger className="mt-2 max-w-md">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {settings.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TabsContent>
-            </Tabs>
+                  <PencilLine className="mt-0.5 size-5" />
+                  <span>
+                    <span className="block font-semibold">Make your own scene</span>
+                    <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
+                      Practise a conversation that fits something you actually want to say.
+                    </span>
+                  </span>
+                </Button>
+              </div>
+              {selectedSetting === "custom" ? (
+                <div className="mt-3">
+                  <label className="text-sm font-semibold" htmlFor="custom-setting">
+                    Describe the setting
+                  </label>
+                  <Input
+                    className="mt-2"
+                    id="custom-setting"
+                    maxLength={500}
+                    onChange={(event) => setCustomSetting(event.target.value)}
+                    placeholder="For example: ordering snacks at a night market"
+                    value={customSetting}
+                  />
+                </div>
+              ) : null}
+            </section>
+
+            <section
+              aria-labelledby="session-summary-heading"
+              className="rounded-xl border border-border bg-background p-4"
+            >
+              <p className="text-xs font-semibold uppercase text-primary">
+                3. Your round
+              </p>
+              <h2
+                className="mt-1 font-serif text-xl font-semibold"
+                id="session-summary-heading"
+              >
+                Review your round
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {seedCards.length} selected seed{seedCards.length === 1 ? "" : "s"} · {companion.name} · {setting || "add a setting to continue"}
+              </p>
+            </section>
+
             <Button
-              className="mt-6"
-              disabled={seedCards.length < 1 || seedCards.length > 7}
+              disabled={
+                seedCards.length < 1 || seedCards.length > 7 || !setting
+              }
               onClick={continueToChat}
               type="button"
             >
               <MessageCircle />
-              Start The Understory Chat
+              Start five-turn chat
             </Button>
           </CardContent>
         </Card>
