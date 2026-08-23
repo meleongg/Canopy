@@ -234,7 +234,12 @@ export async function lookupActiveDictionary(userId: string, text: string) {
         (term, index, forms) =>
           terms.includes(term) && forms.indexOf(term) === index,
       )
-      .map((term) => ({ ...entry, text: term, card: cardsByText.get(term) })),
+      .map((term) => ({
+        ...entry,
+        pinyin: normalizeSuppliedReading(entry.pinyin).join(" "),
+        text: term,
+        card: cardsByText.get(term),
+      })),
   );
 }
 
