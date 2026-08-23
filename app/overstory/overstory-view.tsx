@@ -7,6 +7,11 @@ import { BookOpen, Sparkles } from "lucide-react";
 import { SeedPicker } from "@/components/canopy/seed-picker";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
+import {
+  DictionaryHelpControls,
+  type DictionaryHelpDensity,
+} from "@/components/canopy/dictionary-help-controls";
+import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,16 +38,25 @@ export function OverstoryView({
     cards.slice(0, 3).map((card) => card.id),
   );
   const [story, setStory] = useState("");
+  const [storyScope, setStoryScope] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
+  const [dictionaryDensity, setDictionaryDensity] =
+    useState<DictionaryHelpDensity>("helpful");
   const [isPending, startTransition] = useTransition();
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
     [cards, seedIds],
   );
+  const entriesByText = useDictionaryHelp({
+    enabled: dictionaryHelp && isComplete,
+    scopeKey: String(storyScope),
+    texts: isComplete && story ? [story] : [],
+  });
 
   function generateSandbox() {
     startTransition(async () => {
+      setStoryScope((current) => current + 1);
       setStory("");
       setIsComplete(false);
       const response = await fetch("/api/generate-sandbox", {
@@ -105,22 +119,12 @@ export function OverstoryView({
               <Sparkles />
               {isPending ? "Growing your story…" : "Generate Overstory"}
             </Button>
-            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
-              <Button
-                aria-pressed={dictionaryHelp}
-                onClick={() => setDictionaryHelp((current) => !current)}
-                type="button"
-                variant="outline"
-              >
-                <BookOpen />
-                Dictionary help: {dictionaryHelp ? "On" : "Off"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                {dictionaryHelp
-                  ? "On: hover, focus, or tap a Chinese phrase for a definition."
-                  : "Look up unfamiliar Chinese phrases without changing your cards."}
-              </p>
-            </div>
+            <DictionaryHelpControls
+              density={dictionaryDensity}
+              enabled={dictionaryHelp}
+              setDensity={setDictionaryDensity}
+              setEnabled={setDictionaryHelp}
+            />
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {cards.length < 3
                 ? "Add at least three active cards in your Dashboard before creating an Overstory."
@@ -140,6 +144,8 @@ export function OverstoryView({
               {story ? (
                 <p>
                   <ContextualChineseText
+                    density={dictionaryDensity}
+                    entries={entriesByText.get(story) ?? []}
                     lookupEnabled={isComplete && dictionaryHelp}
                     seedCards={seedCards}
                     text={story}
