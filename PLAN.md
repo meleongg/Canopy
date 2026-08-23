@@ -24,16 +24,24 @@ The following roadmap items have been delivered and verified:
 16. Stable shared Dictionary Help with per-round caching and configurable highlight density.
 17. A shared, developer-owned Understory conversation-duration constant that
    governs generation limits, progress, and completion UI.
+18. Optional text-to-speech playback for completed Understory and Overstory
+   text, with local speed controls and dictionary-term pronunciation.
+19. Private practice history filters, cursor pagination, and client-side page
+   caching.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
 ## Nice-to-have after beta activity justifies it
 
+### Current follow-up
+
+Build a dedicated dictionary explorer with Simplified, Traditional, pinyin, and
+English-gloss search plus an explicit add-to-collection action. Keep discovery
+separate from the learner's scheduled review rhythm. This PR is in progress.
+
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
 
-- A dedicated dictionary explorer with Simplified, Traditional, pinyin, and
-  English-gloss search plus an explicit add-to-collection action.
 - Optional contextual discovery around terms a learner already studies, such as
   exact compounds containing a shared character; clearly label this as
   exploration rather than a semantic or curriculum recommendation.

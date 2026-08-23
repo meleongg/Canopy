@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { dictionaryEntries, dictionaryReleases, flashcards } from "@/db/schema";
 import { normalizeSuppliedReading } from "@/lib/phonetics";
@@ -12,6 +12,92 @@ export type DictionaryLookup = {
   definitions: string[];
   card?: { id: string; phoneticReading: string[]; definitions: string[] };
 };
+
+export type DictionarySearchResult = Omit<DictionaryLookup, "text">;
+export const dictionarySearchScopes = ["all", "chinese", "pinyin", "english"] as const;
+export type DictionarySearchScope = (typeof dictionarySearchScopes)[number];
+
+export async function searchActiveDictionary(
+  userId: string,
+  query: string,
+  scope: DictionarySearchScope = "all",
+) {
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return [] as DictionarySearchResult[];
+
+  const chineseMatch = or(
+    ilike(dictionaryEntries.simplified, `%${normalizedQuery}%`),
+    ilike(dictionaryEntries.traditional, `%${normalizedQuery}%`),
+  );
+  const pinyinMatch = ilike(dictionaryEntries.pinyin, `%${normalizedQuery}%`);
+  const englishMatch = sql`lower(${dictionaryEntries.definitions}::text) LIKE ${`%${normalizedQuery.toLowerCase()}%`}`;
+  const matchByScope = {
+    all: or(chineseMatch, pinyinMatch, englishMatch),
+    chinese: chineseMatch,
+    pinyin: pinyinMatch,
+    english: englishMatch,
+  }[scope];
+  const relevance = sql<number>`case
+    when ${dictionaryEntries.simplified} = ${normalizedQuery}
+      or ${dictionaryEntries.traditional} = ${normalizedQuery} then 0
+    when lower(${dictionaryEntries.pinyin}) = lower(${normalizedQuery}) then 1
+    when exists (
+      select 1 from jsonb_array_elements_text(${dictionaryEntries.definitions}) definition
+      where lower(definition) = lower(${normalizedQuery})
+    ) then 2
+    when ${dictionaryEntries.simplified} ilike ${`${normalizedQuery}%`}
+      or ${dictionaryEntries.traditional} ilike ${`${normalizedQuery}%`} then 3
+    when ${dictionaryEntries.pinyin} ilike ${`${normalizedQuery}%`} then 4
+    else 5
+  end`;
+  const db = getDb();
+  const entries = await db
+    .select({
+      entryId: dictionaryEntries.id,
+      traditional: dictionaryEntries.traditional,
+      simplified: dictionaryEntries.simplified,
+      pinyin: dictionaryEntries.pinyin,
+      definitions: dictionaryEntries.definitions,
+    })
+    .from(dictionaryEntries)
+    .innerJoin(
+      dictionaryReleases,
+      eq(dictionaryEntries.releaseId, dictionaryReleases.id),
+    )
+    .where(
+      and(
+        eq(dictionaryReleases.isActive, true),
+        matchByScope,
+      ),
+    )
+    .orderBy(asc(relevance), asc(dictionaryEntries.simplified))
+    .limit(30);
+  const forms = [...new Set(entries.flatMap((entry) => [entry.simplified, entry.traditional]))];
+  const cards = forms.length
+    ? await db
+        .select({
+          id: flashcards.id,
+          targetText: flashcards.targetText,
+          phoneticReading: flashcards.phoneticReading,
+          definitions: flashcards.definitions,
+        })
+        .from(flashcards)
+        .where(
+          and(
+            eq(flashcards.userId, userId),
+            inArray(flashcards.targetText, forms),
+          ),
+        )
+    : [];
+  const cardsByText = new Map(cards.map((card) => [card.targetText, card]));
+  return entries.map(({ pinyin, ...entry }) => ({
+    ...entry,
+    pinyin: normalizeSuppliedReading(pinyin).join(" "),
+    card:
+      cardsByText.get(entry.simplified) ??
+      cardsByText.get(entry.traditional),
+  }));
+}
 
 async function candidateTerms(text: string) {
   try {

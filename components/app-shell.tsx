@@ -17,6 +17,7 @@ import {
   Sun,
   TreePine,
   Settings,
+  Search,
 } from "lucide-react";
 import logoDark from "@/app/assets/icons/canopy-logo-dark.svg";
 import logoLight from "@/app/assets/icons/canopy-logo-light.svg";
@@ -41,6 +42,7 @@ type ShellUser = {
 const privateNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/collection", label: "Collection" },
+  { href: "/explore", label: "Explore" },
   { href: "/overstory", label: "The Overstory" },
   { href: "/understory/setup", label: "The Understory" },
   { href: "/history", label: "History" },
@@ -173,6 +175,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/collection">
                       <BookOpen className="mr-2 size-4" />
                       Collection
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/explore">
+                      <Search className="mr-2 size-4" />
+                      Explore dictionary
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

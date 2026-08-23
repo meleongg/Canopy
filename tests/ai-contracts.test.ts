@@ -94,4 +94,30 @@ describe("AI route guardrails", () => {
     expect(invalidFilter.status).toBe(400);
     expect(invalidCursor.status).toBe(400);
   });
+
+  it("requires a bounded explicit dictionary explorer query", async () => {
+    const { POST } = await import("@/app/api/dictionary/search/route");
+    const blankQuery = await POST(
+      new Request("http://test/api/dictionary/search", {
+        method: "POST",
+        body: JSON.stringify({ query: " " }),
+      }),
+    );
+    const oversizedQuery = await POST(
+      new Request("http://test/api/dictionary/search", {
+        method: "POST",
+        body: JSON.stringify({ query: "a".repeat(101) }),
+      }),
+    );
+    const invalidScope = await POST(
+      new Request("http://test/api/dictionary/search", {
+        method: "POST",
+        body: JSON.stringify({ query: "corruption", scope: "definition" }),
+      }),
+    );
+
+    expect(blankQuery.status).toBe(400);
+    expect(oversizedQuery.status).toBe(400);
+    expect(invalidScope.status).toBe(400);
+  });
 });
