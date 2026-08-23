@@ -89,16 +89,16 @@ export function ContextualChineseText({
         return (
           <Tooltip key={`${part}-${index}`}>
             <TooltipTrigger asChild>
-              <button
+              <span
                 className={
                   entry.card
                     ? "rounded bg-[var(--paprika)] px-1 text-[var(--paprika-foreground)]"
-                    : "inline whitespace-normal text-inherit hover:underline hover:decoration-primary/70 hover:underline-offset-4 focus-visible:underline focus-visible:decoration-primary/70 focus-visible:underline-offset-4"
+                    : "cursor-help whitespace-normal text-inherit hover:underline hover:decoration-primary/70 hover:underline-offset-4 focus-visible:underline focus-visible:decoration-primary/70 focus-visible:underline-offset-4"
                 }
-                type="button"
+                tabIndex={0}
               >
                 {part}
-              </button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
               <p className="font-semibold">
