@@ -10,7 +10,6 @@ import { ContextualChineseText } from "@/components/canopy/contextual-chinese-te
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import {
   DictionaryHelpControls,
-  type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import type { WorkspaceCard } from "@/components/canopy/types";
@@ -44,8 +43,6 @@ export function OverstoryView({
   const [storyScope, setStoryScope] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
-  const [dictionaryDensity, setDictionaryDensity] =
-    useState<DictionaryHelpDensity>("helpful");
   const [isPending, startTransition] = useTransition();
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
@@ -130,9 +127,7 @@ export function OverstoryView({
               ) : null}
               <span className="hidden h-8 w-px bg-border sm:block" />
               <DictionaryHelpControls
-                density={dictionaryDensity}
                 enabled={dictionaryHelp}
-                setDensity={setDictionaryDensity}
                 setEnabled={setDictionaryHelp}
                 variant="compact"
               />
@@ -167,7 +162,6 @@ export function OverstoryView({
               {story ? (
                 <p>
                   <ContextualChineseText
-                    density={dictionaryDensity}
                     entries={entriesByText.get(story) ?? []}
                     lookupEnabled={isComplete && dictionaryHelp}
                     seedCards={seedCards}

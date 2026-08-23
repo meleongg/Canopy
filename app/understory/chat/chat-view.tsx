@@ -14,7 +14,6 @@ import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import {
   DictionaryHelpControls,
-  type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import { SpeechButton } from "@/components/canopy/speech-button";
@@ -94,8 +93,6 @@ export function UnderstoryChatView({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState("");
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
-  const [dictionaryDensity, setDictionaryDensity] =
-    useState<DictionaryHelpDensity>("helpful");
   const openedRound = useRef<string | null>(null);
   const seedCards = useMemo(
     () => cards.filter((card) => setup.seedIds.includes(card.id)),
@@ -293,9 +290,7 @@ export function UnderstoryChatView({
             </div>
           ) : null}
           <DictionaryHelpControls
-            density={dictionaryDensity}
             enabled={dictionaryHelp}
-            setDensity={setDictionaryDensity}
             setEnabled={setDictionaryHelp}
             showDescription
             variant="compact"
@@ -333,7 +328,6 @@ export function UnderstoryChatView({
                 >
                   {message.role === "assistant" ? (
                     <ContextualChineseText
-                      density={dictionaryDensity}
                       entries={entriesByText.get(message.content) ?? []}
                       lookupEnabled={dictionaryHelp}
                       seedCards={seedCards}

@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SpeechButton } from "@/components/canopy/speech-button";
 import {
-  shouldHighlightDictionaryOccurrence,
+  shouldHighlightFocusedDictionaryOccurrence,
   type ContextualDictionaryEntry,
-  type DictionaryHelpDensity,
 } from "@/lib/dictionary-help";
 import {
   Tooltip,
@@ -18,13 +17,11 @@ import type { WorkspaceCard } from "@/components/canopy/types";
 export function ContextualChineseText({
   text,
   lookupEnabled,
-  density = "all",
   seedCards,
   entries,
 }: {
   text: string;
   lookupEnabled: boolean;
-  density?: DictionaryHelpDensity;
   seedCards: WorkspaceCard[];
   entries: ContextualDictionaryEntry[];
 }) {
@@ -80,9 +77,8 @@ export function ContextualChineseText({
         const occurrence = dictionaryOccurrences.get(part) ?? 0;
         dictionaryOccurrences.set(part, occurrence + 1);
         if (
-          !shouldHighlightDictionaryOccurrence({
+          !shouldHighlightFocusedDictionaryOccurrence({
             isSeed,
-            density,
             occurrence,
           })
         ) {
