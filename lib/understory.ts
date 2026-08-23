@@ -17,6 +17,10 @@ export const understoryPersonas = {
 
 export type UnderstoryPersona = keyof typeof understoryPersonas;
 
+// Product-controlled conversation duration. This is intentionally not a
+// learner setting until we have evidence that configurable rounds add value.
+export const UNDERSTORY_LEARNER_TURN_LIMIT = 5;
+
 export function ensureUnderstoryClosing(
   text: string,
   languageCode: string,

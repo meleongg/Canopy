@@ -30,7 +30,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { queryKeys } from "@/lib/query-keys";
-import { understoryPersonas } from "@/lib/understory";
+import {
+  UNDERSTORY_LEARNER_TURN_LIMIT,
+  understoryPersonas,
+} from "@/lib/understory";
 import { cn } from "@/lib/utils";
 
 type UnderstorySetup = {
@@ -181,7 +184,7 @@ export function UnderstoryChatView({
       seedCards.length === 0 ||
       isOpening ||
       isSending ||
-      learnerTurnCount >= 5
+      learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT
     ) {
       return;
     }
@@ -249,7 +252,7 @@ export function UnderstoryChatView({
               </p>
               <CardTitle>The Understory Chat</CardTitle>
               <CardDescription>
-                A focused five-turn conversation with {companion.name}.
+                A focused {UNDERSTORY_LEARNER_TURN_LIMIT}-turn conversation with {companion.name}.
               </CardDescription>
             </div>
             <Avatar className="border border-primary bg-primary text-primary-foreground">
@@ -345,7 +348,7 @@ export function UnderstoryChatView({
           ) : null}
           <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
             <span className="font-semibold text-foreground">
-              Your reply: turn {Math.min(learnerTurnCount + 1, 5)} of 5
+              Your reply: turn {Math.min(learnerTurnCount + 1, UNDERSTORY_LEARNER_TURN_LIMIT)} of {UNDERSTORY_LEARNER_TURN_LIMIT}
             </span>
             <span className="text-muted-foreground">
               A short, focused conversation around your selected vocabulary.
@@ -358,7 +361,7 @@ export function UnderstoryChatView({
                 isOpening ||
                 isSending ||
                 seedCards.length === 0 ||
-                learnerTurnCount >= 5
+                learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT
               }
               onChange={(event) => setChatInput(event.target.value)}
               onKeyDown={(event) => {
@@ -375,7 +378,7 @@ export function UnderstoryChatView({
                 isOpening ||
                 isSending ||
                 seedCards.length === 0 ||
-                learnerTurnCount >= 5
+                learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT
               }
               onClick={sendChatMessage}
               title="Send"
@@ -384,10 +387,10 @@ export function UnderstoryChatView({
               <Send />
             </Button>
           </div>
-          {learnerTurnCount >= 5 ? (
+          {learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-card p-4">
               <p className="text-sm leading-6 text-muted-foreground">
-                This five-turn practice is complete and saved to your private
+                This {UNDERSTORY_LEARNER_TURN_LIMIT}-turn practice is complete and saved to your private
                 history.
               </p>
               <div className="flex flex-wrap gap-2">

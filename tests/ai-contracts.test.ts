@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { UNDERSTORY_LEARNER_TURN_LIMIT } from "@/lib/understory";
 
 const mocks = vi.hoisted(() => ({
   getCardSeeds: vi.fn(),
@@ -43,7 +44,7 @@ describe("AI route guardrails", () => {
     expect(response.status).toBe(400);
   });
 
-  it("stops dialogue after the fifth learner turn", async () => {
+  it("stops dialogue after the configured learner turn limit", async () => {
     const { POST } = await import("@/app/api/generate-chat/route");
     const response = await POST(
       new Request("http://test/api/generate-chat", {
@@ -52,23 +53,17 @@ describe("AI route guardrails", () => {
           cardIds: [crypto.randomUUID()],
           persona: "bramble",
           scenario: "a market",
-          messageHistory: [
-            { role: "user", content: "one" },
-            { role: "assistant", content: "two" },
-            { role: "user", content: "three" },
-            { role: "assistant", content: "four" },
-            { role: "user", content: "five" },
-            { role: "assistant", content: "six" },
-            { role: "user", content: "seven" },
-            { role: "assistant", content: "eight" },
-            { role: "user", content: "nine" },
-            { role: "user", content: "ten" },
-          ],
+          messageHistory: Array.from(
+            { length: UNDERSTORY_LEARNER_TURN_LIMIT + 1 },
+            (_, index) => ({ role: "user" as const, content: `turn ${index}` }),
+          ),
         }),
       }),
     );
 
     expect(response.status).toBe(400);
-    expect(await response.text()).toContain("five learner turns");
+    expect(await response.text()).toContain(
+      `${UNDERSTORY_LEARNER_TURN_LIMIT} learner turns`,
+    );
   });
 });
