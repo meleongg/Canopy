@@ -241,10 +241,16 @@ export function UnderstorySetupView({
               aria-labelledby="session-summary-heading"
               className="rounded-xl border border-border bg-background p-4"
             >
-              <p className="text-xs font-semibold uppercase text-primary" id="session-summary-heading">
+              <p className="text-xs font-semibold uppercase text-primary">
                 3. Your round
               </p>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              <h2
+                className="mt-1 font-serif text-xl font-semibold"
+                id="session-summary-heading"
+              >
+                Review your round
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {seedCards.length} selected seed{seedCards.length === 1 ? "" : "s"} · {companion.name} · {setting || "add a setting to continue"}
               </p>
             </section>
