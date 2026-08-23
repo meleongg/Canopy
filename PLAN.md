@@ -57,3 +57,12 @@ Refine practice history when saved-session volume justifies it: add All,
 Overstory, and Understory filters with scoped empty states, then introduce
 pagination or a load-more control rather than expanding the initial 60-session
 list indefinitely.
+
+Extend Understory voice interaction in three separate follow-up stages, while
+keeping typed chat as the default and reliable fallback:
+
+1. Optional text-to-speech playback for companion replies.
+2. Optional speech-to-text input that produces an editable transcript before a
+   learner sends it.
+3. An optional live voice mode selected during Understory setup, with clear
+   microphone and privacy guidance; it must not replace text chat.
