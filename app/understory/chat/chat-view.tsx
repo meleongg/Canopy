@@ -275,7 +275,7 @@ export function UnderstoryChatView({
             </div>
           ) : null}
           {seedCards.length > 0 ? (
-            <div className="mt-4 rounded-xl border border-border bg-card p-4">
+            <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs font-semibold uppercase text-primary">
                 Today&apos;s practice
               </p>
@@ -289,12 +289,14 @@ export function UnderstoryChatView({
               </div>
             </div>
           ) : null}
-          <DictionaryHelpControls
-            enabled={dictionaryHelp}
-            setEnabled={setDictionaryHelp}
-            showDescription
-            variant="compact"
-          />
+          <div className="mt-4">
+            <DictionaryHelpControls
+              enabled={dictionaryHelp}
+              setEnabled={setDictionaryHelp}
+              showDescription
+              variant="compact"
+            />
+          </div>
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
             Listen plays an AI-generated companion voice. Audio is created only
             when you choose to play a completed reply.
