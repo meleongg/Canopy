@@ -120,4 +120,15 @@ describe("AI route guardrails", () => {
     expect(oversizedQuery.status).toBe(400);
     expect(invalidScope.status).toBe(400);
   });
+
+  it("requires authentication before returning contextual dictionary discovery", async () => {
+    const { GET } = await import("@/app/api/dictionary/discover/route");
+    mocks.requireApiAuth.mockResolvedValueOnce({
+      session: null,
+      response: new Response("Authentication required.", { status: 401 }),
+    });
+    const response = await GET();
+
+    expect(response.status).toBe(401);
+  });
 });

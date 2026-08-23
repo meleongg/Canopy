@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, LoaderCircle, Plus, Search } from "lucide-react";
+import { BookOpen, Compass, LoaderCircle, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import type {
   DictionarySearchResult,
+  DictionaryDiscoveryResult,
   DictionarySearchScope,
 } from "@/lib/dictionary";
 
@@ -17,9 +18,46 @@ const scopes: { value: DictionarySearchScope; label: string }[] = [
   { value: "english", label: "English" },
 ];
 
+type ExplorerEntry = DictionarySearchResult | DictionaryDiscoveryResult;
+
+function DictionaryEntryCard({
+  entry,
+  isAdding,
+  onAdd,
+}: {
+  entry: ExplorerEntry;
+  isAdding: boolean;
+  onAdd: (entry: ExplorerEntry) => void;
+}) {
+  const sharedWith = "sharedWith" in entry ? entry.sharedWith : [];
+  return (
+    <article className="rounded-xl border border-border bg-background p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-serif text-2xl font-bold">{entry.simplified}</h2>
+          {entry.traditional !== entry.simplified ? <p className="text-sm text-muted-foreground">Traditional: {entry.traditional}</p> : null}
+          <p className="mt-1 text-sm text-muted-foreground">{entry.pinyin}</p>
+        </div>
+        {entry.card ? (
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary"><BookOpen className="size-4" /> In your collection</span>
+        ) : (
+          <Button disabled={isAdding} onClick={() => onAdd(entry)} size="sm" type="button">
+            <Plus /> {isAdding ? "Adding…" : "Add to collection"}
+          </Button>
+        )}
+      </div>
+      {sharedWith.length ? <p className="mt-3 text-xs font-semibold text-primary">Shares a character with {sharedWith.join(", ")}</p> : null}
+      <p className="mt-4 text-sm leading-6">{entry.definitions.join("; ")}</p>
+    </article>
+  );
+}
+
 export function DictionaryExplorerView() {
   const { toast } = useToast();
   const [entries, setEntries] = useState<DictionarySearchResult[]>([]);
+  const [discoveries, setDiscoveries] = useState<DictionaryDiscoveryResult[]>([]);
+  const [hasExploredCompounds, setHasExploredCompounds] = useState(false);
+  const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
@@ -53,7 +91,25 @@ export function DictionaryExplorerView() {
     }
   }
 
-  async function addToCollection(entry: DictionarySearchResult) {
+  async function discoverCompounds() {
+    setIsDiscovering(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/dictionary/discover");
+      if (!response.ok) throw new Error(await response.text());
+      const payload = (await response.json()) as {
+        entries: DictionaryDiscoveryResult[];
+      };
+      setDiscoveries(payload.entries);
+      setHasExploredCompounds(true);
+    } catch {
+      setMessage("Related forms could not be found. Please try again.");
+    } finally {
+      setIsDiscovering(false);
+    }
+  }
+
+  async function addToCollection(entry: ExplorerEntry) {
     setAddingEntryId(entry.entryId);
     try {
       const response = await fetch("/api/dictionary/cards", {
@@ -63,6 +119,20 @@ export function DictionaryExplorerView() {
       });
       if (!response.ok) throw new Error(await response.text());
       setEntries((current) =>
+        current.map((candidate) =>
+          candidate.entryId === entry.entryId
+            ? {
+                ...candidate,
+                card: {
+                  id: candidate.entryId,
+                  phoneticReading: candidate.pinyin.split(/\s+/),
+                  definitions: candidate.definitions,
+                },
+              }
+            : candidate,
+        ),
+      );
+      setDiscoveries((current) =>
         current.map((candidate) =>
           candidate.entryId === entry.entryId
             ? {
@@ -93,6 +163,20 @@ export function DictionaryExplorerView() {
           Search the active CC-CEDICT release by Chinese form, pinyin, or English gloss. Best match prioritizes exact forms and definitions before partial matches. Exploring does not affect review until you add an entry to your collection.
         </p>
       </header>
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-xl font-bold">Explore shared-character compounds</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Find dictionary forms that share a Chinese character with recent active cards. These are connections to explore, not level or meaning recommendations.</p>
+          </div>
+          <Button disabled={isDiscovering} onClick={() => void discoverCompounds()} type="button" variant="outline">
+            {isDiscovering ? <LoaderCircle className="animate-spin" /> : <Compass />}
+            {isDiscovering ? "Finding…" : "Find connections"}
+          </Button>
+        </div>
+        {hasExploredCompounds && !discoveries.length ? <p className="mt-4 text-sm text-muted-foreground">Add active Chinese cards first, then come back to explore related forms.</p> : null}
+        {discoveries.length ? <div className="mt-4 space-y-3">{discoveries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}</div> : null}
+      </section>
       <form
         className="flex flex-col gap-2 sm:flex-row"
         onSubmit={(event) => {
@@ -133,25 +217,7 @@ export function DictionaryExplorerView() {
       </div>
       {message ? <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">{message}</p> : null}
       <div className="space-y-3">
-        {entries.map((entry) => (
-          <article className="rounded-xl border border-border bg-background p-5" key={entry.entryId}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="font-serif text-2xl font-bold">{entry.simplified}</h2>
-                {entry.traditional !== entry.simplified ? <p className="text-sm text-muted-foreground">Traditional: {entry.traditional}</p> : null}
-                <p className="mt-1 text-sm text-muted-foreground">{entry.pinyin}</p>
-              </div>
-              {entry.card ? (
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary"><BookOpen className="size-4" /> In your collection</span>
-              ) : (
-                <Button disabled={addingEntryId === entry.entryId} onClick={() => void addToCollection(entry)} size="sm" type="button">
-                  <Plus /> {addingEntryId === entry.entryId ? "Adding…" : "Add to collection"}
-                </Button>
-              )}
-            </div>
-            <p className="mt-4 text-sm leading-6">{entry.definitions.join("; ")}</p>
-          </article>
-        ))}
+        {entries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}
       </div>
     </main>
   );
