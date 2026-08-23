@@ -132,6 +132,13 @@ export function OverstoryView({
                 variant="compact"
               />
             </div>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              {!dictionaryHelp
+                ? "Dictionary help is off. Turn it on to highlight selected words and first useful phrases."
+                : isComplete
+                  ? "Focused help highlights selected words and the first occurrence of each discovered phrase."
+                  : "Focused help will be available when your completed story appears."}
+            </p>
             {isComplete ? (
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 Listen plays an AI-generated narrator voice. Audio is created
