@@ -30,7 +30,7 @@ Decks, analytics, social features, and push notifications remain out of scope fo
 
 - Stabilize shared Dictionary Help across Understory and Overstory: cache a
   completed text's lookup result across toggles, defer Understory lookup until
-  streaming completes, and offer Selected vocabulary, Helpful phrases, and All
+  streaming completes, and offer a blank off state plus Helpful phrases and All
   matches density modes. This PR is in progress.
 
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup

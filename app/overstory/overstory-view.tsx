@@ -11,6 +11,7 @@ import {
   DictionaryHelpControls,
   type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
+import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,10 @@ export function OverstoryView({
     () => cards.filter((card) => seedIds.includes(card.id)),
     [cards, seedIds],
   );
+  const entriesByText = useDictionaryHelp({
+    enabled: dictionaryHelp && isComplete,
+    texts: isComplete && story ? [story] : [],
+  });
 
   function generateSandbox() {
     startTransition(async () => {
@@ -137,6 +142,7 @@ export function OverstoryView({
                 <p>
                   <ContextualChineseText
                     density={dictionaryDensity}
+                    entries={entriesByText.get(story) ?? []}
                     lookupEnabled={isComplete && dictionaryHelp}
                     seedCards={seedCards}
                     text={story}

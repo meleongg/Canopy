@@ -16,6 +16,7 @@ import {
   DictionaryHelpControls,
   type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
+import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +99,22 @@ export function UnderstoryChatView({
   const learnerTurnCount = messages.filter(
     (message) => message.role === "user",
   ).length;
+  const completedAssistantTexts = useMemo(
+    () =>
+      dictionaryHelp
+        ? messages.flatMap((message, index) =>
+            message.role === "assistant" &&
+            !(index === messages.length - 1 && (isOpening || isSending))
+              ? [message.content]
+              : [],
+          )
+        : [],
+    [dictionaryHelp, isOpening, isSending, messages],
+  );
+  const entriesByText = useDictionaryHelp({
+    enabled: dictionaryHelp,
+    texts: completedAssistantTexts,
+  });
   const roundKey = `${setup.persona}:${setup.setting}:${setup.seedIds.join(",")}`;
   const companion = understoryPersonas[setup.persona];
   const CompanionIcon = setup.persona === "mossy" ? Sprout : TreePine;
@@ -305,7 +322,8 @@ export function UnderstoryChatView({
                   {message.role === "assistant" ? (
                     <ContextualChineseText
                       density={dictionaryDensity}
-                      lookupEnabled={dictionaryHelp && !isOpening && !isSending}
+                      entries={entriesByText.get(message.content) ?? []}
+                      lookupEnabled={dictionaryHelp}
                       seedCards={seedCards}
                       text={message.content}
                     />

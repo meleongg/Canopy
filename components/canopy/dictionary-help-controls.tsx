@@ -20,7 +20,7 @@ export function DictionaryHelpControls({
   setDensity: Dispatch<SetStateAction<DictionaryHelpDensity>>;
 }) {
   const description = !enabled
-    ? "Selected vocabulary stays marked; turn this on for other useful phrases."
+    ? "Off: read without dictionary highlights."
     : density === "helpful"
       ? "Helpful phrases marks the first occurrence of each discovered phrase."
       : "All matches marks every discovered phrase.";

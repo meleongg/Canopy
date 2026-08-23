@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   shouldHighlightDictionaryOccurrence,
+  type ContextualDictionaryEntry,
   type DictionaryHelpDensity,
 } from "@/lib/dictionary-help";
 import {
@@ -13,58 +14,21 @@ import {
 } from "@/components/ui/tooltip";
 import type { WorkspaceCard } from "@/components/canopy/types";
 
-type Lookup = {
-  entryId: string;
-  text: string;
-  pinyin: string;
-  definitions: string[];
-  card?: { id: string; phoneticReading: string[]; definitions: string[] };
-};
-
 export function ContextualChineseText({
   text,
   lookupEnabled,
   density = "all",
   seedCards,
+  entries,
 }: {
   text: string;
   lookupEnabled: boolean;
   density?: DictionaryHelpDensity;
   seedCards: WorkspaceCard[];
+  entries: ContextualDictionaryEntry[];
 }) {
-  const [entries, setEntries] = useState<Lookup[]>([]);
   const [added, setAdded] = useState<string[]>([]);
-  const lookupCache = useRef(new Map<string, Lookup[]>());
-  useEffect(() => {
-    if (!lookupEnabled || !text.match(/\p{Script=Han}/u)) {
-      return;
-    }
-    const cached = lookupCache.current.get(text);
-    if (cached) {
-      setEntries(cached);
-      return;
-    }
-    const controller = new AbortController();
-    setEntries([]);
-    void fetch("/api/dictionary/lookup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-      signal: controller.signal,
-    })
-      .then(async (response) =>
-        response.ok ? response.json() : { entries: [] },
-      )
-      .then((payload: { entries: Lookup[] }) => {
-        lookupCache.current.set(text, payload.entries);
-        setEntries(payload.entries);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setEntries([]);
-      });
-    return () => controller.abort();
-  }, [lookupEnabled, text]);
-  const seedEntries = useMemo<Lookup[]>(
+  const seedEntries = useMemo<ContextualDictionaryEntry[]>(
     () =>
       seedCards.map((card) => ({
         entryId: card.id,
@@ -80,7 +44,7 @@ export function ContextualChineseText({
     [seedCards],
   );
   const visibleEntries = useMemo(
-    () => [...seedEntries, ...(lookupEnabled ? entries : [])],
+    () => (lookupEnabled ? [...seedEntries, ...entries] : []),
     [entries, lookupEnabled, seedEntries],
   );
   const byText = useMemo(
