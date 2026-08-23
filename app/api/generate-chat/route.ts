@@ -1,12 +1,16 @@
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
-import { streamText, type ModelMessage } from "ai";
+import { generateText, streamText, type ModelMessage } from "ai";
 import { hasOpenAIEnv } from "@/db/env";
 import { getCardSeeds } from "@/lib/cards";
 import { saveChatSession } from "@/lib/ai-sessions";
 import { GARDEN_BOUNDARY_MESSAGE, moderateText } from "@/lib/openai";
 import { requireApiAuth } from "@/lib/session";
-import { understoryPersonas } from "@/lib/understory";
+import {
+  ensureUnderstoryClosing,
+  UNDERSTORY_LEARNER_TURN_LIMIT,
+  understoryPersonas,
+} from "@/lib/understory";
 
 export const runtime = "edge";
 
@@ -36,10 +40,11 @@ export async function POST(request: Request) {
   const userTurns = parsed.data.messageHistory.filter(
     (message) => message.role === "user",
   );
-  if (userTurns.length > 5) {
-    return new Response("The Understory ends after five learner turns.", {
-      status: 400,
-    });
+  if (userTurns.length > UNDERSTORY_LEARNER_TURN_LIMIT) {
+    return new Response(
+      `The Understory ends after ${UNDERSTORY_LEARNER_TURN_LIMIT} learner turns.`,
+      { status: 400 },
+    );
   }
   const seeds = await getCardSeeds(auth.session.user.id, parsed.data.cardIds);
   if (seeds.length !== parsed.data.cardIds.length) {
@@ -88,28 +93,34 @@ export async function POST(request: Request) {
           "Open the selected scene now. Introduce yourself as the learner's companion, establish the setting, and ask the first natural question.",
       };
   const closingInstruction =
-    userTurns.length === 5
-      ? "This is the learner's fifth and final turn. Respond warmly, acknowledge their effort, naturally recap or reinforce useful vocabulary, and close the scene without asking another question."
+    userTurns.length === UNDERSTORY_LEARNER_TURN_LIMIT
+      ? "FINAL RESPONSE CONTRACT: this is the learner's final turn. Answer any direct point in their message, then warmly recap or reinforce useful vocabulary and close the scene. Do not ask, invite, offer, or imply a follow-up. Do not use a question mark or Chinese question mark."
       : "End with one natural question that invites the learner to answer.";
-
-  const result = streamText({
+  const system = `You are ${companion.name}, Canopy's companion for The Understory Chat. ${companion.prompt} Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. ${closingInstruction} Selected vocabulary: ${targetWords}.`;
+  const generation = {
     model: openai("gpt-4o-mini"),
-    temperature: 0.7,
-    system: `You are ${companion.name}, Canopy's companion for The Understory Chat. ${companion.prompt} Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. ${closingInstruction} Selected vocabulary: ${targetWords}.`,
+    temperature: userTurns.length === UNDERSTORY_LEARNER_TURN_LIMIT ? 0.2 : 0.7,
+    system,
     ...conversation,
-    onFinish: async ({ text }) => {
-      if (userTurns.length === 5 && text.trim()) {
-        try {
-          await saveChatSession(auth.session.user.id, seeds, [
-            ...parsed.data.messageHistory,
-            { role: "assistant", content: text },
-          ]);
-        } catch (error) {
-          console.error("Could not save completed Understory session.", error);
-        }
-      }
-    },
-  });
+  };
+
+  if (userTurns.length === UNDERSTORY_LEARNER_TURN_LIMIT) {
+    const result = await generateText(generation);
+    const text = ensureUnderstoryClosing(result.text, languageCode);
+    try {
+      await saveChatSession(auth.session.user.id, seeds, [
+        ...parsed.data.messageHistory,
+        { role: "assistant", content: text },
+      ]);
+    } catch (error) {
+      console.error("Could not save completed Understory session.", error);
+    }
+    return new Response(text, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const result = streamText(generation);
 
   return result.toTextStreamResponse();
 }

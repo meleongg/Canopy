@@ -26,7 +26,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { queryKeys } from "@/lib/query-keys";
-import { understoryPersonas, type UnderstoryPersona } from "@/lib/understory";
+import {
+  UNDERSTORY_LEARNER_TURN_LIMIT,
+  understoryPersonas,
+  type UnderstoryPersona,
+} from "@/lib/understory";
 import { cn } from "@/lib/utils";
 
 const settings = [
@@ -113,7 +117,7 @@ export function UnderstorySetupView({
                 </p>
                 <CardTitle>Build a conversation</CardTitle>
                 <CardDescription>
-                  Set up all three parts of a focused, five-turn practice round.
+                  Set up all three parts of a focused, {UNDERSTORY_LEARNER_TURN_LIMIT}-turn practice round.
                 </CardDescription>
               </div>
               <span className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-background text-primary">
@@ -263,7 +267,7 @@ export function UnderstorySetupView({
               type="button"
             >
               <MessageCircle />
-              Start five-turn chat
+              Start {UNDERSTORY_LEARNER_TURN_LIMIT}-turn chat
             </Button>
           </CardContent>
         </Card>

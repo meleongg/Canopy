@@ -21,6 +21,7 @@ The following roadmap items have been delivered and verified:
 13. Validated manual Pleco UTF-8 export workflow; cloud-folder automation is deferred.
 14. Dedicated Collection view with server-backed full-text search, active/archived browsing, pagination, personal card management, and context actions.
 15. Production deployment checklist verified in Vercel, Neon, and the dedicated OpenAI project, including migrations, usage alerts, and a conservative enforced spend cap.
+16. Stable shared Dictionary Help with per-round caching and configurable highlight density.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -28,11 +29,10 @@ Decks, analytics, social features, and push notifications remain out of scope fo
 
 ### Current follow-up
 
-- Stabilize shared Dictionary Help across Understory and Overstory: cache a
-  completed text's lookup result across toggles, defer Understory lookup until
-  streaming completes, clear that cache for a new round or story, and offer a
-  blank off state plus Helpful phrases and All matches density modes. This PR
-  is in progress.
+- Keep Understory's conversation duration as a single shared, developer-owned
+  constant that governs generation limits, progress, and completion UI. Do not
+  expose it as a learner setting until beta activity shows a clear need. This
+  PR is in progress.
 
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
