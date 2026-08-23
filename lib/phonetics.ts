@@ -19,23 +19,25 @@ export function normalizeSuppliedReading(value: string) {
     numberedTokens.join("").toLowerCase() ===
       compactNumberedReading.toLowerCase()
   ) {
-    return numberedTokens.map((token) =>
-      convert(token.replace(/u:/gi, "v"), { format: "numToSymbol" }),
-    );
+    return numberedTokens.map(normalizeNumberedPinyinToken);
   }
 
   return stripped
     .split(/\s+/)
     .map((token) => {
       if (/[a-züv:]+[1-5]/i.test(token)) {
-        return convert(token.replace(/u:/gi, "v"), {
-          format: "numToSymbol",
-        });
+        return normalizeNumberedPinyinToken(token);
       }
 
       return token;
     })
     .filter(Boolean);
+}
+
+function normalizeNumberedPinyinToken(token: string) {
+  const normalized = token.replace(/u:/gi, "v");
+  if (normalized.endsWith("5")) return normalized.slice(0, -1);
+  return convert(normalized, { format: "numToSymbol" });
 }
 
 export function phoneticTokensForText(

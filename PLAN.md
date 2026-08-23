@@ -28,23 +28,23 @@ The following roadmap items have been delivered and verified:
    text, with local speed controls and dictionary-term pronunciation.
 19. Private practice history filters, cursor pagination, and client-side page
    caching.
+20. Dedicated dictionary explorer with ranked Simplified, Traditional, pinyin,
+   and English-gloss search, explicit collection adds, and indexed English
+   lookup.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
 ## Nice-to-have after beta activity justifies it
 
-### Current follow-up
-
-Build a dedicated dictionary explorer with Simplified, Traditional, pinyin, and
-English-gloss search plus an explicit add-to-collection action. Keep discovery
-separate from the learner's scheduled review rhythm. This PR is in progress.
-
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
 
-- Optional contextual discovery around terms a learner already studies, such as
-  exact compounds containing a shared character; clearly label this as
-  exploration rather than a semantic or curriculum recommendation.
+### Current follow-up
+
+Add optional contextual discovery around terms a learner already studies, using
+exact compounds containing a shared character. Clearly label this as exploration
+rather than a semantic or curriculum recommendation. This PR is in progress.
+
 - Pinyin and tone contrast practice, Traditional/Simplified recognition, and
   sense-selection exercises that remain outside the learner's formal review
   rhythm until they choose to add a card.

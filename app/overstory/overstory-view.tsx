@@ -10,7 +10,6 @@ import { ContextualChineseText } from "@/components/canopy/contextual-chinese-te
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import {
   DictionaryHelpControls,
-  type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import type { WorkspaceCard } from "@/components/canopy/types";
@@ -44,8 +43,6 @@ export function OverstoryView({
   const [storyScope, setStoryScope] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
-  const [dictionaryDensity, setDictionaryDensity] =
-    useState<DictionaryHelpDensity>("helpful");
   const [isPending, startTransition] = useTransition();
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
@@ -112,30 +109,36 @@ export function OverstoryView({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                disabled={
-                  seedCards.length < 3 || seedCards.length > 7 || isPending
-                }
-                onClick={generateSandbox}
-                type="button"
-              >
-                {isPending ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-                {isPending ? "Growing your story…" : "Generate Overstory"}
-              </Button>
-              {isPending ? (
-                <span className="text-sm text-muted-foreground" role="status">
-                  Your story is taking root…
-                </span>
-              ) : null}
-              <span className="hidden h-8 w-px bg-border sm:block" />
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  disabled={
+                    seedCards.length < 3 || seedCards.length > 7 || isPending
+                  }
+                  onClick={generateSandbox}
+                  type="button"
+                >
+                  {isPending ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+                  {isPending ? "Growing your story…" : "Generate Overstory"}
+                </Button>
+                {isPending ? (
+                  <span className="text-sm text-muted-foreground" role="status">
+                    Your story is taking root…
+                  </span>
+                ) : null}
+              </div>
               <DictionaryHelpControls
-                density={dictionaryDensity}
                 enabled={dictionaryHelp}
-                setDensity={setDictionaryDensity}
                 setEnabled={setDictionaryHelp}
                 variant="compact"
               />
+              <p className="text-xs leading-5 text-muted-foreground">
+                {!dictionaryHelp
+                  ? "Dictionary help is off. Turn it on to highlight selected words and first useful phrases."
+                  : isComplete
+                    ? "Focused help highlights selected words and the first occurrence of each discovered phrase."
+                    : "Focused help will be available when your completed story appears."}
+              </p>
             </div>
             {isComplete ? (
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
@@ -167,7 +170,6 @@ export function OverstoryView({
               {story ? (
                 <p>
                   <ContextualChineseText
-                    density={dictionaryDensity}
                     entries={entriesByText.get(story) ?? []}
                     lookupEnabled={isComplete && dictionaryHelp}
                     seedCards={seedCards}

@@ -1,5 +1,3 @@
-export type DictionaryHelpDensity = "helpful" | "all";
-
 export type ContextualDictionaryEntry = {
   entryId: string;
   text: string;
@@ -8,14 +6,12 @@ export type ContextualDictionaryEntry = {
   card?: { id: string; phoneticReading: string[]; definitions: string[] };
 };
 
-export function shouldHighlightDictionaryOccurrence({
+export function shouldHighlightFocusedDictionaryOccurrence({
   isSeed,
-  density,
   occurrence,
 }: {
   isSeed: boolean;
-  density: DictionaryHelpDensity;
   occurrence: number;
 }) {
-  return isSeed || density === "all" || occurrence === 0;
+  return isSeed || occurrence === 0;
 }

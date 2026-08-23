@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { dictionaryEntries, dictionaryReleases, flashcards } from "@/db/schema";
 import { normalizeSuppliedReading } from "@/lib/phonetics";
@@ -16,6 +16,49 @@ export type DictionaryLookup = {
 export type DictionarySearchResult = Omit<DictionaryLookup, "text">;
 export const dictionarySearchScopes = ["all", "chinese", "pinyin", "english"] as const;
 export type DictionarySearchScope = (typeof dictionarySearchScopes)[number];
+
+type DictionaryEntryRecord = {
+  entryId: string;
+  traditional: string;
+  simplified: string;
+  pinyin: string;
+  definitions: string[];
+};
+
+export type DictionaryDiscoveryResult = DictionarySearchResult & {
+  sharedWith: string[];
+};
+
+async function withLearnerCards(
+  userId: string,
+  entries: DictionaryEntryRecord[],
+) {
+  const forms = [...new Set(entries.flatMap((entry) => [entry.simplified, entry.traditional]))];
+  const cards = forms.length
+    ? await getDb()
+        .select({
+          id: flashcards.id,
+          targetText: flashcards.targetText,
+          phoneticReading: flashcards.phoneticReading,
+          definitions: flashcards.definitions,
+        })
+        .from(flashcards)
+        .where(
+          and(
+            eq(flashcards.userId, userId),
+            inArray(flashcards.targetText, forms),
+          ),
+        )
+    : [];
+  const cardsByText = new Map(cards.map((card) => [card.targetText, card]));
+  return entries.map(({ pinyin, ...entry }) => ({
+    ...entry,
+    pinyin: normalizeSuppliedReading(pinyin).join(" "),
+    card:
+      cardsByText.get(entry.simplified) ??
+      cardsByText.get(entry.traditional),
+  }));
+}
 
 export async function searchActiveDictionary(
   userId: string,
@@ -72,30 +115,59 @@ export async function searchActiveDictionary(
     )
     .orderBy(asc(relevance), asc(dictionaryEntries.simplified))
     .limit(30);
-  const forms = [...new Set(entries.flatMap((entry) => [entry.simplified, entry.traditional]))];
-  const cards = forms.length
-    ? await db
-        .select({
-          id: flashcards.id,
-          targetText: flashcards.targetText,
-          phoneticReading: flashcards.phoneticReading,
-          definitions: flashcards.definitions,
-        })
-        .from(flashcards)
-        .where(
-          and(
-            eq(flashcards.userId, userId),
-            inArray(flashcards.targetText, forms),
+  return withLearnerCards(userId, entries);
+}
+
+export async function discoverSharedCharacterCompounds(userId: string) {
+  const db = getDb();
+  const learnerCards = await db
+    .select({ targetText: flashcards.targetText })
+    .from(flashcards)
+    .where(and(eq(flashcards.userId, userId), isNull(flashcards.archivedAt)))
+    .orderBy(desc(flashcards.createdAt))
+    .limit(24);
+  const sourceTerms = learnerCards
+    .map((card) => card.targetText)
+    .filter((term) => /\p{Script=Han}/u.test(term))
+    .slice(0, 12);
+  const characters = [
+    ...new Set(sourceTerms.flatMap((term) => term.match(/\p{Script=Han}/gu) ?? [])),
+  ].slice(0, 24);
+  if (!characters.length) return [] as DictionaryDiscoveryResult[];
+
+  const entries = await db
+    .select({
+      entryId: dictionaryEntries.id,
+      traditional: dictionaryEntries.traditional,
+      simplified: dictionaryEntries.simplified,
+      pinyin: dictionaryEntries.pinyin,
+      definitions: dictionaryEntries.definitions,
+    })
+    .from(dictionaryEntries)
+    .innerJoin(
+      dictionaryReleases,
+      eq(dictionaryEntries.releaseId, dictionaryReleases.id),
+    )
+    .where(
+      and(
+        eq(dictionaryReleases.isActive, true),
+        sql`char_length(${dictionaryEntries.simplified}) >= 2`,
+        notInArray(dictionaryEntries.simplified, sourceTerms),
+        or(
+          ...characters.map((character) =>
+            ilike(dictionaryEntries.simplified, `%${character}%`),
           ),
-        )
-    : [];
-  const cardsByText = new Map(cards.map((card) => [card.targetText, card]));
-  return entries.map(({ pinyin, ...entry }) => ({
+        ),
+      ),
+    )
+    .orderBy(asc(sql`char_length(${dictionaryEntries.simplified})`), asc(dictionaryEntries.simplified))
+    .limit(12);
+  const results = await withLearnerCards(userId, entries);
+  return results.map((entry) => ({
     ...entry,
-    pinyin: normalizeSuppliedReading(pinyin).join(" "),
-    card:
-      cardsByText.get(entry.simplified) ??
-      cardsByText.get(entry.traditional),
+    sharedWith: sourceTerms.filter((term) =>
+      [...term].some((character) => entry.simplified.includes(character)),
+    ),
   }));
 }
 
@@ -162,7 +234,12 @@ export async function lookupActiveDictionary(userId: string, text: string) {
         (term, index, forms) =>
           terms.includes(term) && forms.indexOf(term) === index,
       )
-      .map((term) => ({ ...entry, text: term, card: cardsByText.get(term) })),
+      .map((term) => ({
+        ...entry,
+        pinyin: normalizeSuppliedReading(entry.pinyin).join(" "),
+        text: term,
+        card: cardsByText.get(term),
+      })),
   );
 }
 

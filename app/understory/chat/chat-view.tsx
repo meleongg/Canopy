@@ -14,7 +14,6 @@ import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import {
   DictionaryHelpControls,
-  type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import { SpeechButton } from "@/components/canopy/speech-button";
@@ -94,8 +93,6 @@ export function UnderstoryChatView({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState("");
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
-  const [dictionaryDensity, setDictionaryDensity] =
-    useState<DictionaryHelpDensity>("helpful");
   const openedRound = useRef<string | null>(null);
   const seedCards = useMemo(
     () => cards.filter((card) => setup.seedIds.includes(card.id)),
@@ -278,7 +275,7 @@ export function UnderstoryChatView({
             </div>
           ) : null}
           {seedCards.length > 0 ? (
-            <div className="mt-4 rounded-xl border border-border bg-card p-4">
+            <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs font-semibold uppercase text-primary">
                 Today&apos;s practice
               </p>
@@ -292,14 +289,14 @@ export function UnderstoryChatView({
               </div>
             </div>
           ) : null}
-          <DictionaryHelpControls
-            density={dictionaryDensity}
-            enabled={dictionaryHelp}
-            setDensity={setDictionaryDensity}
-            setEnabled={setDictionaryHelp}
-            showDescription
-            variant="compact"
-          />
+          <div className="mt-4">
+            <DictionaryHelpControls
+              enabled={dictionaryHelp}
+              setEnabled={setDictionaryHelp}
+              showDescription
+              variant="compact"
+            />
+          </div>
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
             Listen plays an AI-generated companion voice. Audio is created only
             when you choose to play a completed reply.
@@ -333,7 +330,6 @@ export function UnderstoryChatView({
                 >
                   {message.role === "assistant" ? (
                     <ContextualChineseText
-                      density={dictionaryDensity}
                       entries={entriesByText.get(message.content) ?? []}
                       lookupEnabled={dictionaryHelp}
                       seedCards={seedCards}
