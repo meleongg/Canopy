@@ -26,6 +26,13 @@ Decks, analytics, social features, and push notifications remain out of scope fo
 
 ## Nice-to-have after beta activity justifies it
 
+### Current follow-up
+
+- Stabilize shared Dictionary Help across Understory and Overstory: cache a
+  completed text's lookup result across toggles, defer Understory lookup until
+  streaming completes, and offer Selected vocabulary, Helpful phrases, and All
+  matches density modes. This PR is in progress.
+
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
 

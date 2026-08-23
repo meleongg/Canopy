@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  shouldHighlightDictionaryOccurrence,
+  type DictionaryHelpDensity,
+} from "@/lib/dictionary-help";
 import {
   Tooltip,
   TooltipContent,
@@ -20,28 +24,45 @@ type Lookup = {
 export function ContextualChineseText({
   text,
   lookupEnabled,
+  density = "all",
   seedCards,
 }: {
   text: string;
   lookupEnabled: boolean;
+  density?: DictionaryHelpDensity;
   seedCards: WorkspaceCard[];
 }) {
   const [entries, setEntries] = useState<Lookup[]>([]);
   const [added, setAdded] = useState<string[]>([]);
+  const lookupCache = useRef(new Map<string, Lookup[]>());
   useEffect(() => {
     if (!lookupEnabled || !text.match(/\p{Script=Han}/u)) {
       return;
     }
+    const cached = lookupCache.current.get(text);
+    if (cached) {
+      setEntries(cached);
+      return;
+    }
+    const controller = new AbortController();
+    setEntries([]);
     void fetch("/api/dictionary/lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
+      signal: controller.signal,
     })
       .then(async (response) =>
         response.ok ? response.json() : { entries: [] },
       )
-      .then((payload: { entries: Lookup[] }) => setEntries(payload.entries))
-      .catch(() => setEntries([]));
+      .then((payload: { entries: Lookup[] }) => {
+        lookupCache.current.set(text, payload.entries);
+        setEntries(payload.entries);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setEntries([]);
+      });
+    return () => controller.abort();
   }, [lookupEnabled, text]);
   const seedEntries = useMemo<Lookup[]>(
     () =>
@@ -66,6 +87,10 @@ export function ContextualChineseText({
     () => new Map(visibleEntries.map((entry) => [entry.text, entry])),
     [visibleEntries],
   );
+  const seedTexts = useMemo(
+    () => new Set(seedEntries.map((entry) => entry.text)),
+    [seedEntries],
+  );
   const pattern = useMemo(
     () =>
       visibleEntries.length
@@ -80,11 +105,24 @@ export function ContextualChineseText({
     [visibleEntries],
   );
   if (!pattern) return <>{text}</>;
+  const dictionaryOccurrences = new Map<string, number>();
   return (
     <>
       {text.split(pattern).map((part, index) => {
         const entry = byText.get(part);
         if (!entry) return part;
+        const isSeed = seedTexts.has(part);
+        const occurrence = dictionaryOccurrences.get(part) ?? 0;
+        dictionaryOccurrences.set(part, occurrence + 1);
+        if (
+          !shouldHighlightDictionaryOccurrence({
+            isSeed,
+            density,
+            occurrence,
+          })
+        ) {
+          return part;
+        }
         const reading = entry.card?.phoneticReading.join(" ") ?? entry.pinyin;
         const definitions = entry.card?.definitions ?? entry.definitions;
         return (
