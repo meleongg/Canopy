@@ -3,8 +3,9 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen, LoaderCircle, Sparkles } from "lucide-react";
 import { SeedPicker } from "@/components/canopy/seed-picker";
+import { SpeechButton } from "@/components/canopy/speech-button";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import {
@@ -23,6 +24,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { queryKeys } from "@/lib/query-keys";
+import { canGenerateSpeech } from "@/lib/speech";
+import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 
 export function OverstoryView({
   initialCards,
@@ -71,7 +74,7 @@ export function OverstoryView({
       }
 
       await streamTextResponse(response, (token) =>
-        setStory((current) => current + token),
+        setStory((current) => stripModelMarkdownMarkers(`${current}${token}`)),
       );
       setIsComplete(true);
     });
@@ -109,38 +112,58 @@ export function OverstoryView({
             </div>
           </CardHeader>
           <CardContent>
-            <Button
-              disabled={
-                seedCards.length < 3 || seedCards.length > 7 || isPending
-              }
-              onClick={generateSandbox}
-              type="button"
-            >
-              <Sparkles />
-              {isPending ? "Growing your story…" : "Generate Overstory"}
-            </Button>
-            <DictionaryHelpControls
-              density={dictionaryDensity}
-              enabled={dictionaryHelp}
-              setDensity={setDictionaryDensity}
-              setEnabled={setDictionaryHelp}
-            />
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {cards.length < 3
-                ? "Add at least three active cards in your Dashboard before creating an Overstory."
-                : seedCards.length < 3
-                  ? "Choose at least three seeds to begin."
-                  : "Choose between three and seven active seeds. Completed stories are saved to your practice history."}
-              {cards.length < 3 ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                disabled={
+                  seedCards.length < 3 || seedCards.length > 7 || isPending
+                }
+                onClick={generateSandbox}
+                type="button"
+              >
+                {isPending ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+                {isPending ? "Growing your story…" : "Generate Overstory"}
+              </Button>
+              {isPending ? (
+                <span className="text-sm text-muted-foreground" role="status">
+                  Your story is taking root…
+                </span>
+              ) : null}
+              <span className="hidden h-8 w-px bg-border sm:block" />
+              <DictionaryHelpControls
+                density={dictionaryDensity}
+                enabled={dictionaryHelp}
+                setDensity={setDictionaryDensity}
+                setEnabled={setDictionaryHelp}
+                variant="compact"
+              />
+            </div>
+            {isComplete ? (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Listen plays an AI-generated narrator voice. Audio is created
+                only when you choose to play this completed story.
+              </p>
+            ) : null}
+            {cards.length < 3 || seedCards.length < 3 ? (
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                {cards.length < 3
+                  ? "Add at least three active cards before generating an Overstory."
+                  : "Select at least three seeds to generate a story."}
+                {cards.length < 3 ? (
                 <Link
                   className="ml-1 font-semibold text-primary"
                   href="/dashboard"
                 >
                   Go to Dashboard
                 </Link>
-              ) : null}
-            </p>
+                ) : null}
+              </p>
+            ) : null}
             <div className="mt-5 min-h-96 rounded-xl border border-border bg-background p-5 text-base leading-8">
+              {isComplete && canGenerateSpeech(story) ? (
+                <div className="mb-4 border-b border-border pb-3">
+                  <SpeechButton disabled={false} speaker="narrator" text={story} />
+                </div>
+              ) : null}
               {story ? (
                 <p>
                   <ContextualChineseText
@@ -164,9 +187,16 @@ export function OverstoryView({
                   Your Overstory is complete and saved privately to your
                   practice history.
                 </p>
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/history">View practice history</Link>
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!canGenerateSpeech(story) ? (
+                    <p className="text-xs text-muted-foreground">
+                      This story is too long for one audio clip.
+                    </p>
+                  ) : null}
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/history">View practice history</Link>
+                  </Button>
+                </div>
               </div>
             ) : null}
           </CardContent>
