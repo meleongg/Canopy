@@ -158,6 +158,7 @@ export const dictionaryEntries = pgTable(
     ),
     index("dictionary_entry_simplified_idx").on(table.simplified),
     index("dictionary_entry_traditional_idx").on(table.traditional),
+    index("dictionary_entry_pinyin_idx").on(table.pinyin),
   ],
 );
 

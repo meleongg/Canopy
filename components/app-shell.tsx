@@ -50,7 +50,6 @@ const privateNav = [
 
 const mobileNav = [
   { href: "/dashboard", label: "Dashboard", icon: Sprout },
-  { href: "/explore", label: "Explore", icon: Search },
   { href: "/overstory", label: "Overstory", icon: BookOpen },
   { href: "/understory/setup", label: "Understory", icon: MessageCircle },
   { href: "/history", label: "History", icon: History },
@@ -176,6 +175,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link href="/collection">
                       <BookOpen className="mr-2 size-4" />
                       Collection
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/explore">
+                      <Search className="mr-2 size-4" />
+                      Explore dictionary
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

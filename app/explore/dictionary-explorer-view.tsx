@@ -1,11 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, LoaderCircle, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import type { DictionarySearchResult } from "@/lib/dictionary";
+import type {
+  DictionarySearchResult,
+  DictionarySearchScope,
+} from "@/lib/dictionary";
+
+const scopes: { value: DictionarySearchScope; label: string }[] = [
+  { value: "all", label: "Best match" },
+  { value: "chinese", label: "Chinese" },
+  { value: "pinyin", label: "Pinyin" },
+  { value: "english", label: "English" },
+];
 
 export function DictionaryExplorerView() {
   const { toast } = useToast();
@@ -13,9 +23,10 @@ export function DictionaryExplorerView() {
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<DictionarySearchScope>("all");
   const [addingEntryId, setAddingEntryId] = useState<string | null>(null);
 
-  async function searchDictionary() {
+  async function searchDictionary(searchScope = scope) {
     const term = query.trim();
     if (!term) {
       setMessage("Enter Chinese, pinyin, or an English gloss to search.");
@@ -27,7 +38,7 @@ export function DictionaryExplorerView() {
       const response = await fetch("/api/dictionary/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: term }),
+        body: JSON.stringify({ query: term, scope: searchScope }),
       });
       if (!response.ok) throw new Error(await response.text());
       const payload = (await response.json()) as {
@@ -79,7 +90,7 @@ export function DictionaryExplorerView() {
         <p className="text-xs font-semibold uppercase text-primary">Explore Chinese</p>
         <h1 className="mt-1 font-serif text-3xl font-bold md:text-4xl">Dictionary explorer</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Search the active CC-CEDICT release by Chinese form, pinyin, or English gloss. Exploring does not affect review until you add an entry to your collection.
+          Search the active CC-CEDICT release by Chinese form, pinyin, or English gloss. Best match prioritizes exact forms and definitions before partial matches. Exploring does not affect review until you add an entry to your collection.
         </p>
       </header>
       <form
@@ -99,10 +110,27 @@ export function DictionaryExplorerView() {
           />
         </div>
         <Button disabled={isSearching} type="submit">
-          <Search />
+          {isSearching ? <LoaderCircle className="animate-spin" /> : <Search />}
           {isSearching ? "Searching…" : "Search dictionary"}
         </Button>
       </form>
+      <div aria-label="Search matches" className="flex flex-wrap gap-2">
+        {scopes.map((option) => (
+          <Button
+            aria-pressed={scope === option.value}
+            key={option.value}
+            onClick={() => {
+              setScope(option.value);
+              if (query.trim()) void searchDictionary(option.value);
+            }}
+            size="sm"
+            type="button"
+            variant={scope === option.value ? "default" : "outline"}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div>
       {message ? <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">{message}</p> : null}
       <div className="space-y-3">
         {entries.map((entry) => (

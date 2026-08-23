@@ -109,8 +109,15 @@ describe("AI route guardrails", () => {
         body: JSON.stringify({ query: "a".repeat(101) }),
       }),
     );
+    const invalidScope = await POST(
+      new Request("http://test/api/dictionary/search", {
+        method: "POST",
+        body: JSON.stringify({ query: "corruption", scope: "definition" }),
+      }),
+    );
 
     expect(blankQuery.status).toBe(400);
     expect(oversizedQuery.status).toBe(400);
+    expect(invalidScope.status).toBe(400);
   });
 });
