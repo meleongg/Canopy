@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { dictionaryEntries, dictionaryReleases, flashcards } from "@/db/schema";
 import { normalizeSuppliedReading } from "@/lib/phonetics";
@@ -12,6 +12,63 @@ export type DictionaryLookup = {
   definitions: string[];
   card?: { id: string; phoneticReading: string[]; definitions: string[] };
 };
+
+export type DictionarySearchResult = Omit<DictionaryLookup, "text">;
+
+export async function searchActiveDictionary(userId: string, query: string) {
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return [] as DictionarySearchResult[];
+  const db = getDb();
+  const entries = await db
+    .select({
+      entryId: dictionaryEntries.id,
+      traditional: dictionaryEntries.traditional,
+      simplified: dictionaryEntries.simplified,
+      pinyin: dictionaryEntries.pinyin,
+      definitions: dictionaryEntries.definitions,
+    })
+    .from(dictionaryEntries)
+    .innerJoin(
+      dictionaryReleases,
+      eq(dictionaryEntries.releaseId, dictionaryReleases.id),
+    )
+    .where(
+      and(
+        eq(dictionaryReleases.isActive, true),
+        or(
+          ilike(dictionaryEntries.simplified, `%${normalizedQuery}%`),
+          ilike(dictionaryEntries.traditional, `%${normalizedQuery}%`),
+          ilike(dictionaryEntries.pinyin, `%${normalizedQuery}%`),
+          sql`${dictionaryEntries.definitions}::text ILIKE ${`%${normalizedQuery}%`}`,
+        ),
+      ),
+    )
+    .limit(30);
+  const forms = [...new Set(entries.flatMap((entry) => [entry.simplified, entry.traditional]))];
+  const cards = forms.length
+    ? await db
+        .select({
+          id: flashcards.id,
+          targetText: flashcards.targetText,
+          phoneticReading: flashcards.phoneticReading,
+          definitions: flashcards.definitions,
+        })
+        .from(flashcards)
+        .where(
+          and(
+            eq(flashcards.userId, userId),
+            inArray(flashcards.targetText, forms),
+          ),
+        )
+    : [];
+  const cardsByText = new Map(cards.map((card) => [card.targetText, card]));
+  return entries.map((entry) => ({
+    ...entry,
+    card:
+      cardsByText.get(entry.simplified) ??
+      cardsByText.get(entry.traditional),
+  }));
+}
 
 async function candidateTerms(text: string) {
   try {

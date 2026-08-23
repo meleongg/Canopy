@@ -17,6 +17,7 @@ import {
   Sun,
   TreePine,
   Settings,
+  Search,
 } from "lucide-react";
 import logoDark from "@/app/assets/icons/canopy-logo-dark.svg";
 import logoLight from "@/app/assets/icons/canopy-logo-light.svg";
@@ -41,6 +42,7 @@ type ShellUser = {
 const privateNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/collection", label: "Collection" },
+  { href: "/explore", label: "Explore" },
   { href: "/overstory", label: "The Overstory" },
   { href: "/understory/setup", label: "The Understory" },
   { href: "/history", label: "History" },
@@ -48,6 +50,7 @@ const privateNav = [
 
 const mobileNav = [
   { href: "/dashboard", label: "Dashboard", icon: Sprout },
+  { href: "/explore", label: "Explore", icon: Search },
   { href: "/overstory", label: "Overstory", icon: BookOpen },
   { href: "/understory/setup", label: "Understory", icon: MessageCircle },
   { href: "/history", label: "History", icon: History },
