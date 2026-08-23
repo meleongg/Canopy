@@ -133,7 +133,11 @@ export async function getCollectionPage(
       ? isNotNull(flashcards.archivedAt)
       : isNull(flashcards.archivedAt);
   const searchCondition = query
-    ? or(ilike(flashcards.targetText, `%${query}%`))
+    ? or(
+        ilike(flashcards.targetText, `%${query}%`),
+        sql`${flashcards.phoneticReading}::text ILIKE ${`%${query}%`}`,
+        sql`${flashcards.definitions}::text ILIKE ${`%${query}%`}`,
+      )
     : undefined;
   const where = and(
     eq(flashcards.userId, userId),
