@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BookOpen, MessageCircle, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  type InfiniteData,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { BookOpen, LoaderCircle, MessageCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { queryKeys } from "@/lib/query-keys";
 
 type SavedSession = {
   id: string;
@@ -30,30 +36,65 @@ type SavedSession = {
   };
 };
 
+type HistoryFilter = "all" | "story_sandbox" | "helper_chat";
+
+const historyFilters: { label: string; value: HistoryFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "Overstory", value: "story_sandbox" },
+  { label: "Understory", value: "helper_chat" },
+];
+
+function emptyHistoryMessage(filter: HistoryFilter) {
+  if (filter === "story_sandbox") return "No completed Overstory sessions yet.";
+  if (filter === "helper_chat") return "No completed Understory sessions yet.";
+  return "No completed practice yet. Your next story or conversation will appear here.";
+}
+
+type HistoryPage = { nextCursor: string | null; sessions: SavedSession[] };
+
+async function fetchHistoryPage({
+  cursor,
+  filter,
+}: {
+  cursor: string | null;
+  filter: HistoryFilter;
+}) {
+  const searchParams = new URLSearchParams({ filter });
+  if (cursor) searchParams.set("cursor", cursor);
+  const response = await fetch(`/api/sessions?${searchParams.toString()}`);
+  if (!response.ok) throw new Error(await response.text());
+  return response.json() as Promise<HistoryPage>;
+}
+
 export function HistoryView() {
   const { toast } = useToast();
-  const [sessions, setSessions] = useState<SavedSession[]>([]);
-  const [message, setMessage] = useState("Loading your completed practice…");
+  const [filter, setFilter] = useState<HistoryFilter>("all");
+  const queryClient = useQueryClient();
   const [deletingSession, setDeletingSession] = useState<SavedSession | null>(
     null,
   );
+  const historyQuery = useInfiniteQuery<
+    HistoryPage,
+    Error,
+    InfiniteData<HistoryPage>,
+    ReturnType<typeof queryKeys.practiceHistory>,
+    string | null
+  >({
+    getNextPageParam: (page) => page.nextCursor,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      fetchHistoryPage({ cursor: pageParam, filter }),
+    queryKey: queryKeys.practiceHistory(filter),
+  });
+  const sessions = useMemo(
+    () => historyQuery.data?.pages.flatMap((page) => page.sessions) ?? [],
+    [historyQuery.data],
+  );
 
-  useEffect(() => {
-    void fetch("/api/sessions")
-      .then(async (response) => {
-        if (!response.ok) throw new Error(await response.text());
-        return response.json() as Promise<{ sessions: SavedSession[] }>;
-      })
-      .then((payload) => {
-        setSessions(payload.sessions);
-        setMessage(
-          payload.sessions.length
-            ? ""
-            : "No completed practice yet. Your next story or three-turn chat will appear here.",
-        );
-      })
-      .catch(() => setMessage("Practice history could not be loaded."));
-  }, []);
+  function selectFilter(nextFilter: HistoryFilter) {
+    if (nextFilter === filter) return;
+    setFilter(nextFilter);
+  }
 
   async function removeSession() {
     if (!deletingSession) return;
@@ -62,9 +103,9 @@ export function HistoryView() {
       method: "DELETE",
     });
     if (response.ok) {
-      setSessions((current) =>
-        current.filter((session) => session.id !== sessionId),
-      );
+      await queryClient.invalidateQueries({
+        queryKey: ["practiceHistory"],
+      });
       setDeletingSession(null);
       toast("Saved practice deleted.");
     }
@@ -81,9 +122,38 @@ export function HistoryView() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {message ? (
+          <div
+            aria-label="Practice history filter"
+            className="inline-flex rounded-lg border border-border bg-background p-1"
+            role="group"
+          >
+            {historyFilters.map((option) => (
+              <Button
+                aria-pressed={filter === option.value}
+                className="h-8"
+                key={option.value}
+                onClick={() => selectFilter(option.value)}
+                size="sm"
+                type="button"
+                variant={filter === option.value ? "default" : "ghost"}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+          {historyQuery.isLoading ? (
             <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
-              {message}
+              Loading completed practice…
+            </p>
+          ) : null}
+          {historyQuery.isError ? (
+            <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
+              Practice history could not be loaded.
+            </p>
+          ) : null}
+          {!historyQuery.isLoading && !historyQuery.isError && sessions.length === 0 ? (
+            <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
+              {emptyHistoryMessage(filter)}
             </p>
           ) : null}
           {sessions.map((session) => {
@@ -148,6 +218,18 @@ export function HistoryView() {
               </article>
             );
           })}
+          {historyQuery.hasNextPage ? (
+            <Button
+              className="w-full"
+              disabled={historyQuery.isFetchingNextPage}
+              onClick={() => void historyQuery.fetchNextPage()}
+              type="button"
+              variant="outline"
+            >
+              {historyQuery.isFetchingNextPage ? <LoaderCircle className="animate-spin" /> : null}
+              {historyQuery.isFetchingNextPage ? "Loading more…" : "Load more practice"}
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
       <Dialog

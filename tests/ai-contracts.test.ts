@@ -81,4 +81,17 @@ describe("AI route guardrails", () => {
 
     expect(response.status).toBe(400);
   });
+
+  it("rejects invalid practice-history filters and cursors", async () => {
+    const { GET } = await import("@/app/api/sessions/route");
+    const invalidFilter = await GET(
+      new Request("http://test/api/sessions?filter=everything"),
+    );
+    const invalidCursor = await GET(
+      new Request("http://test/api/sessions?filter=all&cursor=not-a-cursor"),
+    );
+
+    expect(invalidFilter.status).toBe(400);
+    expect(invalidCursor.status).toBe(400);
+  });
 });

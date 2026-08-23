@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, lt, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { aiSessions } from "@/db/schema";
 import type { CardSeed } from "@/lib/cards";
@@ -7,6 +7,25 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+export type AiSessionFilter = "all" | "story_sandbox" | "helper_chat";
+
+const AI_SESSION_PAGE_SIZE = 12;
+
+type AiSessionCursor = { createdAt: Date; id: string };
+
+export function encodeAiSessionCursor(cursor: AiSessionCursor) {
+  return `${cursor.createdAt.toISOString()}|${cursor.id}`;
+}
+
+export function decodeAiSessionCursor(value: string) {
+  const separator = value.indexOf("|");
+  if (separator < 1 || separator === value.length - 1) return null;
+  const createdAt = new Date(value.slice(0, separator));
+  const id = value.slice(separator + 1);
+  if (Number.isNaN(createdAt.getTime())) return null;
+  return { createdAt, id };
+}
 
 function snapshot(seeds: CardSeed[]) {
   return seeds.map((seed) => ({ ...seed, cardId: seed.id }));
@@ -53,8 +72,24 @@ export async function saveChatSession(
     });
 }
 
-export async function listAiSessions(userId: string) {
-  return getDb()
+export async function listAiSessions(
+  userId: string,
+  options: { cursor: AiSessionCursor | null; filter: AiSessionFilter },
+) {
+  const typeCondition =
+    options.filter === "all"
+      ? undefined
+      : eq(aiSessions.sessionType, options.filter);
+  const cursorCondition = options.cursor
+    ? or(
+        lt(aiSessions.createdAt, options.cursor.createdAt),
+        and(
+          eq(aiSessions.createdAt, options.cursor.createdAt),
+          lt(aiSessions.id, options.cursor.id),
+        ),
+      )
+    : undefined;
+  const rows = await getDb()
     .select({
       id: aiSessions.id,
       sessionType: aiSessions.sessionType,
@@ -64,9 +99,19 @@ export async function listAiSessions(userId: string) {
       createdAt: aiSessions.createdAt,
     })
     .from(aiSessions)
-    .where(eq(aiSessions.userId, userId))
-    .orderBy(desc(aiSessions.createdAt))
-    .limit(60);
+    .where(and(eq(aiSessions.userId, userId), typeCondition, cursorCondition))
+    .orderBy(desc(aiSessions.createdAt), desc(aiSessions.id))
+    .limit(AI_SESSION_PAGE_SIZE + 1);
+  const sessions = rows.slice(0, AI_SESSION_PAGE_SIZE);
+  const lastSession = sessions.at(-1);
+
+  return {
+    sessions,
+    nextCursor:
+      rows.length > AI_SESSION_PAGE_SIZE && lastSession
+        ? encodeAiSessionCursor(lastSession)
+        : null,
+  };
 }
 
 export async function deleteAiSession(userId: string, sessionId: string) {

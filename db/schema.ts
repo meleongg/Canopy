@@ -197,5 +197,17 @@ export const aiSessions = pgTable(
       .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("user_ai_session_idx").on(table.userId, table.sessionType)],
+  (table) => [
+    index("user_ai_session_feed_idx").on(
+      table.userId,
+      table.createdAt,
+      table.id,
+    ),
+    index("user_ai_session_type_feed_idx").on(
+      table.userId,
+      table.sessionType,
+      table.createdAt,
+      table.id,
+    ),
+  ],
 );
