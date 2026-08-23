@@ -17,6 +17,7 @@ import {
   type DictionaryHelpDensity,
 } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
+import { SpeechButton } from "@/components/canopy/speech-button";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ import {
   understoryPersonas,
 } from "@/lib/understory";
 import { cn } from "@/lib/utils";
+import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 
 type UnderstorySetup = {
   seedIds: string[];
@@ -159,7 +161,7 @@ export function UnderstoryChatView({
             if (!last) return current;
             copy[copy.length - 1] = {
               role: "assistant",
-              content: `${last.content}${token}`,
+              content: stripModelMarkdownMarkers(`${last.content}${token}`),
             };
             return copy;
           });
@@ -226,7 +228,7 @@ export function UnderstoryChatView({
             if (!last) return current;
             copy[copy.length - 1] = {
               role: "assistant",
-              content: `${last.content}${token}`,
+              content: stripModelMarkdownMarkers(`${last.content}${token}`),
             };
             return copy;
           });
@@ -295,7 +297,13 @@ export function UnderstoryChatView({
             enabled={dictionaryHelp}
             setDensity={setDictionaryDensity}
             setEnabled={setDictionaryHelp}
+            showDescription
+            variant="compact"
           />
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">
+            Listen plays an AI-generated companion voice. Audio is created only
+            when you choose to play a completed reply.
+          </p>
           <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
             {isOpening && messages.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -315,7 +323,7 @@ export function UnderstoryChatView({
                     <CompanionIcon className="size-4 text-primary-foreground" />
                   </span>
                 ) : null}
-                <p
+                <div
                   className={cn(
                     "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-6",
                     message.role === "user"
@@ -334,7 +342,16 @@ export function UnderstoryChatView({
                   ) : (
                     message.content
                   )}
-                </p>
+                  {message.role === "assistant" ? (
+                    <SpeechButton
+                      disabled={
+                        index === messages.length - 1 && (isOpening || isSending)
+                      }
+                      speaker={setup.persona}
+                      text={message.content}
+                    />
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

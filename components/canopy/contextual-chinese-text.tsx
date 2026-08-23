@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SpeechButton } from "@/components/canopy/speech-button";
 import {
   shouldHighlightDictionaryOccurrence,
   type ContextualDictionaryEntry,
@@ -44,7 +45,7 @@ export function ContextualChineseText({
     [seedCards],
   );
   const visibleEntries = useMemo(
-    () => (lookupEnabled ? [...seedEntries, ...entries] : []),
+    () => [...seedEntries, ...(lookupEnabled ? entries : [])],
     [entries, lookupEnabled, seedEntries],
   );
   const byText = useMemo(
@@ -96,7 +97,7 @@ export function ContextualChineseText({
                 className={
                   entry.card
                     ? "rounded bg-[var(--paprika)] px-1 text-[var(--paprika-foreground)]"
-                    : "rounded px-0.5 text-inherit hover:underline hover:decoration-primary/70 hover:underline-offset-4 focus-visible:underline focus-visible:decoration-primary/70 focus-visible:underline-offset-4"
+                    : "inline whitespace-normal text-inherit hover:underline hover:decoration-primary/70 hover:underline-offset-4 focus-visible:underline focus-visible:decoration-primary/70 focus-visible:underline-offset-4"
                 }
                 type="button"
               >
@@ -110,6 +111,13 @@ export function ContextualChineseText({
               </p>
               <p>{reading}</p>
               <p>{definitions.join("; ")}</p>
+              <SpeechButton
+                disabled={false}
+                label="Hear pronunciation"
+                speaker="narrator"
+                showSpeedControls={false}
+                text={part}
+              />
               {!entry.card && !added.includes(entry.entryId) ? (
                 <Button
                   className="mt-2 h-7"

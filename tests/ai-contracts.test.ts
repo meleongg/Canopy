@@ -66,4 +66,19 @@ describe("AI route guardrails", () => {
       `${UNDERSTORY_LEARNER_TURN_LIMIT} learner turns`,
     );
   });
+
+  it("rejects an oversized companion reply before requesting speech", async () => {
+    const { POST } = await import("@/app/api/speech/route");
+    const response = await POST(
+      new Request("http://test/api/speech", {
+        method: "POST",
+        body: JSON.stringify({
+          speaker: "bramble",
+          text: "a".repeat(1_201),
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+  });
 });

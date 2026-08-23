@@ -5,6 +5,7 @@ import { hasOpenAIEnv } from "@/db/env";
 import { getCardSeeds } from "@/lib/cards";
 import { saveStorySession } from "@/lib/ai-sessions";
 import { moderateText } from "@/lib/openai";
+import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 import { requireApiAuth } from "@/lib/session";
 
 export const runtime = "edge";
@@ -47,12 +48,13 @@ export async function POST(request: Request) {
     model: openai("gpt-4o-mini"),
     temperature: 0.3,
     system:
-      "You are writing for The Overstory Sandbox. Write one short natural story paragraph for a language learner. Include every target term exactly once. Avoid lists and explanations.",
+      "You are writing for The Overstory Sandbox. Write one short natural story paragraph for a language learner. Include every target term exactly once. Avoid lists, explanations, and Markdown formatting. Return plain text only.",
     prompt: JSON.stringify({ seeds }),
     onFinish: async ({ text }) => {
-      if (text.trim()) {
+      const cleanedText = stripModelMarkdownMarkers(text).trim();
+      if (cleanedText) {
         try {
-          await saveStorySession(auth.session.user.id, seeds, text);
+          await saveStorySession(auth.session.user.id, seeds, cleanedText);
         } catch (error) {
           console.error("Could not save completed Overstory session.", error);
         }

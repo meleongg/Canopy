@@ -22,17 +22,12 @@ The following roadmap items have been delivered and verified:
 14. Dedicated Collection view with server-backed full-text search, active/archived browsing, pagination, personal card management, and context actions.
 15. Production deployment checklist verified in Vercel, Neon, and the dedicated OpenAI project, including migrations, usage alerts, and a conservative enforced spend cap.
 16. Stable shared Dictionary Help with per-round caching and configurable highlight density.
+17. A shared, developer-owned Understory conversation-duration constant that
+   governs generation limits, progress, and completion UI.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
 ## Nice-to-have after beta activity justifies it
-
-### Current follow-up
-
-- Keep Understory's conversation duration as a single shared, developer-owned
-  constant that governs generation limits, progress, and completion UI. Do not
-  expose it as a learner setting until beta activity shows a clear need. This
-  PR is in progress.
 
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
