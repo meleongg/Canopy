@@ -71,7 +71,11 @@ export function useDictionaryHelp({
           setEntriesByText(new Map(cache.current));
         })
         .catch(() => undefined)
-        .finally(() => requests.current.delete(text));
+        .finally(() => {
+          if (requests.current.get(text) === controller) {
+            requests.current.delete(text);
+          }
+        });
     }
   }, [enabled, uniqueTexts]);
 
