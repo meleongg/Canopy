@@ -5,13 +5,16 @@ import type { ContextualDictionaryEntry } from "@/lib/dictionary-help";
 
 export function useDictionaryHelp({
   enabled,
+  scopeKey,
   texts,
 }: {
   enabled: boolean;
+  scopeKey: string;
   texts: string[];
 }) {
   const cache = useRef(new Map<string, ContextualDictionaryEntry[]>());
   const requests = useRef(new Map<string, AbortController>());
+  const activeScope = useRef(scopeKey);
   const [entriesByText, setEntriesByText] = useState<
     Map<string, ContextualDictionaryEntry[]>
   >(new Map());
@@ -20,6 +23,15 @@ export function useDictionaryHelp({
     () => (textKey ? textKey.split("\u0000") : []),
     [textKey],
   );
+
+  useEffect(() => {
+    if (activeScope.current === scopeKey) return;
+    requests.current.forEach((controller) => controller.abort());
+    requests.current.clear();
+    cache.current.clear();
+    activeScope.current = scopeKey;
+    setEntriesByText(new Map());
+  }, [scopeKey]);
 
   useEffect(() => {
     if (!enabled) {
@@ -37,6 +49,7 @@ export function useDictionaryHelp({
         continue;
       }
       const controller = new AbortController();
+      const requestScope = activeScope.current;
       requests.current.set(text, controller);
       void fetch("/api/dictionary/lookup", {
         method: "POST",
@@ -48,7 +61,12 @@ export function useDictionaryHelp({
           response.ok ? response.json() : { entries: [] },
         )
         .then((payload: { entries: ContextualDictionaryEntry[] }) => {
-          if (controller.signal.aborted) return;
+          if (
+            controller.signal.aborted ||
+            activeScope.current !== requestScope
+          ) {
+            return;
+          }
           cache.current.set(text, payload.entries);
           setEntriesByText(new Map(cache.current));
         })

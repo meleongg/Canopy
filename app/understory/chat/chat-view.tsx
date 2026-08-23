@@ -99,6 +99,7 @@ export function UnderstoryChatView({
   const learnerTurnCount = messages.filter(
     (message) => message.role === "user",
   ).length;
+  const roundKey = `${setup.persona}:${setup.setting}:${setup.seedIds.join(",")}`;
   const completedAssistantTexts = useMemo(
     () =>
       dictionaryHelp
@@ -113,9 +114,9 @@ export function UnderstoryChatView({
   );
   const entriesByText = useDictionaryHelp({
     enabled: dictionaryHelp,
+    scopeKey: roundKey,
     texts: completedAssistantTexts,
   });
-  const roundKey = `${setup.persona}:${setup.setting}:${setup.seedIds.join(",")}`;
   const companion = understoryPersonas[setup.persona];
   const CompanionIcon = setup.persona === "mossy" ? Sprout : TreePine;
 

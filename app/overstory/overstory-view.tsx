@@ -38,6 +38,7 @@ export function OverstoryView({
     cards.slice(0, 3).map((card) => card.id),
   );
   const [story, setStory] = useState("");
+  const [storyScope, setStoryScope] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
   const [dictionaryDensity, setDictionaryDensity] =
@@ -49,11 +50,13 @@ export function OverstoryView({
   );
   const entriesByText = useDictionaryHelp({
     enabled: dictionaryHelp && isComplete,
+    scopeKey: String(storyScope),
     texts: isComplete && story ? [story] : [],
   });
 
   function generateSandbox() {
     startTransition(async () => {
+      setStoryScope((current) => current + 1);
       setStory("");
       setIsComplete(false);
       const response = await fetch("/api/generate-sandbox", {
