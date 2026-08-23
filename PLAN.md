@@ -31,6 +31,9 @@ The following roadmap items have been delivered and verified:
 20. Dedicated dictionary explorer with ranked Simplified, Traditional, pinyin,
    and English-gloss search, explicit collection adds, and indexed English
    lookup.
+21. Contextual shared-character discovery from recent active cards, clearly
+   labeled as exploration, plus Dictionary Help for learner-authored Understory
+   replies.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -38,12 +41,6 @@ Decks, analytics, social features, and push notifications remain out of scope fo
 
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
-
-### Current follow-up
-
-Add optional contextual discovery around terms a learner already studies, using
-exact compounds containing a shared character. Clearly label this as exploration
-rather than a semantic or curriculum recommendation. This PR is in progress.
 
 - Pinyin and tone contrast practice, Traditional/Simplified recognition, and
   sense-selection exercises that remain outside the learner's formal review

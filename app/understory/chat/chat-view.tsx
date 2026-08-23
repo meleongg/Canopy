@@ -102,11 +102,11 @@ export function UnderstoryChatView({
     (message) => message.role === "user",
   ).length;
   const roundKey = `${setup.persona}:${setup.setting}:${setup.seedIds.join(",")}`;
-  const completedAssistantTexts = useMemo(
+  const completedDictionaryTexts = useMemo(
     () =>
       dictionaryHelp
         ? messages.flatMap((message, index) =>
-            message.role === "assistant" &&
+            message.role === "user" ||
             !(index === messages.length - 1 && (isOpening || isSending))
               ? [message.content]
               : [],
@@ -117,7 +117,7 @@ export function UnderstoryChatView({
   const entriesByText = useDictionaryHelp({
     enabled: dictionaryHelp,
     scopeKey: roundKey,
-    texts: completedAssistantTexts,
+    texts: completedDictionaryTexts,
   });
   const companion = understoryPersonas[setup.persona];
   const CompanionIcon = setup.persona === "mossy" ? Sprout : TreePine;
@@ -328,16 +328,14 @@ export function UnderstoryChatView({
                       : "bg-card text-foreground",
                   )}
                 >
-                  {message.role === "assistant" ? (
+                  {message.role === "assistant" || dictionaryHelp ? (
                     <ContextualChineseText
                       entries={entriesByText.get(message.content) ?? []}
                       lookupEnabled={dictionaryHelp}
                       seedCards={seedCards}
                       text={message.content}
                     />
-                  ) : (
-                    message.content
-                  )}
+                  ) : message.content}
                   {message.role === "assistant" ? (
                     <SpeechButton
                       disabled={
