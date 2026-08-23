@@ -80,7 +80,6 @@ export function CollectionView({
   );
 
   useEffect(() => {
-    if (scope === "active" && !query && page === 1) return;
     const controller = new AbortController();
     void fetch(
       `/api/cards?scope=${scope}&query=${encodeURIComponent(query)}&page=${page}`,
@@ -239,7 +238,7 @@ export function CollectionView({
               setQuery(event.target.value);
               setPage(1);
             }}
-            placeholder="Search words or phrases"
+            placeholder="Search words, readings, or definitions"
             value={query}
           />
         </div>
