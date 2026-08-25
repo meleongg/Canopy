@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpen, Compass, LoaderCircle, Plus, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookOpen, Compass, History, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
@@ -19,6 +19,11 @@ const scopes: { value: DictionarySearchScope; label: string }[] = [
 ];
 
 type ExplorerEntry = DictionarySearchResult | DictionaryDiscoveryResult;
+type LookupHistoryEntry = {
+  id: string;
+  query: string;
+  scope: DictionarySearchScope;
+};
 
 function DictionaryEntryCard({
   entry,
@@ -63,9 +68,26 @@ export function DictionaryExplorerView() {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<DictionarySearchScope>("all");
   const [addingEntryId, setAddingEntryId] = useState<string | null>(null);
+  const [history, setHistory] = useState<LookupHistoryEntry[]>([]);
 
-  async function searchDictionary(searchScope = scope) {
-    const term = query.trim();
+  async function loadHistory() {
+    const response = await fetch("/api/dictionary/history");
+    if (!response.ok) return;
+    const payload = (await response.json()) as { entries: LookupHistoryEntry[] };
+    setHistory(payload.entries);
+  }
+
+  useEffect(() => {
+    void fetch("/api/dictionary/history")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { entries: LookupHistoryEntry[] } | null) => {
+        if (payload) setHistory(payload.entries);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  async function searchDictionary(searchScope = scope, searchQuery = query) {
+    const term = searchQuery.trim();
     if (!term) {
       setMessage("Enter Chinese, pinyin, or an English gloss to search.");
       return;
@@ -83,12 +105,18 @@ export function DictionaryExplorerView() {
         entries: DictionarySearchResult[];
       };
       setEntries(payload.entries);
+      void loadHistory();
       if (!payload.entries.length) setMessage("No active dictionary entries matched that search.");
     } catch {
       setMessage("Dictionary search could not be completed. Please try again.");
     } finally {
       setIsSearching(false);
     }
+  }
+
+  async function clearHistory() {
+    const response = await fetch("/api/dictionary/history", { method: "DELETE" });
+    if (response.ok) setHistory([]);
   }
 
   async function discoverCompounds() {
@@ -215,6 +243,31 @@ export function DictionaryExplorerView() {
           </Button>
         ))}
       </div>
+      {history.length ? (
+        <section aria-label="Recent dictionary searches" className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="inline-flex items-center gap-2 font-serif text-lg font-bold"><History className="size-4" /> Recent searches</h2>
+            <Button onClick={() => void clearHistory()} size="sm" type="button" variant="ghost"><Trash2 /> Clear</Button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {history.map((entry) => (
+              <Button
+                key={entry.id}
+                onClick={() => {
+                  setQuery(entry.query);
+                  setScope(entry.scope);
+                  void searchDictionary(entry.scope, entry.query);
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {entry.query}
+              </Button>
+            ))}
+          </div>
+        </section>
+      ) : null}
       {message ? <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">{message}</p> : null}
       <div className="space-y-3">
         {entries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}

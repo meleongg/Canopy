@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   dictionarySearchScopes,
+  recordDictionaryLookup,
   searchActiveDictionary,
 } from "@/lib/dictionary";
 import { requireApiAuth } from "@/lib/session";
@@ -17,11 +18,15 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return new Response("Enter up to 100 characters to search.", { status: 400 });
   }
-  return Response.json({
-    entries: await searchActiveDictionary(
+  const entries = await searchActiveDictionary(
       auth.session.user.id,
       parsed.data.query,
       parsed.data.scope,
-    ),
-  });
+    );
+  await recordDictionaryLookup(
+    auth.session.user.id,
+    parsed.data.query,
+    parsed.data.scope,
+  );
+  return Response.json({ entries });
 }
