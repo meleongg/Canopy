@@ -191,20 +191,6 @@ export function DictionaryExplorerView() {
           Search the active CC-CEDICT release by Chinese form, pinyin, or English gloss. Best match prioritizes exact forms and definitions before partial matches. Exploring does not affect review until you add an entry to your collection.
         </p>
       </header>
-      <section className="rounded-xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-serif text-xl font-bold">Explore shared-character compounds</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Find dictionary forms that share a Chinese character with recent active cards. These are connections to explore, not level or meaning recommendations.</p>
-          </div>
-          <Button disabled={isDiscovering} onClick={() => void discoverCompounds()} type="button" variant="outline">
-            {isDiscovering ? <LoaderCircle className="animate-spin" /> : <Compass />}
-            {isDiscovering ? "Finding…" : "Find connections"}
-          </Button>
-        </div>
-        {hasExploredCompounds && !discoveries.length ? <p className="mt-4 text-sm text-muted-foreground">Add active Chinese cards first, then come back to explore related forms.</p> : null}
-        {discoveries.length ? <div className="mt-4 space-y-3">{discoveries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}</div> : null}
-      </section>
       <form
         className="flex flex-col gap-2 sm:flex-row"
         onSubmit={(event) => {
@@ -272,6 +258,20 @@ export function DictionaryExplorerView() {
       <div className="space-y-3">
         {entries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}
       </div>
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-xl font-bold">Character connections</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Find forms sharing at least one literal Chinese character with recent active cards. They may be unrelated in meaning or level—use this only for character exploration.</p>
+          </div>
+          <Button disabled={isDiscovering} onClick={() => void discoverCompounds()} type="button" variant="outline">
+            {isDiscovering ? <LoaderCircle className="animate-spin" /> : <Compass />}
+            {isDiscovering ? "Finding…" : "Explore characters"}
+          </Button>
+        </div>
+        {hasExploredCompounds && !discoveries.length ? <p className="mt-4 text-sm text-muted-foreground">Add active Chinese cards first, then come back to explore character connections.</p> : null}
+        {discoveries.length ? <div className="mt-4 space-y-3">{discoveries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}</div> : null}
+      </section>
     </main>
   );
 }
