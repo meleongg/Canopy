@@ -9,6 +9,7 @@ import { requireApiAuth } from "@/lib/session";
 const searchSchema = z.object({
   query: z.string().trim().min(1).max(100),
   scope: z.enum(dictionarySearchScopes).default("all"),
+  saveHistory: z.boolean().default(true),
 });
 
 export async function POST(request: Request) {
@@ -23,10 +24,12 @@ export async function POST(request: Request) {
       parsed.data.query,
       parsed.data.scope,
     );
-  await recordDictionaryLookup(
-    auth.session.user.id,
-    parsed.data.query,
-    parsed.data.scope,
-  );
+  if (parsed.data.saveHistory) {
+    await recordDictionaryLookup(
+      auth.session.user.id,
+      parsed.data.query,
+      parsed.data.scope,
+    );
+  }
   return Response.json({ entries });
 }

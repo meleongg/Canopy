@@ -48,7 +48,7 @@ export async function recordDictionaryLookup(
 }
 
 export async function listDictionaryLookupHistory(userId: string) {
-  return getDb()
+  const entries = await getDb()
     .select({
       id: dictionaryLookupHistory.id,
       query: dictionaryLookupHistory.query,
@@ -57,7 +57,14 @@ export async function listDictionaryLookupHistory(userId: string) {
     .from(dictionaryLookupHistory)
     .where(eq(dictionaryLookupHistory.userId, userId))
     .orderBy(desc(dictionaryLookupHistory.createdAt))
-    .limit(12);
+    .limit(48);
+  const seenQueries = new Set<string>();
+  return entries.filter((entry) => {
+    const key = entry.query.toLocaleLowerCase();
+    if (seenQueries.has(key)) return false;
+    seenQueries.add(key);
+    return true;
+  }).slice(0, 12);
 }
 
 export async function clearDictionaryLookupHistory(userId: string) {

@@ -87,7 +87,11 @@ export function DictionaryExplorerView() {
       .catch(() => undefined);
   }, []);
 
-  async function searchDictionary(searchScope = scope, searchQuery = query) {
+  async function searchDictionary(
+    searchScope = scope,
+    searchQuery = query,
+    saveHistory = true,
+  ) {
     const term = searchQuery.trim();
     if (!term) {
       setMessage("Enter Chinese, pinyin, or an English gloss to search.");
@@ -99,7 +103,11 @@ export function DictionaryExplorerView() {
       const response = await fetch("/api/dictionary/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: term, scope: searchScope }),
+        body: JSON.stringify({
+          query: term,
+          scope: searchScope,
+          saveHistory,
+        }),
       });
       if (!response.ok) throw new Error(await response.text());
       const payload = (await response.json()) as {
@@ -220,7 +228,7 @@ export function DictionaryExplorerView() {
             key={option.value}
             onClick={() => {
               setScope(option.value);
-              if (query.trim()) void searchDictionary(option.value);
+              if (query.trim()) void searchDictionary(option.value, query, false);
             }}
             size="sm"
             type="button"
@@ -243,7 +251,7 @@ export function DictionaryExplorerView() {
                 onClick={() => {
                   setQuery(entry.query);
                   setScope(entry.scope);
-                  void searchDictionary(entry.scope, entry.query);
+                  void searchDictionary(entry.scope, entry.query, false);
                 }}
                 size="sm"
                 type="button"
