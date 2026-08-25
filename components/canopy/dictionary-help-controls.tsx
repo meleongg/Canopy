@@ -18,7 +18,7 @@ export function DictionaryHelpControls({
 }) {
   const description = !enabled
     ? "Off: read without dictionary highlights."
-    : "Focused help marks seed words and the first occurrence of each discovered phrase.";
+    : "Focused help marks seed words and the first occurrence of each discovered phrase, including words in your replies.";
   const shouldShowDescription = showDescription ?? variant === "full";
 
   return (
