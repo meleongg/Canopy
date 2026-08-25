@@ -34,6 +34,8 @@ The following roadmap items have been delivered and verified:
 21. Contextual shared-character discovery from recent active cards, clearly
    labeled as exploration, plus Dictionary Help for learner-authored Understory
    replies.
+22. Private recent dictionary lookup history with deliberate replay and clear
+   controls.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -45,9 +47,11 @@ data without turning its full corpus into learner cards or scheduled review:
 - Pinyin and tone contrast practice, Traditional/Simplified recognition, and
   sense-selection exercises that remain outside the learner's formal review
   rhythm until they choose to add a card.
-- Personal lookup history and a separate, curated “Explore Chinese” practice
-  mode with deliberate topic/level filters rather than a random draw from the
-  whole dictionary.
+- A separate, curated “Explore Chinese” practice mode with deliberate
+  topic/level filters rather than a random draw from the whole dictionary.
+- A separate, graph-style vocabulary map is deferred until Canopy has richer,
+  typed relationship data than literal shared characters; it should be a
+  dedicated exploration page with its own mobile interaction design.
 - Dictionary-backed hints for learner-authored Chinese in Understory, with
   concise readings and definitions rather than unverified model-invented
   meanings.

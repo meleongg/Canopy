@@ -1,6 +1,11 @@
 import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { dictionaryEntries, dictionaryReleases, flashcards } from "@/db/schema";
+import {
+  dictionaryEntries,
+  dictionaryLookupHistory,
+  dictionaryReleases,
+  flashcards,
+} from "@/db/schema";
 import { normalizeSuppliedReading } from "@/lib/phonetics";
 
 export type DictionaryLookup = {
@@ -28,6 +33,45 @@ type DictionaryEntryRecord = {
 export type DictionaryDiscoveryResult = DictionarySearchResult & {
   sharedWith: string[];
 };
+
+export async function recordDictionaryLookup(
+  userId: string,
+  query: string,
+  scope: DictionarySearchScope,
+) {
+  await getDb().insert(dictionaryLookupHistory).values({
+    id: crypto.randomUUID(),
+    userId,
+    query,
+    scope,
+  });
+}
+
+export async function listDictionaryLookupHistory(userId: string) {
+  const entries = await getDb()
+    .select({
+      id: dictionaryLookupHistory.id,
+      query: dictionaryLookupHistory.query,
+      scope: dictionaryLookupHistory.scope,
+    })
+    .from(dictionaryLookupHistory)
+    .where(eq(dictionaryLookupHistory.userId, userId))
+    .orderBy(desc(dictionaryLookupHistory.createdAt))
+    .limit(48);
+  const seenQueries = new Set<string>();
+  return entries.filter((entry) => {
+    const key = entry.query.toLocaleLowerCase();
+    if (seenQueries.has(key)) return false;
+    seenQueries.add(key);
+    return true;
+  }).slice(0, 12);
+}
+
+export async function clearDictionaryLookupHistory(userId: string) {
+  await getDb()
+    .delete(dictionaryLookupHistory)
+    .where(eq(dictionaryLookupHistory.userId, userId));
+}
 
 async function withLearnerCards(
   userId: string,

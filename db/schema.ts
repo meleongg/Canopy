@@ -162,6 +162,27 @@ export const dictionaryEntries = pgTable(
   ],
 );
 
+export const dictionaryLookupHistory = pgTable(
+  "dictionary_lookup_history",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    query: text("query").notNull(),
+    scope: text("scope", {
+      enum: ["all", "chinese", "pinyin", "english"],
+    }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("user_dictionary_lookup_history_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const aiSessions = pgTable(
   "ai_sessions",
   {
