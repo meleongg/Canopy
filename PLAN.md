@@ -49,6 +49,9 @@ data without turning its full corpus into learner cards or scheduled review:
   rhythm until they choose to add a card.
 - A separate, curated “Explore Chinese” practice mode with deliberate
   topic/level filters rather than a random draw from the whole dictionary.
+- A separate, graph-style vocabulary map is deferred until Canopy has richer,
+  typed relationship data than literal shared characters; it should be a
+  dedicated exploration page with its own mobile interaction design.
 - Dictionary-backed hints for learner-authored Chinese in Understory, with
   concise readings and definitions rather than unverified model-invented
   meanings.

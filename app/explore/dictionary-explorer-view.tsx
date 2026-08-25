@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Compass, History, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
+import { BookOpen, ChevronDown, Compass, History, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
@@ -63,6 +63,7 @@ export function DictionaryExplorerView() {
   const [discoveries, setDiscoveries] = useState<DictionaryDiscoveryResult[]>([]);
   const [hasExploredCompounds, setHasExploredCompounds] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isConnectionsOpen, setIsConnectionsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
@@ -262,15 +263,14 @@ export function DictionaryExplorerView() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-serif text-xl font-bold">Character connections</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Find forms sharing at least one literal Chinese character with recent active cards. They may be unrelated in meaning or level—use this only for character exploration.</p>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Optional literal shared-character exploration from recent active cards.</p>
           </div>
-          <Button disabled={isDiscovering} onClick={() => void discoverCompounds()} type="button" variant="outline">
-            {isDiscovering ? <LoaderCircle className="animate-spin" /> : <Compass />}
-            {isDiscovering ? "Finding…" : "Explore characters"}
+          <Button aria-expanded={isConnectionsOpen} onClick={() => setIsConnectionsOpen((current) => !current)} type="button" variant="outline">
+            <ChevronDown className={isConnectionsOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+            {isConnectionsOpen ? "Hide" : "Explore"}
           </Button>
         </div>
-        {hasExploredCompounds && !discoveries.length ? <p className="mt-4 text-sm text-muted-foreground">Add active Chinese cards first, then come back to explore character connections.</p> : null}
-        {discoveries.length ? <div className="mt-4 space-y-3">{discoveries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}</div> : null}
+        {isConnectionsOpen ? <div className="mt-4 border-t border-border pt-4"><p className="max-w-2xl text-sm leading-6 text-muted-foreground">Forms share at least one literal Chinese character. They may be unrelated in meaning or level.</p><Button className="mt-3" disabled={isDiscovering} onClick={() => void discoverCompounds()} type="button" variant="outline">{isDiscovering ? <LoaderCircle className="animate-spin" /> : <Compass />}{isDiscovering ? "Finding…" : "Find connections"}</Button>{hasExploredCompounds && !discoveries.length ? <p className="mt-4 text-sm text-muted-foreground">Add active Chinese cards first, then come back to explore character connections.</p> : null}{discoveries.length ? <div className="mt-4 space-y-3">{discoveries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}</div> : null}</div> : null}
       </section>
     </main>
   );
