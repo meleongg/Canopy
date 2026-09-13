@@ -73,6 +73,11 @@ export const userPreferences = pgTable("user_preferences", {
   })
     .notNull()
     .default("zh-CN"),
+  readingSize: text("reading_size", {
+    enum: ["default", "large", "extra-large"],
+  })
+    .notNull()
+    .default("default"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

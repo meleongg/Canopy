@@ -16,12 +16,17 @@ import {
 } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
+import type { ReadingSizePreference } from "@/lib/user-preferences";
 
 type Theme = "light" | "dark";
+
+const READING_SIZE_STORAGE_KEY = "canopy-reading-size";
 
 type ThemeContextValue = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  readingSize: ReadingSizePreference;
+  setReadingSize: (readingSize: ReadingSizePreference) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -65,18 +70,42 @@ function ThemeProvider({ children }: { children: ReactNode }) {
       ? "dark"
       : "light";
   });
+  const [readingSize, setReadingSizeState] = useState<ReadingSizePreference>(
+    () => {
+      if (typeof window === "undefined") return "default";
+      const stored = window.localStorage.getItem(READING_SIZE_STORAGE_KEY);
+      return stored === "large" || stored === "extra-large"
+        ? stored
+        : "default";
+    },
+  );
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.readingSize = readingSize;
+  }, [readingSize]);
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
     window.localStorage.setItem("canopy-theme", nextTheme);
   }, []);
+  const setReadingSize = useCallback(
+    (nextReadingSize: ReadingSizePreference) => {
+      setReadingSizeState(nextReadingSize);
+      document.documentElement.dataset.readingSize = nextReadingSize;
+      window.localStorage.setItem(READING_SIZE_STORAGE_KEY, nextReadingSize);
+    },
+    [],
+  );
 
-  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+  const value = useMemo(
+    () => ({ theme, setTheme, readingSize, setReadingSize }),
+    [theme, setTheme, readingSize, setReadingSize],
+  );
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

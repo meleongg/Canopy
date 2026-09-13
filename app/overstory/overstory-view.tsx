@@ -161,7 +161,7 @@ export function OverstoryView({
                 ) : null}
               </p>
             ) : null}
-            <div className="mt-5 min-h-96 rounded-xl border border-border bg-background p-5 text-base leading-8">
+            <div className="reading-content-base mt-5 min-h-96 rounded-xl border border-border bg-background p-5 leading-8">
               {isComplete && canGenerateSpeech(story) ? (
                 <div className="mb-4 border-b border-border pb-3">
                   <SpeechButton disabled={false} speaker="narrator" text={story} />

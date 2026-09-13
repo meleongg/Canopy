@@ -82,6 +82,18 @@ describe("AI route guardrails", () => {
     expect(response.status).toBe(400);
   });
 
+  it("rejects a transcription request without recorded audio", async () => {
+    const { POST } = await import("@/app/api/transcribe/route");
+    const response = await POST(
+      new Request("http://test/api/transcribe", {
+        method: "POST",
+        body: new FormData(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   it("rejects invalid practice-history filters and cursors", async () => {
     const { GET } = await import("@/app/api/sessions/route");
     const invalidFilter = await GET(
