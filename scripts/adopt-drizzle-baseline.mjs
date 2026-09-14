@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl = process.env.DATABASE_URL ?? process.env.CANOPY_DEV_DB_URL;
+const databaseUrl = process.env.CANOPY_DEV_DB_URL ?? process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error(
     "Set DATABASE_URL or CANOPY_DEV_DB_URL before adopting migrations.",

@@ -108,7 +108,7 @@ async function main() {
   const options = parseOptions(process.argv.slice(2));
   await access(options.filePath);
 
-  const databaseUrl = process.env.DATABASE_URL ?? process.env.CANOPY_DEV_DB_URL;
+  const databaseUrl = process.env.CANOPY_DEV_DB_URL ?? process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error("Set DATABASE_URL or CANOPY_DEV_DB_URL before importing.");
   }

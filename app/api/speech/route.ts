@@ -1,7 +1,7 @@
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { experimental_generateSpeech as generateSpeech } from "ai";
 import { z } from "zod";
-import { hasOpenAIEnv } from "@/db/env";
+import { getOpenAIKey, hasOpenAIEnv } from "@/db/env";
 import { requireApiAuth } from "@/lib/session";
 import {
   getSpeechVoice,
@@ -29,6 +29,13 @@ export async function POST(request: Request) {
       status: 503,
     });
   }
+  const apiKey = getOpenAIKey();
+  if (!apiKey) {
+    return new Response("OPENAI_API_KEY is required to generate speech.", {
+      status: 503,
+    });
+  }
+  const openai = createOpenAI({ apiKey });
 
   try {
     const result = await generateSpeech({

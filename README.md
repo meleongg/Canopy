@@ -12,16 +12,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 For local development, put these values in an ignored `.env` file; Next.js
 loads it automatically when you run `npm run dev`. Runtime configuration is
-validated through `db/env.ts` and expects these variables:
+validated through `db/env.ts` and expects these local-development variables:
 
-- `DATABASE_URL`
-- `OPENAI_API_KEY`
-- `BETTER_AUTH_SECRET`
+- `CANOPY_DEV_DB_URL`
+- `CANOPY_DEV_OPENAI_KEY`
+- `CANOPY_DEV_AUTH_SECRET`
 - `BETTER_AUTH_URL` with a fallback of `http://localhost:3000`
 
-For the Vercel private beta, configure the same values in Preview and Production
-and keep OpenAI credentials server-only. Apply committed Drizzle migrations to
-the target Neon database before deploying code that depends on them:
+For Vercel Preview and Production, configure `DATABASE_URL`, `OPENAI_API_KEY`,
+`BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL`. The local `CANOPY_DEV_*` values
+take precedence when present, while the standard names remain the deployment
+fallback. Keep OpenAI credentials server-only. Apply committed Drizzle
+migrations to the target Neon database before deploying code that depends on them:
 
 ```bash
 DATABASE_URL="$CANOPY_PROD_DB_URL" npm run db:migrate

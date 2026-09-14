@@ -1,7 +1,7 @@
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
 import { generateText, streamText, type ModelMessage } from "ai";
-import { hasOpenAIEnv } from "@/db/env";
+import { getOpenAIKey, hasOpenAIEnv } from "@/db/env";
 import { getCardSeeds } from "@/lib/cards";
 import { saveChatSession } from "@/lib/ai-sessions";
 import { GARDEN_BOUNDARY_MESSAGE, moderateText } from "@/lib/openai";
@@ -59,6 +59,13 @@ export async function POST(request: Request) {
       status: 503,
     });
   }
+  const apiKey = getOpenAIKey();
+  if (!apiKey) {
+    return new Response("OPENAI_API_KEY is required to generate chat.", {
+      status: 503,
+    });
+  }
+  const openai = createOpenAI({ apiKey });
 
   const latestUserMessage = userTurns.at(-1);
 
