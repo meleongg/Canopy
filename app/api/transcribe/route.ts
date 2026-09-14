@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { hasOpenAIEnv } from "@/db/env";
+import { getOpenAIKey, hasOpenAIEnv } from "@/db/env";
 import { requireApiAuth } from "@/lib/session";
 import {
   getTranscriptionLanguage,
@@ -36,7 +36,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const apiKey = getOpenAIKey();
+    if (!apiKey) {
+      return new Response("OPENAI_API_KEY is required to transcribe speech.", {
+        status: 503,
+      });
+    }
+    const client = new OpenAI({ apiKey });
     const transcript = await client.audio.transcriptions.create({
       file: audio,
       language: getTranscriptionLanguage(

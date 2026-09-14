@@ -21,36 +21,48 @@ const authEnvSchema = envSchema.pick({
 
 export type AppEnv = z.infer<typeof envSchema>;
 
+export function getDatabaseUrl() {
+  return process.env.CANOPY_DEV_DB_URL ?? process.env.DATABASE_URL;
+}
+
+export function getOpenAIKey() {
+  return process.env.CANOPY_DEV_OPENAI_KEY ?? process.env.OPENAI_API_KEY;
+}
+
+export function getAuthSecret() {
+  return process.env.CANOPY_DEV_AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET;
+}
+
 export function getEnv(): AppEnv {
   return envSchema.parse({
-    DATABASE_URL: process.env.DATABASE_URL,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    DATABASE_URL: getDatabaseUrl(),
+    OPENAI_API_KEY: getOpenAIKey(),
+    BETTER_AUTH_SECRET: getAuthSecret(),
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   });
 }
 
 export function getDatabaseEnv() {
   return databaseEnvSchema.parse({
-    DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_URL: getDatabaseUrl(),
   });
 }
 
 export function getAuthEnv() {
   return authEnvSchema.parse({
-    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_SECRET: getAuthSecret(),
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   });
 }
 
 export function hasDatabaseEnv() {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(getDatabaseUrl());
 }
 
 export function hasOpenAIEnv() {
-  return Boolean(process.env.OPENAI_API_KEY);
+  return Boolean(getOpenAIKey());
 }
 
 export function hasAuthEnv() {
-  return Boolean(process.env.BETTER_AUTH_SECRET);
+  return Boolean(getAuthSecret());
 }
