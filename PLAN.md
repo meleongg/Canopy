@@ -40,6 +40,9 @@ The following roadmap items have been delivered and verified:
 23. Optional Understory speech-to-text input with an editable transcript before
    a learner sends a reply, using an authenticated transcription service rather
    than browser-provided recognition.
+24. Optional turn-based Understory live voice selected during setup, with
+   microphone guidance, editable transcripts, automatic companion playback when
+   supported, and typed chat as a reliable fallback.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -73,12 +76,3 @@ Refine practice history when saved-session volume justifies it: add All,
 Overstory, and Understory filters with scoped empty states, then introduce
 pagination or a load-more control rather than expanding the initial 60-session
 list indefinitely.
-
-Extend Understory voice interaction in three separate follow-up stages, while
-keeping typed chat as the default and reliable fallback:
-
-1. Optional text-to-speech playback for companion replies.
-2. An optional live voice mode selected during Understory setup, with clear
-   microphone and privacy guidance. It should be turn-based: transcribe the
-   learner's speech, let them confirm or edit it, then play the companion's
-   reply; typed chat must remain the default and reliable fallback.

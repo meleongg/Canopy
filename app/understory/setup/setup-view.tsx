@@ -8,6 +8,7 @@ import {
   Library,
   MapPin,
   MessageCircle,
+  Mic,
   PencilLine,
   ShoppingBasket,
   Sprout,
@@ -28,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { queryKeys } from "@/lib/query-keys";
 import {
   UNDERSTORY_LEARNER_TURN_LIMIT,
+  type UnderstoryVoiceMode,
   understoryPersonas,
   type UnderstoryPersona,
 } from "@/lib/understory";
@@ -79,6 +81,7 @@ export function UnderstorySetupView({
     settings[0].value,
   );
   const [customSetting, setCustomSetting] = useState("");
+  const [voiceMode, setVoiceMode] = useState<UnderstoryVoiceMode>("text");
   const seedCards = useMemo(
     () => cards.filter((card) => seedIds.includes(card.id)),
     [cards, seedIds],
@@ -90,7 +93,7 @@ export function UnderstorySetupView({
   function continueToChat() {
     window.sessionStorage.setItem(
       "canopy-understory-setup",
-      JSON.stringify({ seedIds, persona, setting }),
+      JSON.stringify({ seedIds, persona, setting, voiceMode }),
     );
     router.push("/understory/chat");
   }
@@ -117,7 +120,8 @@ export function UnderstorySetupView({
                 </p>
                 <CardTitle>Build a conversation</CardTitle>
                 <CardDescription>
-                  Set up all three parts of a focused, {UNDERSTORY_LEARNER_TURN_LIMIT}-turn practice round.
+                  Set up all three parts of a focused,{" "}
+                  {UNDERSTORY_LEARNER_TURN_LIMIT}-turn practice round.
                 </CardDescription>
               </div>
               <span className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-background text-primary">
@@ -131,15 +135,20 @@ export function UnderstorySetupView({
                 <p className="text-xs font-semibold uppercase text-primary">
                   1. Companion
                 </p>
-                <h2 className="mt-1 font-serif text-xl font-semibold" id="companion-heading">
+                <h2
+                  className="mt-1 font-serif text-xl font-semibold"
+                  id="companion-heading"
+                >
                   Who should meet you there?
                 </h2>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {(Object.entries(understoryPersonas) as [
-                  UnderstoryPersona,
-                  (typeof understoryPersonas)[UnderstoryPersona],
-                ][]).map(([item, details]) => {
+                {(
+                  Object.entries(understoryPersonas) as [
+                    UnderstoryPersona,
+                    (typeof understoryPersonas)[UnderstoryPersona],
+                  ][]
+                ).map(([item, details]) => {
                   const Icon = item === "bramble" ? TreePine : Sprout;
                   const selected = persona === item;
                   return (
@@ -147,7 +156,8 @@ export function UnderstorySetupView({
                       aria-pressed={selected}
                       className={cn(
                         "h-auto items-start justify-start whitespace-normal p-4 text-left",
-                        selected && "border-primary bg-primary text-primary-foreground",
+                        selected &&
+                          "border-primary bg-primary text-primary-foreground",
                       )}
                       key={item}
                       onClick={() => setPersona(item)}
@@ -174,7 +184,10 @@ export function UnderstorySetupView({
                 <p className="text-xs font-semibold uppercase text-primary">
                   2. Setting
                 </p>
-                <h2 className="mt-1 font-serif text-xl font-semibold" id="setting-heading">
+                <h2
+                  className="mt-1 font-serif text-xl font-semibold"
+                  id="setting-heading"
+                >
                   Where does the conversation happen?
                 </h2>
               </div>
@@ -187,7 +200,8 @@ export function UnderstorySetupView({
                       aria-pressed={selected}
                       className={cn(
                         "h-auto items-start justify-start whitespace-normal p-4 text-left",
-                        selected && "border-primary bg-primary text-primary-foreground",
+                        selected &&
+                          "border-primary bg-primary text-primary-foreground",
                       )}
                       key={item.value}
                       onClick={() => setSelectedSetting(item.value)}
@@ -196,7 +210,9 @@ export function UnderstorySetupView({
                     >
                       <Icon className="mt-0.5 size-5" />
                       <span>
-                        <span className="block font-semibold">{item.title}</span>
+                        <span className="block font-semibold">
+                          {item.title}
+                        </span>
                         <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
                           {item.description}
                         </span>
@@ -217,16 +233,22 @@ export function UnderstorySetupView({
                 >
                   <PencilLine className="mt-0.5 size-5" />
                   <span>
-                    <span className="block font-semibold">Make your own scene</span>
+                    <span className="block font-semibold">
+                      Make your own scene
+                    </span>
                     <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
-                      Practise a conversation that fits something you actually want to say.
+                      Practise a conversation that fits something you actually
+                      want to say.
                     </span>
                   </span>
                 </Button>
               </div>
               {selectedSetting === "custom" ? (
                 <div className="mt-3">
-                  <label className="text-sm font-semibold" htmlFor="custom-setting">
+                  <label
+                    className="text-sm font-semibold"
+                    htmlFor="custom-setting"
+                  >
                     Describe the setting
                   </label>
                   <Input
@@ -246,16 +268,78 @@ export function UnderstorySetupView({
               className="rounded-xl border border-border bg-background p-4"
             >
               <p className="text-xs font-semibold uppercase text-primary">
-                3. Your round
+                3. Conversation style
               </p>
               <h2
                 className="mt-1 font-serif text-xl font-semibold"
                 id="session-summary-heading"
               >
+                How would you like to practise?
+              </h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Button
+                  aria-pressed={voiceMode === "text"}
+                  className={cn(
+                    "h-auto items-start justify-start whitespace-normal p-4 text-left",
+                    voiceMode === "text" &&
+                      "border-primary bg-primary text-primary-foreground",
+                  )}
+                  onClick={() => setVoiceMode("text")}
+                  type="button"
+                  variant="outline"
+                >
+                  <MessageCircle className="mt-0.5 size-5" />
+                  <span>
+                    <span className="block font-semibold">Text chat</span>
+                    <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
+                      Type replies, with optional recording whenever you want
+                      it.
+                    </span>
+                  </span>
+                </Button>
+                <Button
+                  aria-pressed={voiceMode === "live"}
+                  className={cn(
+                    "h-auto items-start justify-start whitespace-normal p-4 text-left",
+                    voiceMode === "live" &&
+                      "border-primary bg-primary text-primary-foreground",
+                  )}
+                  onClick={() => setVoiceMode("live")}
+                  type="button"
+                  variant="outline"
+                >
+                  <Mic className="mt-0.5 size-5" />
+                  <span>
+                    <span className="block font-semibold">Live voice</span>
+                    <span className="mt-1 block text-sm font-normal leading-5 opacity-80">
+                      Speak a turn, check the transcript, then hear your
+                      companion.
+                    </span>
+                  </span>
+                </Button>
+              </div>
+              {voiceMode === "live" ? (
+                <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                  You&apos;ll be asked for microphone permission only when you
+                  start recording. A short recording is sent for transcription
+                  after you stop it and is not saved to your account. You can
+                  type or use Listen at any time.
+                </p>
+              ) : null}
+            </section>
+
+            <section className="rounded-xl border border-border bg-background p-4">
+              <p className="text-xs font-semibold uppercase text-primary">
+                4. Your round
+              </p>
+              <h2 className="mt-1 font-serif text-xl font-semibold">
                 Review your round
               </h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {seedCards.length} selected seed{seedCards.length === 1 ? "" : "s"} · {companion.name} · {setting || "add a setting to continue"}
+                {seedCards.length} selected seed
+                {seedCards.length === 1 ? "" : "s"} · {companion.name} ·{" "}
+                {setting || "add a setting to continue"} ·{" "}
+                {voiceMode === "live" ? "live voice" : "text chat"}
               </p>
             </section>
 

@@ -17,14 +17,14 @@ export const understoryPersonas = {
 
 export type UnderstoryPersona = keyof typeof understoryPersonas;
 
+export const UNDERSTORY_VOICE_MODES = ["text", "live"] as const;
+export type UnderstoryVoiceMode = (typeof UNDERSTORY_VOICE_MODES)[number];
+
 // Product-controlled conversation duration. This is intentionally not a
 // learner setting until we have evidence that configurable rounds add value.
 export const UNDERSTORY_LEARNER_TURN_LIMIT = 5;
 
-export function ensureUnderstoryClosing(
-  text: string,
-  languageCode: string,
-) {
+export function ensureUnderstoryClosing(text: string, languageCode: string) {
   const closing = text
     .split(/(?<=[。！？!?])/u)
     .filter((sentence) => !/[?？]/u.test(sentence))

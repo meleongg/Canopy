@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ensureUnderstoryClosing,
+  UNDERSTORY_VOICE_MODES,
 } from "@/lib/understory";
 import { getSpeechVoice } from "@/lib/speech";
 import { stripModelMarkdownMarkers } from "@/lib/ai-text";
@@ -25,6 +26,10 @@ describe("Understory final turn", () => {
     expect(getSpeechVoice("bramble")).toBe("marin");
     expect(getSpeechVoice("mossy")).toBe("cedar");
     expect(getSpeechVoice("narrator")).toBe("marin");
+  });
+
+  it("offers text chat as the default-compatible live voice fallback", () => {
+    expect(UNDERSTORY_VOICE_MODES).toEqual(["text", "live"]);
   });
 
   it("removes model Markdown markers before rendering or saving text", () => {
