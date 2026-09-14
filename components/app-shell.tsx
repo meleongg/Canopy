@@ -13,6 +13,7 @@ import {
   LogOut,
   Moon,
   MessageCircle,
+  Menu,
   Sprout,
   Sun,
   TreePine,
@@ -59,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<ShellUser | null>(null);
-  const { theme, setTheme } = useCanopyTheme();
+  const { theme, setReadingSize, setTheme } = useCanopyTheme();
 
   useEffect(() => {
     let active = true;
@@ -72,9 +73,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (session?.user) {
             void fetch("/api/settings")
               .then((response) => (response.ok ? response.json() : null))
-              .then((preferences: { theme?: "light" | "dark" } | null) => {
-                if (preferences?.theme && active) setTheme(preferences.theme);
-              });
+              .then(
+                (
+                  preferences: {
+                    readingSize?: "default" | "large" | "extra-large";
+                    theme?: "light" | "dark";
+                  } | null,
+                ) => {
+                  if (preferences?.theme && active) setTheme(preferences.theme);
+                  if (preferences?.readingSize && active) {
+                    setReadingSize(preferences.readingSize);
+                  }
+                },
+              );
           }
         }
       })
@@ -87,7 +98,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [pathname, setTheme]);
+  }, [pathname, setReadingSize, setTheme]);
 
   async function signOut() {
     await authClient.signOut();
@@ -99,8 +110,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-4 px-4 md:px-8">
-          <Link className="flex min-w-0 items-center gap-3" href="/">
+        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-2 px-4 sm:gap-4 md:px-8">
+          <Link className="flex shrink-0 items-center gap-3" href="/">
             <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
               <img
                 alt=""
@@ -120,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="font-serif text-xl font-black">Canopy</span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 min-[1200px]:flex">
             {privateNav.map((item) => (
               <Button
                 asChild
@@ -138,6 +149,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    aria-label="Open navigation menu"
+                    className="hidden min-[768px]:inline-flex min-[1200px]:hidden"
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Menu />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Navigate</DropdownMenuLabel>
+                  {privateNav.map((item) => (
+                    <DropdownMenuItem asChild key={item.href}>
+                      <Link href={item.href}>{item.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
             <Button
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

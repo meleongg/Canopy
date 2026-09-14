@@ -1,0 +1,1 @@
+ALTER TABLE "user_preferences" ADD COLUMN "reading_size" text DEFAULT 'default' NOT NULL;

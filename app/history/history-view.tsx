@@ -199,12 +199,14 @@ export function HistoryView() {
                     .map((seed) => seed.targetText)
                     .join(", ")}
                 </p>
-                {story ? <p className="mt-4 leading-7">{story}</p> : null}
+                {story ? (
+                  <p className="reading-content-base mt-4 leading-7">{story}</p>
+                ) : null}
                 {messages.length > 0 ? (
                   <div className="mt-4 space-y-2">
                     {messages.map((entry, index) => (
                       <p
-                        className="rounded-lg border border-border bg-card p-3 text-sm"
+                        className="reading-content-sm rounded-lg border border-border bg-card p-3"
                         key={`${entry.role}-${index}`}
                       >
                         <strong>

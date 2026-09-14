@@ -2,6 +2,7 @@ import { z } from "zod";
 import { hasDatabaseEnv } from "@/db/env";
 import {
   IMPORT_LANGUAGES,
+  READING_SIZES,
   THEMES,
   getUserPreferences,
   updateUserPreferences,
@@ -11,6 +12,7 @@ import { requireApiAuth } from "@/lib/session";
 const settingsSchema = z.object({
   theme: z.enum(THEMES),
   importLanguage: z.enum(IMPORT_LANGUAGES),
+  readingSize: z.enum(READING_SIZES),
 });
 
 export async function GET() {

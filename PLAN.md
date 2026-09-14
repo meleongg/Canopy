@@ -10,7 +10,8 @@ The following roadmap items have been delivered and verified:
 2. Learner-owned card lifecycle: overrides, archive, restore, and deletion.
 3. Private completed Overstory and Understory history.
 4. DESIGN.md-led UX hardening across the private beta experience.
-5. Private account settings and learner defaults.
+5. Private account settings and learner defaults, including theme and reading
+   size preferences.
 6. Version-pinned CC-CEDICT import, provenance, attribution, and staged release activation.
 7. Learner-owned flashcard vocabulary storage.
 8. Contextual dictionary assistance with a reviewed add-to-collection flow.
@@ -36,6 +37,9 @@ The following roadmap items have been delivered and verified:
    replies.
 22. Private recent dictionary lookup history with deliberate replay and clear
    controls.
+23. Optional Understory speech-to-text input with an editable transcript before
+   a learner sends a reply, using an authenticated transcription service rather
+   than browser-provided recognition.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -74,7 +78,7 @@ Extend Understory voice interaction in three separate follow-up stages, while
 keeping typed chat as the default and reliable fallback:
 
 1. Optional text-to-speech playback for companion replies.
-2. Optional speech-to-text input that produces an editable transcript before a
-   learner sends it.
-3. An optional live voice mode selected during Understory setup, with clear
-   microphone and privacy guidance; it must not replace text chat.
+2. An optional live voice mode selected during Understory setup, with clear
+   microphone and privacy guidance. It should be turn-based: transcribe the
+   learner's speech, let them confirm or edit it, then play the companion's
+   reply; typed chat must remain the default and reliable fallback.

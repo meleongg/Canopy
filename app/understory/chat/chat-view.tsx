@@ -9,14 +9,21 @@ import {
 } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, History, Send, Sprout, TreePine } from "lucide-react";
+import {
+  ArrowRight,
+  History,
+  Mic,
+  Send,
+  Square,
+  Sprout,
+  TreePine,
+} from "lucide-react";
 import { fetchCards, streamTextResponse } from "@/components/canopy/card-utils";
 import { ContextualChineseText } from "@/components/canopy/contextual-chinese-text";
-import {
-  DictionaryHelpControls,
-} from "@/components/canopy/dictionary-help-controls";
+import { DictionaryHelpControls } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import { SpeechButton } from "@/components/canopy/speech-button";
+import { useAudioTranscription } from "@/components/canopy/use-audio-transcription";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -93,11 +100,22 @@ export function UnderstoryChatView({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState("");
   const [dictionaryHelp, setDictionaryHelp] = useState(false);
-  const openedRound = useRef<string | null>(null);
   const seedCards = useMemo(
     () => cards.filter((card) => setup.seedIds.includes(card.id)),
     [cards, setup.seedIds],
   );
+  const {
+    errorMessage: speechError,
+    isRecording,
+    isSupported: supportsSpeechInput,
+    isTranscribing,
+    startRecording,
+    stopRecording,
+  } = useAudioTranscription({
+    languageCode: seedCards[0]?.languageCode ?? "zh-CN",
+    onTranscript: setChatInput,
+  });
+  const openedRound = useRef<string | null>(null);
   const learnerTurnCount = messages.filter(
     (message) => message.role === "user",
   ).length;
@@ -193,6 +211,7 @@ export function UnderstoryChatView({
       { role: "user", content },
     ];
     setChatInput("");
+    if (isRecording) stopRecording();
     setChatError("");
     setMessages(nextMessages);
     setIsSending(true);
@@ -251,7 +270,8 @@ export function UnderstoryChatView({
               </p>
               <CardTitle>The Understory Chat</CardTitle>
               <CardDescription>
-                A focused {UNDERSTORY_LEARNER_TURN_LIMIT}-turn conversation with {companion.name}.
+                A focused {UNDERSTORY_LEARNER_TURN_LIMIT}-turn conversation with{" "}
+                {companion.name}.
               </CardDescription>
             </div>
             <Avatar className="border border-primary bg-primary text-primary-foreground">
@@ -322,7 +342,7 @@ export function UnderstoryChatView({
                 ) : null}
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-6",
+                    "reading-content-sm max-w-[85%] rounded-lg px-3 py-2 leading-6",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-card text-foreground",
@@ -335,11 +355,14 @@ export function UnderstoryChatView({
                       seedCards={seedCards}
                       text={message.content}
                     />
-                  ) : message.content}
+                  ) : (
+                    message.content
+                  )}
                   {message.role === "assistant" ? (
                     <SpeechButton
                       disabled={
-                        index === messages.length - 1 && (isOpening || isSending)
+                        index === messages.length - 1 &&
+                        (isOpening || isSending)
                       }
                       speaker={setup.persona}
                       text={message.content}
@@ -359,7 +382,9 @@ export function UnderstoryChatView({
           ) : null}
           <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm">
             <span className="font-semibold text-foreground">
-              Your reply: turn {Math.min(learnerTurnCount + 1, UNDERSTORY_LEARNER_TURN_LIMIT)} of {UNDERSTORY_LEARNER_TURN_LIMIT}
+              Your reply: turn{" "}
+              {Math.min(learnerTurnCount + 1, UNDERSTORY_LEARNER_TURN_LIMIT)} of{" "}
+              {UNDERSTORY_LEARNER_TURN_LIMIT}
             </span>
             <span className="text-muted-foreground">
               A short, focused conversation around your selected vocabulary.
@@ -371,6 +396,8 @@ export function UnderstoryChatView({
               disabled={
                 isOpening ||
                 isSending ||
+                isRecording ||
+                isTranscribing ||
                 seedCards.length === 0 ||
                 learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT
               }
@@ -383,11 +410,40 @@ export function UnderstoryChatView({
               placeholder={`Reply to ${companion.name}`}
               value={chatInput}
             />
+            {supportsSpeechInput ? (
+              <Button
+                aria-label={
+                  isRecording ? "Stop recording" : "Start speech input"
+                }
+                className="size-11 shrink-0"
+                disabled={
+                  isOpening ||
+                  isSending ||
+                  isTranscribing ||
+                  seedCards.length === 0 ||
+                  learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT
+                }
+                onClick={() => {
+                  if (isRecording) {
+                    stopRecording();
+                  } else {
+                    void startRecording();
+                  }
+                }}
+                title={isRecording ? "Stop recording" : "Speak your reply"}
+                type="button"
+                variant={isRecording ? "paprika" : "outline"}
+              >
+                {isRecording ? <Square /> : <Mic />}
+              </Button>
+            ) : null}
             <Button
               className="size-11"
               disabled={
                 isOpening ||
                 isSending ||
+                isRecording ||
+                isTranscribing ||
                 seedCards.length === 0 ||
                 learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT
               }
@@ -398,11 +454,27 @@ export function UnderstoryChatView({
               <Send />
             </Button>
           </div>
+          {isRecording ? (
+            <p className="mt-2 text-xs text-muted-foreground" role="status">
+              Recording… Select stop to transcribe, then review the editable
+              transcript before sending.
+            </p>
+          ) : null}
+          {isTranscribing ? (
+            <p className="mt-2 text-xs text-muted-foreground" role="status">
+              Transcribing your reply…
+            </p>
+          ) : null}
+          {speechError ? (
+            <p className="mt-2 text-xs text-muted-foreground" role="status">
+              {speechError}
+            </p>
+          ) : null}
           {learnerTurnCount >= UNDERSTORY_LEARNER_TURN_LIMIT ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-card p-4">
               <p className="text-sm leading-6 text-muted-foreground">
-                This {UNDERSTORY_LEARNER_TURN_LIMIT}-turn practice is complete and saved to your private
-                history.
+                This {UNDERSTORY_LEARNER_TURN_LIMIT}-turn practice is complete
+                and saved to your private history.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">

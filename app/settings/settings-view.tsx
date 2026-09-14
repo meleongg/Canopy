@@ -26,6 +26,15 @@ import { LanguageSelect } from "@/components/canopy/language-select";
 import { authClient } from "@/lib/auth-client";
 import type { UserPreferences } from "@/lib/user-preferences";
 
+const readingSizeOptions: {
+  label: string;
+  value: UserPreferences["readingSize"];
+}[] = [
+  { value: "default", label: "Default" },
+  { value: "large", label: "Large" },
+  { value: "extra-large", label: "Extra large" },
+];
+
 export function SettingsView({
   initialName,
   preferences: initialPreferences,
@@ -34,7 +43,7 @@ export function SettingsView({
   preferences: UserPreferences;
 }) {
   const router = useRouter();
-  const { setTheme } = useCanopyTheme();
+  const { setReadingSize, setTheme } = useCanopyTheme();
   const { toast } = useToast();
   const [name, setName] = useState(initialName);
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -91,6 +100,7 @@ export function SettingsView({
       if (!response.ok) throw new Error();
       setPreferences(nextPreferences);
       setTheme(nextPreferences.theme);
+      setReadingSize(nextPreferences.readingSize);
       toast("Learning preferences saved.");
     });
   }
@@ -201,6 +211,34 @@ export function SettingsView({
                 >
                   Dark
                 </Button>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Reading text size</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Applies to Understory, Overstory, and saved practice text while
+                keeping navigation and setup controls compact.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {readingSizeOptions.map(({ label, value }) => (
+                  <Button
+                    aria-pressed={preferences.readingSize === value}
+                    disabled={isPending}
+                    key={value}
+                    onClick={() =>
+                      savePreferences({
+                        ...preferences,
+                        readingSize: value,
+                      })
+                    }
+                    type="button"
+                    variant={
+                      preferences.readingSize === value ? "default" : "outline"
+                    }
+                  >
+                    {label}
+                  </Button>
+                ))}
               </div>
             </div>
           </CardContent>

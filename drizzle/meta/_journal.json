@@ -57,6 +57,13 @@
       "when": 1787638655099,
       "tag": "0007_wakeful_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789345815222,
+      "tag": "0008_productive_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@
   --radius: 0.5rem;
   --selection-background: #7a3e2a;
   --selection-foreground: #fdfbf7;
+  --reading-content-scale: 1;
 }
 
 @theme inline {
@@ -79,6 +80,22 @@
   --paprika-foreground: #131815;
   --selection-background: #9b5137;
   --selection-foreground: #fdfbf7;
+}
+
+:root[data-reading-size="large"] {
+  --reading-content-scale: 1.125;
+}
+
+:root[data-reading-size="extra-large"] {
+  --reading-content-scale: 1.25;
+}
+
+.reading-content-sm {
+  font-size: calc(0.875rem * var(--reading-content-scale));
+}
+
+.reading-content-base {
+  font-size: calc(1rem * var(--reading-content-scale));
 }
 
 * {
