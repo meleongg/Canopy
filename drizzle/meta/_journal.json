@@ -64,6 +64,13 @@
       "when": 1789345815222,
       "tag": "0008_productive_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789358692838,
+      "tag": "0009_sweet_lester",
+      "breakpoints": true
     }
   ]
 }

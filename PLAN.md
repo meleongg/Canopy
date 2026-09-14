@@ -43,6 +43,9 @@ The following roadmap items have been delivered and verified:
 24. Optional turn-based Understory live voice selected during setup, with
    microphone guidance, editable transcripts, automatic companion playback when
    supported, and typed chat as a reliable fallback.
+25. Learner-owned practice preferences for proficiency, correction style,
+    conversation goal, Chinese script, formality, and default voice speed,
+    applied to Understory generation while keeping per-reply playback controls.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 

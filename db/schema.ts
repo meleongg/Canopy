@@ -78,6 +78,36 @@ export const userPreferences = pgTable("user_preferences", {
   })
     .notNull()
     .default("default"),
+  proficiency: text("proficiency", {
+    enum: ["beginner", "intermediate", "advanced"],
+  })
+    .notNull()
+    .default("intermediate"),
+  correctionStyle: text("correction_style", {
+    enum: ["gentle", "direct", "on-request"],
+  })
+    .notNull()
+    .default("gentle"),
+  conversationGoal: text("conversation_goal", {
+    enum: ["everyday", "travel", "work", "vocabulary"],
+  })
+    .notNull()
+    .default("everyday"),
+  chineseScript: text("chinese_script", {
+    enum: ["match-cards", "simplified", "traditional"],
+  })
+    .notNull()
+    .default("match-cards"),
+  formality: text("formality", {
+    enum: ["casual", "neutral", "formal"],
+  })
+    .notNull()
+    .default("neutral"),
+  playbackSpeed: text("playback_speed", {
+    enum: ["0.75", "1", "1.25", "1.5"],
+  })
+    .notNull()
+    .default("1"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

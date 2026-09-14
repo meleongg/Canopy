@@ -2,6 +2,12 @@ import { z } from "zod";
 import { hasDatabaseEnv } from "@/db/env";
 import {
   IMPORT_LANGUAGES,
+  CHINESE_SCRIPTS,
+  CONVERSATION_GOALS,
+  CORRECTION_STYLES,
+  FORMALITY_LEVELS,
+  PLAYBACK_SPEEDS,
+  PROFICIENCY_LEVELS,
   READING_SIZES,
   THEMES,
   getUserPreferences,
@@ -13,6 +19,12 @@ const settingsSchema = z.object({
   theme: z.enum(THEMES),
   importLanguage: z.enum(IMPORT_LANGUAGES),
   readingSize: z.enum(READING_SIZES),
+  proficiency: z.enum(PROFICIENCY_LEVELS),
+  correctionStyle: z.enum(CORRECTION_STYLES),
+  conversationGoal: z.enum(CONVERSATION_GOALS),
+  chineseScript: z.enum(CHINESE_SCRIPTS),
+  formality: z.enum(FORMALITY_LEVELS),
+  playbackSpeed: z.enum(PLAYBACK_SPEEDS),
 });
 
 export async function GET() {

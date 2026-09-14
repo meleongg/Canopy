@@ -87,8 +87,10 @@ function getStoredSetup() {
 
 export function UnderstoryChatView({
   initialCards,
+  playbackSpeed,
 }: {
   initialCards: WorkspaceCard[];
+  playbackSpeed: number;
 }) {
   const { data: cards = initialCards } = useQuery({
     queryKey: queryKeys.understorySeeds,
@@ -370,6 +372,7 @@ export function UnderstoryChatView({
                   {message.role === "assistant" ? (
                     <SpeechButton
                       autoPlay={isLiveVoice && index === messages.length - 1}
+                      defaultSpeed={playbackSpeed}
                       disabled={
                         index === messages.length - 1 &&
                         (isOpening || isSending)

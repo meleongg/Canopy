@@ -6,10 +6,12 @@ import { getCachedSpeechAudio } from "@/components/canopy/speech-cache";
 import type { SpeechSpeaker } from "@/lib/speech";
 import { Button } from "@/components/ui/button";
 
-const playbackSpeeds = [0.75, 1, 1.25] as const;
+const playbackSpeeds = [0.75, 1, 1.25, 1.5] as const;
+type PlaybackSpeed = (typeof playbackSpeeds)[number];
 
 export function SpeechButton({
   autoPlay = false,
+  defaultSpeed = 1,
   disabled,
   label = "Listen",
   speaker,
@@ -17,6 +19,7 @@ export function SpeechButton({
   text,
 }: {
   autoPlay?: boolean;
+  defaultSpeed?: number;
   disabled: boolean;
   label?: string;
   speaker: SpeechSpeaker;
@@ -29,7 +32,10 @@ export function SpeechButton({
   const [errorMessage, setErrorMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState<(typeof playbackSpeeds)[number]>(1);
+  const initialSpeed = playbackSpeeds.includes(defaultSpeed as PlaybackSpeed)
+    ? (defaultSpeed as PlaybackSpeed)
+    : 1;
+  const [speed, setSpeed] = useState<PlaybackSpeed>(initialSpeed);
 
   useEffect(() => {
     return () => {
