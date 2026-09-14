@@ -18,6 +18,7 @@
 * **Dependency Guard:** Do not install external libraries, wrappers, or utilities to solve trivial tasks. Write clean, native helper functions first. If a package is necessary, request explicit approval.
 * **Architectural Isolation:** Keep concerns strictly separated. Do not mix business logic with UI rendering files. Group modules logically by domain, not by utility type.
 * **Git Hygiene:** Never commit directly to default branches. Create clean, short-lived feature branches prefixed with `feat/` or `fix/`.
+* **Secrets:** Never open, print, parse, modify, or otherwise read `.env*` files. Use only documented variable names and ask the user to configure secret values when needed.
 
 ## Pull Request Workflow
 

@@ -10,7 +10,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The app does not create local `.env` files. Runtime configuration is validated through `db/env.ts` and expects these deployment variables:
+For local development, put these values in an ignored `.env` file; Next.js
+loads it automatically when you run `npm run dev`. Runtime configuration is
+validated through `db/env.ts` and expects these variables:
 
 - `DATABASE_URL`
 - `OPENAI_API_KEY`
