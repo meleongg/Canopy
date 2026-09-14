@@ -1,7 +1,7 @@
 "use client";
 
 import { Pause, Play, Volume2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCachedSpeechAudio } from "@/components/canopy/speech-cache";
 import type { SpeechSpeaker } from "@/lib/speech";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 const playbackSpeeds = [0.75, 1, 1.25] as const;
 
 export function SpeechButton({
+  autoPlay = false,
   disabled,
   label = "Listen",
   speaker,
   showSpeedControls = true,
   text,
 }: {
+  autoPlay?: boolean;
   disabled: boolean;
   label?: string;
   speaker: SpeechSpeaker;
@@ -23,6 +25,7 @@ export function SpeechButton({
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
+  const autoPlayedKeyRef = useRef<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -39,40 +42,55 @@ export function SpeechButton({
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed]);
 
-  async function playAudio() {
-    if (audioRef.current && !audioRef.current.paused) {
-      audioRef.current.pause();
-      return;
-    }
-
-    setErrorMessage("");
-    if (!audioRef.current) {
-      setIsGenerating(true);
-      try {
-        const audioUrl = URL.createObjectURL(
-          await getCachedSpeechAudio({ speaker, text }),
-        );
-        audioUrlRef.current = audioUrl;
-        const audio = new Audio(audioUrl);
-        audio.playbackRate = speed;
-        audio.addEventListener("ended", () => setIsPlaying(false));
-        audio.addEventListener("pause", () => setIsPlaying(false));
-        audioRef.current = audio;
-      } catch {
-        setErrorMessage("Audio could not be generated. Please try again.");
+  const playAudio = useCallback(
+    async (isAutomatic = false) => {
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
         return;
-      } finally {
-        setIsGenerating(false);
       }
-    }
 
-    try {
-      await audioRef.current.play();
-      setIsPlaying(true);
-    } catch {
-      setErrorMessage("Audio playback could not start. Please try again.");
+      setErrorMessage("");
+      if (!audioRef.current) {
+        setIsGenerating(true);
+        try {
+          const audioUrl = URL.createObjectURL(
+            await getCachedSpeechAudio({ speaker, text }),
+          );
+          audioUrlRef.current = audioUrl;
+          const audio = new Audio(audioUrl);
+          audio.playbackRate = speed;
+          audio.addEventListener("ended", () => setIsPlaying(false));
+          audio.addEventListener("pause", () => setIsPlaying(false));
+          audioRef.current = audio;
+        } catch {
+          setErrorMessage("Audio could not be generated. Please try again.");
+          return;
+        } finally {
+          setIsGenerating(false);
+        }
+      }
+
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch {
+        setErrorMessage(
+          isAutomatic
+            ? "Automatic playback was blocked. Select Listen to play this reply."
+            : "Audio playback could not start. Please try again.",
+        );
+      }
+    },
+    [speaker, speed, text],
+  );
+
+  useEffect(() => {
+    const key = `${speaker}:${text}`;
+    if (autoPlay && !disabled && text && autoPlayedKeyRef.current !== key) {
+      autoPlayedKeyRef.current = key;
+      void playAudio(true);
     }
-  }
+  }, [autoPlay, disabled, playAudio, speaker, text]);
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">

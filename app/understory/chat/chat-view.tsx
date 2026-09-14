@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { queryKeys } from "@/lib/query-keys";
 import {
   UNDERSTORY_LEARNER_TURN_LIMIT,
+  type UnderstoryVoiceMode,
   understoryPersonas,
 } from "@/lib/understory";
 import { cn } from "@/lib/utils";
@@ -48,12 +49,14 @@ type UnderstorySetup = {
   seedIds: string[];
   persona: "bramble" | "mossy";
   setting: string;
+  voiceMode: UnderstoryVoiceMode;
 };
 
 const fallbackSetup: UnderstorySetup = {
   seedIds: [],
   persona: "bramble",
   setting: "a quiet airport cafe",
+  voiceMode: "text",
 };
 
 let cachedStoredSetup = fallbackSetup;
@@ -71,8 +74,11 @@ function getStoredSetup() {
   try {
     const parsed = JSON.parse(stored) as UnderstorySetup;
     cachedStoredValue = stored;
-    cachedStoredSetup = parsed;
-    return parsed;
+    cachedStoredSetup = {
+      ...parsed,
+      voiceMode: parsed.voiceMode === "live" ? "live" : "text",
+    };
+    return cachedStoredSetup;
   } catch {
     window.sessionStorage.removeItem("canopy-understory-setup");
     return fallbackSetup;
@@ -138,6 +144,7 @@ export function UnderstoryChatView({
     texts: completedDictionaryTexts,
   });
   const companion = understoryPersonas[setup.persona];
+  const isLiveVoice = setup.voiceMode === "live";
   const CompanionIcon = setup.persona === "mossy" ? Sprout : TreePine;
 
   useEffect(() => {
@@ -270,7 +277,8 @@ export function UnderstoryChatView({
               </p>
               <CardTitle>The Understory Chat</CardTitle>
               <CardDescription>
-                A focused {UNDERSTORY_LEARNER_TURN_LIMIT}-turn conversation with{" "}
+                A focused {UNDERSTORY_LEARNER_TURN_LIMIT}-turn{" "}
+                {isLiveVoice ? "live voice " : ""}conversation with{" "}
                 {companion.name}.
               </CardDescription>
             </div>
@@ -318,8 +326,9 @@ export function UnderstoryChatView({
             />
           </div>
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
-            Listen plays an AI-generated companion voice. Audio is created only
-            when you choose to play a completed reply.
+            {isLiveVoice
+              ? "Live voice plays completed companion replies automatically when your browser allows it. Listen remains available as a fallback."
+              : "Listen plays an AI-generated companion voice. Audio is created only when you choose to play a completed reply."}
           </p>
           <div className="mt-4 flex min-h-96 flex-col gap-3 rounded-xl border border-border bg-background p-4">
             {isOpening && messages.length === 0 ? (
@@ -360,6 +369,7 @@ export function UnderstoryChatView({
                   )}
                   {message.role === "assistant" ? (
                     <SpeechButton
+                      autoPlay={isLiveVoice && index === messages.length - 1}
                       disabled={
                         index === messages.length - 1 &&
                         (isOpening || isSending)
@@ -430,7 +440,13 @@ export function UnderstoryChatView({
                     void startRecording();
                   }
                 }}
-                title={isRecording ? "Stop recording" : "Speak your reply"}
+                title={
+                  isRecording
+                    ? "Stop recording"
+                    : isLiveVoice
+                      ? "Start spoken turn"
+                      : "Speak your reply"
+                }
                 type="button"
                 variant={isRecording ? "paprika" : "outline"}
               >
