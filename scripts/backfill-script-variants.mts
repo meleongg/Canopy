@@ -1,41 +1,43 @@
-import { and, eq, isNull, or } from "drizzle-orm";
-import { getDb } from "../db/client.ts";
-import { flashcards } from "../db/schema.ts";
-import { enrichScriptVariants } from "../lib/script-variants.ts";
+import { neon } from "@neondatabase/serverless";
 
-const db = getDb();
-const cards = await db
-  .select({
-    id: flashcards.id,
-    languageCode: flashcards.languageCode,
-    targetText: flashcards.targetText,
-    phoneticReading: flashcards.phoneticReading,
-    definitions: flashcards.definitions,
-  })
-  .from(flashcards)
-  .where(
-    and(
-      or(isNull(flashcards.simplifiedText), isNull(flashcards.traditionalText)),
-      or(
-        eq(flashcards.languageCode, "zh-CN"),
-        eq(flashcards.languageCode, "zh-HK"),
-      ),
-    ),
+const databaseUrl = process.env.CANOPY_DEV_DB_URL ?? process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error(
+    "Set CANOPY_DEV_DB_URL or DATABASE_URL before backfilling script variants.",
   );
+}
 
-const enriched = await enrichScriptVariants(cards);
+const sql = neon(databaseUrl);
+const cards = await sql`
+  select id, target_text
+  from flashcards
+  where (simplified_text is null or traditional_text is null)
+    and language_code in ('zh-CN', 'zh-HK')
+`;
 let updated = 0;
-for (const [index, card] of cards.entries()) {
-  const variant = enriched[index];
-  if (!variant?.dictionaryEntryId) continue;
-  await db
-    .update(flashcards)
-    .set({
-      dictionaryEntryId: variant.dictionaryEntryId,
-      simplifiedText: variant.simplifiedText,
-      traditionalText: variant.traditionalText,
-    })
-    .where(eq(flashcards.id, card.id));
+for (const card of cards) {
+  const matches = await sql`
+    select dictionary_entries.id, dictionary_entries.simplified,
+      dictionary_entries.traditional
+    from dictionary_entries
+    inner join dictionary_releases
+      on dictionary_entries.release_id = dictionary_releases.id
+    where dictionary_releases.is_active = true
+      and (
+        dictionary_entries.simplified = ${card.target_text}
+        or dictionary_entries.traditional = ${card.target_text}
+      )
+  `;
+  if (matches.length !== 1) continue;
+  const match = matches[0];
+  if (!match) continue;
+  await sql`
+    update flashcards
+    set dictionary_entry_id = ${match.id},
+      simplified_text = ${match.simplified},
+      traditional_text = ${match.traditional}
+    where id = ${card.id}
+  `;
   updated += 1;
 }
 
