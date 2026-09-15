@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import type {
   DictionaryPracticeExercise,
   DictionaryPracticeRound,
+  DictionaryScriptPracticeRound,
 } from "@/lib/dictionary";
 
 const exercises: {
@@ -22,10 +23,117 @@ const exercises: {
   },
   {
     value: "script",
-    title: "Recognize Traditional",
-    description: "Match a Simplified form with its Traditional counterpart.",
+    title: "Match Traditional characters",
+    description: "Pair Simplified characters with their Traditional forms.",
   },
 ];
+
+function ScriptMatchRound({
+  round,
+  onAnother,
+}: {
+  round: DictionaryScriptPracticeRound;
+  onAnother: () => void;
+}) {
+  const [selectedPairId, setSelectedPairId] = useState<string | null>(null);
+  const [matches, setMatches] = useState<Record<string, string>>({});
+  const [isChecked, setIsChecked] = useState(false);
+  const usedOptionIds = new Set(Object.values(matches));
+  const isComplete = Object.keys(matches).length === round.pairs.length;
+
+  return (
+    <article className="rounded-xl border border-border bg-card p-5 md:p-7">
+      <p className="text-sm font-semibold text-primary">
+        Match each Simplified character to its Traditional counterpart.
+      </p>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="space-y-3">
+          {round.pairs.map((pair) => {
+            const matchedOptionId = matches[pair.id];
+            const isCorrect = matchedOptionId === pair.id;
+            return (
+              <button
+                className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left font-sans text-2xl font-bold ${isChecked ? (isCorrect ? "border-primary bg-primary/15" : "border-destructive bg-destructive/10") : selectedPairId === pair.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary"}`}
+                disabled={isChecked}
+                key={pair.id}
+                onClick={() => setSelectedPairId(pair.id)}
+                type="button"
+              >
+                {pair.simplified}
+                {isChecked ? (
+                  isCorrect ? (
+                    <Check className="size-5 text-primary" />
+                  ) : (
+                    <X className="size-5 text-destructive" />
+                  )
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+        <div className="space-y-3">
+          {round.options.map((option) => (
+            <button
+              className="flex w-full rounded-lg border border-border bg-background px-4 py-3 text-left font-sans text-2xl font-bold hover:border-primary disabled:opacity-60"
+              disabled={isChecked || usedOptionIds.has(option.id)}
+              key={option.id}
+              onClick={() => {
+                if (!selectedPairId) return;
+                setMatches((current) => ({
+                  ...current,
+                  [selectedPairId]: option.id,
+                }));
+                setSelectedPairId(null);
+              }}
+              type="button"
+            >
+              {option.text}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-5">
+        {isChecked ? (
+          <Button onClick={onAnother} type="button" variant="outline">
+            <RotateCcw /> Another set
+          </Button>
+        ) : (
+          <Button
+            disabled={!isComplete}
+            onClick={() => setIsChecked(true)}
+            type="button"
+          >
+            Check matches
+          </Button>
+        )}
+        {isChecked &&
+        !round.pairs.every((pair) => matches[pair.id] === pair.id) ? (
+          <Button
+            onClick={() => {
+              setMatches({});
+              setSelectedPairId(null);
+              setIsChecked(false);
+            }}
+            type="button"
+            variant="outline"
+          >
+            Try again
+          </Button>
+        ) : null}
+      </div>
+      {isChecked ? (
+        <div className="mt-5 space-y-2 text-sm text-muted-foreground">
+          {round.pairs.map((pair) => (
+            <p key={pair.id}>
+              {pair.simplified} / {pair.traditional} · {pair.source.simplified}{" "}
+              / {pair.source.traditional} · {pair.source.pinyin}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
 
 export function ExploreChinesePracticeView() {
   const { chineseScript } = useCanopyTheme();
@@ -68,7 +176,7 @@ export function ExploreChinesePracticeView() {
   }
 
   async function addToCollection() {
-    if (!round) return;
+    if (!round || round.exercise !== "pinyin") return;
     setIsAdding(true);
     try {
       const response = await fetch("/api/dictionary/cards", {
@@ -78,7 +186,7 @@ export function ExploreChinesePracticeView() {
       });
       if (!response.ok) throw new Error();
       setRound((current) =>
-        current
+        current?.exercise === "pinyin"
           ? {
               ...current,
               entry: {
@@ -100,12 +208,13 @@ export function ExploreChinesePracticeView() {
     }
   }
 
+  const pinyinRound = round?.exercise === "pinyin" ? round : null;
   const isAnswered = selectedId !== null;
-  const isCorrect = selectedId === round?.answerId;
+  const isCorrect = selectedId === pinyinRound?.answerId;
   const shownForm =
     chineseScript === "traditional"
-      ? round?.entry.traditional
-      : round?.entry.simplified;
+      ? pinyinRound?.entry.traditional
+      : pinyinRound?.entry.simplified;
 
   return (
     <section className="space-y-6">
@@ -157,19 +266,17 @@ export function ExploreChinesePracticeView() {
         </p>
       ) : null}
 
-      {round ? (
+      {pinyinRound ? (
         <article className="rounded-xl border border-border bg-card p-5 md:p-7">
           <p className="text-sm font-semibold text-primary">
-            {round.exercise === "script"
-              ? "Which Traditional form matches this Simplified word?"
-              : "Which tone-marked pinyin reading matches this word?"}
+            Which tone-marked pinyin reading matches this word?
           </p>
           <h2 className="mt-4 font-sans text-4xl font-bold md:text-5xl">
-            {round.exercise === "script" ? round.entry.simplified : shownForm}
+            {shownForm}
           </h2>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {round.options.map((option) => {
-              const isAnswer = option.id === round.answerId;
+            {pinyinRound.options.map((option) => {
+              const isAnswer = option.id === pinyinRound.answerId;
               const isSelected = option.id === selectedId;
               const feedbackClass = !isAnswered
                 ? "border-border bg-background hover:border-primary"
@@ -203,11 +310,12 @@ export function ExploreChinesePracticeView() {
                 {isCorrect ? "Nice match." : "Not quite—here is the match."}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {round.entry.simplified}
-                {round.entry.traditional !== round.entry.simplified
-                  ? ` / ${round.entry.traditional}`
+                {pinyinRound.entry.simplified}
+                {pinyinRound.entry.traditional !== pinyinRound.entry.simplified
+                  ? ` / ${pinyinRound.entry.traditional}`
                   : ""}{" "}
-                · {round.entry.pinyin} · {round.entry.definitions.join("; ")}
+                · {pinyinRound.entry.pinyin} ·{" "}
+                {pinyinRound.entry.definitions.join("; ")}
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button
@@ -217,7 +325,7 @@ export function ExploreChinesePracticeView() {
                 >
                   <RotateCcw /> Another contrast
                 </Button>
-                {round.entry.card ? (
+                {pinyinRound.entry.card ? (
                   <span className="inline-flex items-center gap-2 self-center text-sm font-semibold text-primary">
                     <Check className="size-4" /> In your collection
                   </span>
@@ -234,6 +342,13 @@ export function ExploreChinesePracticeView() {
             </div>
           ) : null}
         </article>
+      ) : null}
+      {round?.exercise === "script" ? (
+        <ScriptMatchRound
+          key={round.pairs[0]?.id}
+          onAnother={() => void loadRound("script")}
+          round={round}
+        />
       ) : null}
     </section>
   );

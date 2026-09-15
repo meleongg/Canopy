@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createDictionaryPracticeRound,
+  createDictionaryScriptPracticeRound,
   dictionaryEntryAsCard,
   type DictionarySearchResult,
 } from "@/lib/dictionary";
@@ -39,31 +40,31 @@ const entries: DictionarySearchResult[] = [
 const toneEntries: DictionarySearchResult[] = [
   {
     entryId: "1",
-    simplified: "妈",
-    traditional: "媽",
-    pinyin: "mā",
-    definitions: ["mother"],
+    simplified: "不行",
+    traditional: "不行",
+    pinyin: "bù xíng",
+    definitions: ["not okay"],
   },
   {
     entryId: "2",
-    simplified: "麻",
-    traditional: "麻",
-    pinyin: "má",
-    definitions: ["hemp"],
+    simplified: "不幸",
+    traditional: "不幸",
+    pinyin: "bú xìng",
+    definitions: ["unfortunate"],
   },
   {
     entryId: "3",
-    simplified: "马",
-    traditional: "馬",
-    pinyin: "mǎ",
-    definitions: ["horse"],
+    simplified: "步行",
+    traditional: "步行",
+    pinyin: "bǔ xíng",
+    definitions: ["to walk"],
   },
   {
     entryId: "4",
-    simplified: "骂",
-    traditional: "罵",
-    pinyin: "Mà",
-    definitions: ["to scold"],
+    simplified: "步兴",
+    traditional: "步興",
+    pinyin: "bǔ xìng",
+    definitions: ["example"],
   },
 ];
 
@@ -84,25 +85,18 @@ describe("Explore Chinese practice rounds", () => {
       round?.options.find((option) => option.id === round?.answerId)?.text,
     ).toBe(round?.entry.pinyin);
     expect(round?.options.map((option) => option.text)).toEqual(
-      expect.arrayContaining(["mā", "má", "mǎ", "mà"]),
+      expect.arrayContaining(["bù xíng", "bú xìng", "bǔ xíng", "bǔ xìng"]),
     );
   });
 
-  it("builds a Traditional recognition round only from differing forms", () => {
-    const round = createDictionaryPracticeRound("script", entries, () => 0.4);
+  it("builds a four-pair Traditional character match", () => {
+    const round = createDictionaryScriptPracticeRound(entries, () => 0.4);
 
     expect(round).not.toBeNull();
-    expect(round?.entry.simplified).not.toBe(round?.entry.traditional);
-    expect(
-      round?.options.find((option) => option.id === round?.answerId)?.text,
-    ).toBe(round?.entry.traditional);
-    expect(
-      round?.options.every(
-        (option) =>
-          [...option.text].length ===
-          [...(round?.entry.traditional ?? "")].length,
-      ),
-    ).toBe(true);
+    expect(round?.pairs).toHaveLength(4);
+    expect(round?.pairs.map((pair) => pair.traditional)).toEqual(
+      expect.arrayContaining(round?.options.map((option) => option.text) ?? []),
+    );
   });
 
   it("does not create a tone round without matching base readings", () => {

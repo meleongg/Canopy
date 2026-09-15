@@ -64,12 +64,32 @@ export const dictionaryPracticeExercises = ["pinyin", "script"] as const;
 export type DictionaryPracticeExercise =
   (typeof dictionaryPracticeExercises)[number];
 
-export type DictionaryPracticeRound = {
-  exercise: DictionaryPracticeExercise;
+export type DictionaryPinyinPracticeRound = {
+  exercise: "pinyin";
   entry: DictionarySearchResult;
   options: { id: string; text: string }[];
   answerId: string;
 };
+
+export type DictionaryScriptPracticePair = {
+  id: string;
+  simplified: string;
+  traditional: string;
+  source: Pick<
+    DictionarySearchResult,
+    "simplified" | "traditional" | "pinyin" | "definitions"
+  >;
+};
+
+export type DictionaryScriptPracticeRound = {
+  exercise: "script";
+  pairs: DictionaryScriptPracticePair[];
+  options: { id: string; text: string }[];
+};
+
+export type DictionaryPracticeRound =
+  | DictionaryPinyinPracticeRound
+  | DictionaryScriptPracticeRound;
 
 export async function recordDictionaryLookup(
   userId: string,
@@ -266,74 +286,51 @@ function shuffled<T>(items: T[], random: () => number) {
   return copy;
 }
 
-function pinyinToneBase(reading: string) {
-  return reading
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f1-5]/g, "")
-    .toLocaleLowerCase();
+function pinyinToneTokens(reading: string) {
+  return practicePinyin(reading)
+    .split(/\s+/)
+    .map((token) => ({
+      text: token,
+      base: token.normalize("NFD").replace(/[\u0300-\u036f1-5]/g, ""),
+    }));
 }
 
 function practicePinyin(reading: string) {
   return reading.toLocaleLowerCase();
 }
 
-function sharesChineseCharacter(first: string, second: string) {
-  const firstCharacters = new Set(first.match(/\p{Script=Han}/gu) ?? []);
-  return (second.match(/\p{Script=Han}/gu) ?? []).some((character) =>
-    firstCharacters.has(character),
-  );
-}
-
 export function createDictionaryPracticeRound(
-  exercise: DictionaryPracticeExercise,
+  exercise: "pinyin",
   entries: DictionarySearchResult[],
   random: () => number = Math.random,
-): DictionaryPracticeRound | null {
-  const forms =
-    exercise === "script"
-      ? entries.filter((entry) => entry.simplified !== entry.traditional)
-      : entries;
-  const candidates = shuffled(forms, random);
+): DictionaryPinyinPracticeRound | null {
+  const candidates = shuffled(entries, random);
 
   for (const entry of candidates) {
-    const answer =
-      exercise === "script" ? entry.traditional : practicePinyin(entry.pinyin);
-    const availableDistractors = forms.filter((candidate) => {
-      const candidateValue =
-        exercise === "script"
-          ? candidate.traditional
-          : practicePinyin(candidate.pinyin);
+    const answer = practicePinyin(entry.pinyin);
+    const availableDistractors = entries.filter((candidate) => {
+      const candidateValue = practicePinyin(candidate.pinyin);
+      return candidate.entryId !== entry.entryId && candidateValue !== answer;
+    });
+    const entryTokens = pinyinToneTokens(entry.pinyin);
+    const closelyRelated = availableDistractors.filter((candidate) => {
+      const candidateTokens = pinyinToneTokens(candidate.pinyin);
       return (
-        candidate.entryId !== entry.entryId &&
-        candidateValue !== answer &&
-        (exercise !== "script" ||
-          [...candidate.simplified].length === [...entry.simplified].length)
+        candidateTokens.length === entryTokens.length &&
+        candidateTokens.some(
+          (token, index) =>
+            token.base === entryTokens[index].base &&
+            token.text !== entryTokens[index].text,
+        )
       );
     });
-    const closelyRelated = availableDistractors.filter((candidate) =>
-      exercise === "pinyin"
-        ? pinyinToneBase(candidate.pinyin) === pinyinToneBase(entry.pinyin)
-        : sharesChineseCharacter(candidate.simplified, entry.simplified),
-    );
-    const distractorPool =
-      exercise === "pinyin"
-        ? closelyRelated
-        : [
-            ...closelyRelated,
-            ...availableDistractors.filter(
-              (candidate) => !closelyRelated.includes(candidate),
-            ),
-          ];
-    const distractors = shuffled(distractorPool, random).slice(0, 3);
+    const distractors = shuffled(closelyRelated, random).slice(0, 3);
     if (distractors.length !== 3) continue;
 
     const options = shuffled(
       [entry, ...distractors].map((candidate) => ({
         id: candidate.entryId,
-        text:
-          exercise === "script"
-            ? candidate.traditional
-            : practicePinyin(candidate.pinyin),
+        text: practicePinyin(candidate.pinyin),
       })),
       random,
     );
@@ -341,6 +338,59 @@ export function createDictionaryPracticeRound(
   }
 
   return null;
+}
+
+export function createDictionaryScriptPracticeRound(
+  entries: DictionarySearchResult[],
+  random: () => number = Math.random,
+): DictionaryScriptPracticeRound | null {
+  const candidatePairs = entries.flatMap((entry) => {
+    const simplified = [...entry.simplified];
+    const traditional = [...entry.traditional];
+    if (simplified.length !== traditional.length) return [];
+    return simplified.flatMap((character, index) =>
+      character !== traditional[index]
+        ? [
+            {
+              id: `${entry.entryId}:${index}`,
+              simplified: character,
+              traditional: traditional[index],
+              source: {
+                simplified: entry.simplified,
+                traditional: entry.traditional,
+                pinyin: entry.pinyin,
+                definitions: entry.definitions,
+              },
+            },
+          ]
+        : [],
+    );
+  });
+  const selectedPairs: DictionaryScriptPracticePair[] = [];
+  const simplifiedCharacters = new Set<string>();
+  const traditionalCharacters = new Set<string>();
+
+  for (const pair of shuffled(candidatePairs, random)) {
+    if (
+      simplifiedCharacters.has(pair.simplified) ||
+      traditionalCharacters.has(pair.traditional)
+    )
+      continue;
+    selectedPairs.push(pair);
+    simplifiedCharacters.add(pair.simplified);
+    traditionalCharacters.add(pair.traditional);
+    if (selectedPairs.length === 4) break;
+  }
+  if (selectedPairs.length !== 4) return null;
+
+  return {
+    exercise: "script",
+    pairs: selectedPairs,
+    options: shuffled(
+      selectedPairs.map((pair) => ({ id: pair.id, text: pair.traditional })),
+      random,
+    ),
+  };
 }
 
 export async function getDictionaryPracticeRound(
@@ -364,20 +414,18 @@ export async function getDictionaryPracticeRound(
     .where(
       and(
         eq(dictionaryReleases.isActive, true),
-        exercise === "pinyin"
-          ? sql`char_length(${dictionaryEntries.simplified}) = 1`
-          : sql`char_length(${dictionaryEntries.simplified}) between 1 and 4`,
+        sql`char_length(${dictionaryEntries.simplified}) between 1 and 4`,
         exercise === "script"
           ? sql`${dictionaryEntries.simplified} <> ${dictionaryEntries.traditional}`
           : undefined,
       ),
     )
     .orderBy(sql`random()`)
-    .limit(exercise === "pinyin" ? 256 : 64);
-  return createDictionaryPracticeRound(
-    exercise,
-    await withLearnerCards(userId, entries),
-  );
+    .limit(exercise === "pinyin" ? 512 : 64);
+  const displayEntries = await withLearnerCards(userId, entries);
+  return exercise === "pinyin"
+    ? createDictionaryPracticeRound("pinyin", displayEntries)
+    : createDictionaryScriptPracticeRound(displayEntries);
 }
 
 async function candidateTerms(text: string) {

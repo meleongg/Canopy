@@ -30,8 +30,6 @@ export function LanguageSelect({
       <SelectContent>
         <SelectItem value="zh-CN">Mandarin</SelectItem>
         <SelectItem value="zh-HK">Cantonese</SelectItem>
-        <SelectItem value="fr-FR">French</SelectItem>
-        <SelectItem value="und">Agnostic</SelectItem>
       </SelectContent>
     </Select>
   );
