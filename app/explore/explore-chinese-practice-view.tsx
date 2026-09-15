@@ -47,13 +47,23 @@ function ScriptMatchRound({
       <p className="text-sm font-semibold text-primary">
         Match each Simplified character to its Traditional counterpart.
       </p>
-      <p aria-live="polite" className="mt-2 text-sm text-muted-foreground">
-        {isChecked
-          ? "Review your matches below."
-          : selectedPair
-            ? `${selectedPair.simplified} selected. Now choose its Traditional match.`
-            : `${Object.keys(matches).length} of ${round.pairs.length} pairs chosen. Select a Simplified character to begin.`}
-      </p>
+      <div
+        aria-live="polite"
+        className="mt-2 min-h-12 text-sm text-muted-foreground"
+      >
+        {isChecked ? (
+          "Review your matches below."
+        ) : selectedPair ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="inline-flex size-11 items-center justify-center rounded-lg bg-primary/20 font-sans text-3xl font-bold text-foreground ring-1 ring-primary/50">
+              {selectedPair.simplified}
+            </span>
+            Now choose its Traditional match.
+          </span>
+        ) : (
+          `${Object.keys(matches).length} of ${round.pairs.length} pairs chosen. Select a Simplified character to begin.`
+        )}
+      </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase text-muted-foreground">
@@ -68,7 +78,7 @@ function ScriptMatchRound({
             return (
               <button
                 aria-pressed={selectedPairId === pair.id}
-                className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left font-sans text-2xl font-bold ${isChecked ? (isCorrect ? "border-primary bg-primary/15" : "border-destructive bg-destructive/10") : matchedOption ? "border-primary bg-primary/10" : selectedPairId === pair.id ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border bg-background hover:border-primary"}`}
+                className={`flex min-h-20 w-full items-center justify-between rounded-lg border px-5 py-4 text-left font-sans text-4xl font-bold ${isChecked ? (isCorrect ? "border-primary bg-primary/15" : "border-destructive bg-destructive/10") : matchedOption ? "border-primary bg-primary/10" : selectedPairId === pair.id ? "border-primary bg-primary/20 shadow-sm ring-2 ring-primary/50" : "border-border bg-background hover:border-primary"}`}
                 disabled={isChecked}
                 key={pair.id}
                 onClick={() => {
@@ -85,7 +95,7 @@ function ScriptMatchRound({
               >
                 <span>{pair.simplified}</span>
                 {matchedOption ? (
-                  <span className="inline-flex items-center gap-2 text-lg font-medium">
+                  <span className="inline-flex items-center gap-2 text-2xl font-medium">
                     <span className="text-muted-foreground">→</span>
                     {matchedOption.text}
                   </span>
