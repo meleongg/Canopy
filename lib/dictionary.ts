@@ -263,6 +263,10 @@ function pinyinToneBase(reading: string) {
     .toLocaleLowerCase();
 }
 
+function practicePinyin(reading: string) {
+  return reading.toLocaleLowerCase();
+}
+
 function sharesChineseCharacter(first: string, second: string) {
   const firstCharacters = new Set(first.match(/\p{Script=Han}/gu) ?? []);
   return (second.match(/\p{Script=Han}/gu) ?? []).some((character) =>
@@ -282,10 +286,13 @@ export function createDictionaryPracticeRound(
   const candidates = shuffled(forms, random);
 
   for (const entry of candidates) {
-    const answer = exercise === "script" ? entry.traditional : entry.pinyin;
+    const answer =
+      exercise === "script" ? entry.traditional : practicePinyin(entry.pinyin);
     const availableDistractors = forms.filter((candidate) => {
       const candidateValue =
-        exercise === "script" ? candidate.traditional : candidate.pinyin;
+        exercise === "script"
+          ? candidate.traditional
+          : practicePinyin(candidate.pinyin);
       return candidate.entryId !== entry.entryId && candidateValue !== answer;
     });
     const closelyRelated = availableDistractors.filter((candidate) =>
@@ -308,7 +315,10 @@ export function createDictionaryPracticeRound(
     const options = shuffled(
       [entry, ...distractors].map((candidate) => ({
         id: candidate.entryId,
-        text: exercise === "script" ? candidate.traditional : candidate.pinyin,
+        text:
+          exercise === "script"
+            ? candidate.traditional
+            : practicePinyin(candidate.pinyin),
       })),
       random,
     );

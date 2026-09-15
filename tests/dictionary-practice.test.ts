@@ -61,7 +61,7 @@ const toneEntries: DictionarySearchResult[] = [
     entryId: "4",
     simplified: "骂",
     traditional: "罵",
-    pinyin: "mà",
+    pinyin: "Mà",
     definitions: ["to scold"],
   },
 ];
