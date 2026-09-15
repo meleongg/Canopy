@@ -16,7 +16,10 @@ import {
 } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ToastProvider } from "@/components/ui/toast";
-import type { ReadingSizePreference } from "@/lib/user-preferences";
+import type {
+  ChineseScriptPreference,
+  ReadingSizePreference,
+} from "@/lib/user-preferences";
 
 type Theme = "light" | "dark";
 
@@ -27,6 +30,8 @@ type ThemeContextValue = {
   setTheme: (theme: Theme) => void;
   readingSize: ReadingSizePreference;
   setReadingSize: (readingSize: ReadingSizePreference) => void;
+  chineseScript: ChineseScriptPreference;
+  setChineseScript: (script: ChineseScriptPreference) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -79,6 +84,8 @@ function ThemeProvider({ children }: { children: ReactNode }) {
         : "default";
     },
   );
+  const [chineseScript, setChineseScriptState] =
+    useState<ChineseScriptPreference>("match-cards");
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -101,10 +108,13 @@ function ThemeProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+  const setChineseScript = useCallback((nextScript: ChineseScriptPreference) => {
+    setChineseScriptState(nextScript);
+  }, []);
 
   const value = useMemo(
-    () => ({ theme, setTheme, readingSize, setReadingSize }),
-    [theme, setTheme, readingSize, setReadingSize],
+    () => ({ theme, setTheme, readingSize, setReadingSize, chineseScript, setChineseScript }),
+    [theme, setTheme, readingSize, setReadingSize, chineseScript, setChineseScript],
   );
 
   return (

@@ -23,6 +23,7 @@ import { ContextualChineseText } from "@/components/canopy/contextual-chinese-te
 import { DictionaryHelpControls } from "@/components/canopy/dictionary-help-controls";
 import { useDictionaryHelp } from "@/components/canopy/use-dictionary-help";
 import { SpeechButton } from "@/components/canopy/speech-button";
+import { CardDisplayText } from "@/components/canopy/card-display-text";
 import { useAudioTranscription } from "@/components/canopy/use-audio-transcription";
 import type { ChatMessage, WorkspaceCard } from "@/components/canopy/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -314,7 +315,7 @@ export function UnderstoryChatView({
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {seedCards.map((card) => (
-                  <Badge key={card.id}>{card.targetText}</Badge>
+                  <Badge key={card.id}><CardDisplayText card={card} /></Badge>
                 ))}
               </div>
             </div>

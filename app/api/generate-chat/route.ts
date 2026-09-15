@@ -6,6 +6,7 @@ import { getCardSeeds } from "@/lib/cards";
 import { saveChatSession } from "@/lib/ai-sessions";
 import { GARDEN_BOUNDARY_MESSAGE, moderateText } from "@/lib/openai";
 import { getUserPreferences } from "@/lib/user-preferences";
+import { displayCardText } from "@/lib/script-variants";
 import { practicePromptInstructions } from "@/lib/practice-preferences";
 import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 import { requireApiAuth } from "@/lib/session";
@@ -56,6 +57,10 @@ export async function POST(request: Request) {
     });
   }
   const preferences = await getUserPreferences(auth.session.user.id);
+  const displaySeeds = seeds.map((seed) => ({
+    ...seed,
+    targetText: displayCardText(seed, preferences.chineseScript),
+  }));
 
   if (!hasOpenAIEnv()) {
     return new Response("OPENAI_API_KEY is required to generate chat.", {
@@ -79,7 +84,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const targetWords = seeds
+  const targetWords = displaySeeds
     .map(
       (seed) =>
         `${seed.targetText} (${seed.phoneticReading?.join(" ") || "no reading"}): ${seed.definitions.join(", ")}`,

@@ -81,7 +81,7 @@ export function SettingsView({
   preferences: UserPreferences;
 }) {
   const router = useRouter();
-  const { setReadingSize, setTheme } = useCanopyTheme();
+  const { setChineseScript, setReadingSize, setTheme } = useCanopyTheme();
   const { toast } = useToast();
   const [name, setName] = useState(initialName);
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -139,6 +139,7 @@ export function SettingsView({
       setPreferences(nextPreferences);
       setTheme(nextPreferences.theme);
       setReadingSize(nextPreferences.readingSize);
+      setChineseScript(nextPreferences.chineseScript);
       toast("Learning preferences saved.");
     });
   }

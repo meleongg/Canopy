@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Leaf } from "lucide-react";
 import type { WorkspaceCard } from "@/components/canopy/types";
+import { CardDisplayText } from "@/components/canopy/card-display-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,7 +122,7 @@ export function PracticeSessionView({
                 {practiceSourceLabel(source)} · {card.languageCode}
               </p>
               <CardTitle className="mt-2 font-serif text-4xl md:text-5xl">
-                {card.targetText}
+                <CardDisplayText card={card} />
               </CardTitle>
               {card.phoneticReading.length > 0 ? (
                 <p className="mt-3 text-base text-muted-foreground">

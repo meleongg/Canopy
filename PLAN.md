@@ -49,6 +49,9 @@ The following roadmap items have been delivered and verified:
     playback controls.
 26. Short, skippable new-learner onboarding that establishes practice defaults
     before the first dashboard visit.
+27. Dictionary-backed Simplified/Traditional card variants with a single review
+    record, reactive card display preferences, and a conservative enrichment
+    path for existing and manually imported Chinese cards.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 

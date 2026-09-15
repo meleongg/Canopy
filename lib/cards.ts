@@ -3,11 +3,14 @@ import { getDb, getSql } from "@/db/client";
 import { flashcards } from "@/db/schema";
 import type { ParsedVocabularyEntry } from "@/lib/ingestion";
 import { calculateSm2 } from "@/lib/srs";
+import { enrichScriptVariants } from "@/lib/script-variants";
 
 export type CardSeed = {
   id: string;
   languageCode: string;
   targetText: string;
+  simplifiedText?: string | null;
+  traditionalText?: string | null;
   phoneticReading: string[];
   definitions: string[];
 };
@@ -36,8 +39,9 @@ export async function importVocabularyEntries(
     return { importedCount: 0, updatedCount: 0 };
   }
 
+  const enrichedEntries = await enrichScriptVariants(entries);
   const results = await getSql().transaction<false, false>((sql) =>
-    entries.map((entry) => {
+    enrichedEntries.map((entry) => {
       const exampleContexts = entry.exampleContexts?.length
         ? JSON.stringify(entry.exampleContexts)
         : null;
@@ -47,10 +51,13 @@ export async function importVocabularyEntries(
 
       return sql`
         insert into flashcards (
-          id, user_id, language_code, target_text, phonetic_reading, definitions,
+          id, user_id, language_code, target_text, dictionary_entry_id,
+          simplified_text, traditional_text, phonetic_reading, definitions,
           linguistic_meta, ai_example_context
         ) values (
           ${id()}, ${userId}, ${entry.languageCode}, ${entry.targetText},
+          ${entry.dictionaryEntryId ?? null}, ${entry.simplifiedText ?? null},
+          ${entry.traditionalText ?? null},
           ${JSON.stringify(entry.phoneticReading)}::jsonb,
           ${JSON.stringify(entry.definitions)}::jsonb, ${linguisticMeta}::jsonb,
           ${exampleContexts}::jsonb
@@ -58,6 +65,9 @@ export async function importVocabularyEntries(
         on conflict (user_id, language_code, target_text) do update set
           phonetic_reading = excluded.phonetic_reading,
           definitions = excluded.definitions,
+          dictionary_entry_id = coalesce(excluded.dictionary_entry_id, flashcards.dictionary_entry_id),
+          simplified_text = coalesce(excluded.simplified_text, flashcards.simplified_text),
+          traditional_text = coalesce(excluded.traditional_text, flashcards.traditional_text),
           linguistic_meta = excluded.linguistic_meta,
           ai_example_context = case
             when ${exampleContexts !== null}
@@ -122,6 +132,8 @@ export async function getCardSeeds(userId: string, cardIds: string[]) {
       id: flashcards.id,
       languageCode: flashcards.languageCode,
       targetText: flashcards.targetText,
+      simplifiedText: flashcards.simplifiedText,
+      traditionalText: flashcards.traditionalText,
       phoneticReading: flashcards.phoneticReading,
       definitions: flashcards.definitions,
     })

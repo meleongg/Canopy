@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<ShellUser | null>(null);
-  const { theme, setReadingSize, setTheme } = useCanopyTheme();
+  const { theme, setChineseScript, setReadingSize, setTheme } = useCanopyTheme();
   const isOnboarding = pathname === "/onboarding";
 
   useEffect(() => {
@@ -78,12 +78,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 (
                   preferences: {
                     readingSize?: "default" | "large" | "extra-large";
+                    chineseScript?: "match-cards" | "simplified" | "traditional";
                     theme?: "light" | "dark";
                   } | null,
                 ) => {
                   if (preferences?.theme && active) setTheme(preferences.theme);
                   if (preferences?.readingSize && active) {
                     setReadingSize(preferences.readingSize);
+                  }
+                  if (preferences?.chineseScript && active) {
+                    setChineseScript(preferences.chineseScript);
                   }
                 },
               );
@@ -99,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [pathname, setReadingSize, setTheme]);
+  }, [pathname, setChineseScript, setReadingSize, setTheme]);
 
   async function signOut() {
     await authClient.signOut();
