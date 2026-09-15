@@ -55,7 +55,7 @@ const practicePreferenceOptions = {
     { value: "vocabulary", label: "Vocabulary" },
   ],
   chineseScript: [
-    { value: "match-cards", label: "Match cards" },
+    { value: "match-cards", label: "Original card forms" },
     { value: "simplified", label: "Simplified" },
     { value: "traditional", label: "Traditional" },
   ],

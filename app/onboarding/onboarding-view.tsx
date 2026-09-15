@@ -13,7 +13,7 @@ import { queryKeys } from "@/lib/query-keys";
 const options = {
   proficiency: [["beginner", "Beginner"], ["intermediate", "Intermediate"], ["advanced", "Advanced"]],
   correctionStyle: [["gentle", "Gentle"], ["direct", "Direct"], ["on-request", "On request"]],
-  chineseScript: [["match-cards", "Match cards"], ["simplified", "Simplified"], ["traditional", "Traditional"]],
+  chineseScript: [["match-cards", "Original card forms"], ["simplified", "Simplified"], ["traditional", "Traditional"]],
   playbackSpeed: [["0.75", "0.75×"], ["1", "1×"], ["1.25", "1.25×"], ["1.5", "1.5×"]],
 } as const;
 
