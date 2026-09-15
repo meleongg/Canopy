@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createDictionaryPracticeRound,
+  dictionaryEntryAsCard,
   type DictionarySearchResult,
 } from "@/lib/dictionary";
 
@@ -21,10 +22,10 @@ const entries: DictionarySearchResult[] = [
   },
   {
     entryId: "3",
-    simplified: "图书馆",
-    traditional: "圖書館",
-    pinyin: "tú shū guǎn",
-    definitions: ["library"],
+    simplified: "图书",
+    traditional: "圖書",
+    pinyin: "tú shū",
+    definitions: ["book"],
   },
   {
     entryId: "4",
@@ -95,9 +96,28 @@ describe("Explore Chinese practice rounds", () => {
     expect(
       round?.options.find((option) => option.id === round?.answerId)?.text,
     ).toBe(round?.entry.traditional);
+    expect(
+      round?.options.every(
+        (option) =>
+          [...option.text].length ===
+          [...(round?.entry.traditional ?? "")].length,
+      ),
+    ).toBe(true);
   });
 
   it("does not create a tone round without matching base readings", () => {
     expect(createDictionaryPracticeRound("pinyin", entries)).toBeNull();
+  });
+
+  it("normalizes dictionary pinyin before adding a card", () => {
+    expect(
+      dictionaryEntryAsCard({
+        entryId: "1",
+        simplified: "奚",
+        traditional: "奚",
+        pinyin: "Xī",
+        definitions: ["surname Xi"],
+      }).phoneticReading,
+    ).toEqual(["xī"]);
   });
 });

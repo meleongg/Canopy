@@ -46,6 +46,16 @@ type DictionaryEntryRecord = {
   definitions: string[];
 };
 
+function dictionaryPinyinTokens(pinyin: string) {
+  return normalizeSuppliedReading(pinyin).map((token) =>
+    token.toLocaleLowerCase(),
+  );
+}
+
+function displayDictionaryPinyin(pinyin: string) {
+  return dictionaryPinyinTokens(pinyin).join(" ");
+}
+
 export type DictionaryDiscoveryResult = DictionarySearchResult & {
   sharedWith: string[];
 };
@@ -130,7 +140,7 @@ async function withLearnerCards(
   const cardsByText = new Map(cards.map((card) => [card.targetText, card]));
   return entries.map(({ pinyin, ...entry }) => ({
     ...entry,
-    pinyin: normalizeSuppliedReading(pinyin).join(" "),
+    pinyin: displayDictionaryPinyin(pinyin),
     card:
       cardsByText.get(entry.simplified) ?? cardsByText.get(entry.traditional),
   }));
@@ -293,7 +303,12 @@ export function createDictionaryPracticeRound(
         exercise === "script"
           ? candidate.traditional
           : practicePinyin(candidate.pinyin);
-      return candidate.entryId !== entry.entryId && candidateValue !== answer;
+      return (
+        candidate.entryId !== entry.entryId &&
+        candidateValue !== answer &&
+        (exercise !== "script" ||
+          [...candidate.simplified].length === [...entry.simplified].length)
+      );
     });
     const closelyRelated = availableDistractors.filter((candidate) =>
       exercise === "pinyin"
@@ -430,7 +445,7 @@ export async function lookupActiveDictionary(userId: string, text: string) {
       )
       .map((term) => ({
         ...entry,
-        pinyin: normalizeSuppliedReading(entry.pinyin).join(" "),
+        pinyin: displayDictionaryPinyin(entry.pinyin),
         text: term,
         card: cardsByText.get(term),
       })),
@@ -449,7 +464,7 @@ export function dictionaryEntryAsCard(
     dictionaryEntryId: entry.entryId,
     simplifiedText: entry.simplified,
     traditionalText: entry.traditional,
-    phoneticReading: normalizeSuppliedReading(entry.pinyin),
+    phoneticReading: dictionaryPinyinTokens(entry.pinyin),
     definitions: entry.definitions,
   };
 }

@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { WorkspaceCard } from "@/components/canopy/types";
+import { displayPhoneticReading } from "@/lib/phonetics";
 
 export function ContextualChineseText({
   text,
@@ -31,7 +32,7 @@ export function ContextualChineseText({
       seedCards.map((card) => ({
         entryId: card.id,
         text: card.targetText,
-        pinyin: card.phoneticReading.join(" "),
+        pinyin: displayPhoneticReading(card.languageCode, card.phoneticReading),
         definitions: card.definitions,
         card: {
           id: card.id,
@@ -84,7 +85,9 @@ export function ContextualChineseText({
         ) {
           return part;
         }
-        const reading = entry.card?.phoneticReading.join(" ") ?? entry.pinyin;
+        const reading = entry.card
+          ? displayPhoneticReading("zh-CN", entry.card.phoneticReading)
+          : entry.pinyin;
         const definitions = entry.card?.definitions ?? entry.definitions;
         return (
           <Tooltip key={`${part}-${index}`}>

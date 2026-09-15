@@ -207,8 +207,7 @@ export function ExploreChinesePracticeView() {
                 {round.entry.traditional !== round.entry.simplified
                   ? ` / ${round.entry.traditional}`
                   : ""}{" "}
-                · {round.entry.pinyin.toLocaleLowerCase()} ·{" "}
-                {round.entry.definitions.join("; ")}
+                · {round.entry.pinyin} · {round.entry.definitions.join("; ")}
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button
