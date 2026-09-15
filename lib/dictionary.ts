@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   dictionaryEntries,
@@ -19,7 +30,12 @@ export type DictionaryLookup = {
 };
 
 export type DictionarySearchResult = Omit<DictionaryLookup, "text">;
-export const dictionarySearchScopes = ["all", "chinese", "pinyin", "english"] as const;
+export const dictionarySearchScopes = [
+  "all",
+  "chinese",
+  "pinyin",
+  "english",
+] as const;
 export type DictionarySearchScope = (typeof dictionarySearchScopes)[number];
 
 type DictionaryEntryRecord = {
@@ -32,6 +48,17 @@ type DictionaryEntryRecord = {
 
 export type DictionaryDiscoveryResult = DictionarySearchResult & {
   sharedWith: string[];
+};
+
+export const dictionaryPracticeExercises = ["pinyin", "script"] as const;
+export type DictionaryPracticeExercise =
+  (typeof dictionaryPracticeExercises)[number];
+
+export type DictionaryPracticeRound = {
+  exercise: DictionaryPracticeExercise;
+  entry: DictionarySearchResult;
+  options: { id: string; text: string }[];
+  answerId: string;
 };
 
 export async function recordDictionaryLookup(
@@ -59,12 +86,14 @@ export async function listDictionaryLookupHistory(userId: string) {
     .orderBy(desc(dictionaryLookupHistory.createdAt))
     .limit(48);
   const seenQueries = new Set<string>();
-  return entries.filter((entry) => {
-    const key = entry.query.toLocaleLowerCase();
-    if (seenQueries.has(key)) return false;
-    seenQueries.add(key);
-    return true;
-  }).slice(0, 12);
+  return entries
+    .filter((entry) => {
+      const key = entry.query.toLocaleLowerCase();
+      if (seenQueries.has(key)) return false;
+      seenQueries.add(key);
+      return true;
+    })
+    .slice(0, 12);
 }
 
 export async function clearDictionaryLookupHistory(userId: string) {
@@ -77,7 +106,11 @@ async function withLearnerCards(
   userId: string,
   entries: DictionaryEntryRecord[],
 ) {
-  const forms = [...new Set(entries.flatMap((entry) => [entry.simplified, entry.traditional]))];
+  const forms = [
+    ...new Set(
+      entries.flatMap((entry) => [entry.simplified, entry.traditional]),
+    ),
+  ];
   const cards = forms.length
     ? await getDb()
         .select({
@@ -99,8 +132,7 @@ async function withLearnerCards(
     ...entry,
     pinyin: normalizeSuppliedReading(pinyin).join(" "),
     card:
-      cardsByText.get(entry.simplified) ??
-      cardsByText.get(entry.traditional),
+      cardsByText.get(entry.simplified) ?? cardsByText.get(entry.traditional),
   }));
 }
 
@@ -151,12 +183,7 @@ export async function searchActiveDictionary(
       dictionaryReleases,
       eq(dictionaryEntries.releaseId, dictionaryReleases.id),
     )
-    .where(
-      and(
-        eq(dictionaryReleases.isActive, true),
-        matchByScope,
-      ),
-    )
+    .where(and(eq(dictionaryReleases.isActive, true), matchByScope))
     .orderBy(asc(relevance), asc(dictionaryEntries.simplified))
     .limit(30);
   return withLearnerCards(userId, entries);
@@ -175,7 +202,9 @@ export async function discoverSharedCharacterCompounds(userId: string) {
     .filter((term) => /\p{Script=Han}/u.test(term))
     .slice(0, 12);
   const characters = [
-    ...new Set(sourceTerms.flatMap((term) => term.match(/\p{Script=Han}/gu) ?? [])),
+    ...new Set(
+      sourceTerms.flatMap((term) => term.match(/\p{Script=Han}/gu) ?? []),
+    ),
   ].slice(0, 24);
   if (!characters.length) return [] as DictionaryDiscoveryResult[];
 
@@ -204,7 +233,10 @@ export async function discoverSharedCharacterCompounds(userId: string) {
         ),
       ),
     )
-    .orderBy(asc(sql`char_length(${dictionaryEntries.simplified})`), asc(dictionaryEntries.simplified))
+    .orderBy(
+      asc(sql`char_length(${dictionaryEntries.simplified})`),
+      asc(dictionaryEntries.simplified),
+    )
     .limit(12);
   const results = await withLearnerCards(userId, entries);
   return results.map((entry) => ({
@@ -213,6 +245,86 @@ export async function discoverSharedCharacterCompounds(userId: string) {
       [...term].some((character) => entry.simplified.includes(character)),
     ),
   }));
+}
+
+function shuffled<T>(items: T[], random: () => number) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const nextIndex = Math.floor(random() * (index + 1));
+    [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+  }
+  return copy;
+}
+
+export function createDictionaryPracticeRound(
+  exercise: DictionaryPracticeExercise,
+  entries: DictionarySearchResult[],
+  random: () => number = Math.random,
+): DictionaryPracticeRound | null {
+  const forms =
+    exercise === "script"
+      ? entries.filter((entry) => entry.simplified !== entry.traditional)
+      : entries;
+  const candidates = shuffled(forms, random);
+
+  for (const entry of candidates) {
+    const answer = exercise === "script" ? entry.traditional : entry.pinyin;
+    const distractors = shuffled(
+      forms.filter((candidate) => {
+        const candidateValue =
+          exercise === "script" ? candidate.traditional : candidate.pinyin;
+        return candidate.entryId !== entry.entryId && candidateValue !== answer;
+      }),
+      random,
+    ).slice(0, 3);
+    if (distractors.length !== 3) continue;
+
+    const options = shuffled(
+      [entry, ...distractors].map((candidate) => ({
+        id: candidate.entryId,
+        text: exercise === "script" ? candidate.traditional : candidate.pinyin,
+      })),
+      random,
+    );
+    return { exercise, entry, options, answerId: entry.entryId };
+  }
+
+  return null;
+}
+
+export async function getDictionaryPracticeRound(
+  userId: string,
+  exercise: DictionaryPracticeExercise,
+) {
+  const db = getDb();
+  const entries = await db
+    .select({
+      entryId: dictionaryEntries.id,
+      traditional: dictionaryEntries.traditional,
+      simplified: dictionaryEntries.simplified,
+      pinyin: dictionaryEntries.pinyin,
+      definitions: dictionaryEntries.definitions,
+    })
+    .from(dictionaryEntries)
+    .innerJoin(
+      dictionaryReleases,
+      eq(dictionaryEntries.releaseId, dictionaryReleases.id),
+    )
+    .where(
+      and(
+        eq(dictionaryReleases.isActive, true),
+        sql`char_length(${dictionaryEntries.simplified}) between 1 and 4`,
+        exercise === "script"
+          ? sql`${dictionaryEntries.simplified} <> ${dictionaryEntries.traditional}`
+          : undefined,
+      ),
+    )
+    .orderBy(sql`random()`)
+    .limit(32);
+  return createDictionaryPracticeRound(
+    exercise,
+    await withLearnerCards(userId, entries),
+  );
 }
 
 async function candidateTerms(text: string) {

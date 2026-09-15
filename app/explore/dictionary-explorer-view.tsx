@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronDown, Compass, History, LoaderCircle, Plus, Search, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  Compass,
+  History,
+  LoaderCircle,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
@@ -48,18 +57,33 @@ function DictionaryEntryCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-serif text-2xl font-bold">{primaryText}</h2>
-          {alternateText !== primaryText ? <p className="text-sm text-muted-foreground">{alternateLabel}: {alternateText}</p> : null}
+          {alternateText !== primaryText ? (
+            <p className="text-sm text-muted-foreground">
+              {alternateLabel}: {alternateText}
+            </p>
+          ) : null}
           <p className="mt-1 text-sm text-muted-foreground">{entry.pinyin}</p>
         </div>
         {entry.card ? (
-          <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary"><BookOpen className="size-4" /> In your collection</span>
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+            <BookOpen className="size-4" /> In your collection
+          </span>
         ) : (
-          <Button disabled={isAdding} onClick={() => onAdd(entry)} size="sm" type="button">
+          <Button
+            disabled={isAdding}
+            onClick={() => onAdd(entry)}
+            size="sm"
+            type="button"
+          >
             <Plus /> {isAdding ? "Adding…" : "Add to collection"}
           </Button>
         )}
       </div>
-      {sharedWith.length ? <p className="mt-3 text-xs font-semibold text-primary">Shares a character with {sharedWith.join(", ")}</p> : null}
+      {sharedWith.length ? (
+        <p className="mt-3 text-xs font-semibold text-primary">
+          Shares a character with {sharedWith.join(", ")}
+        </p>
+      ) : null}
       <p className="mt-4 text-sm leading-6">{entry.definitions.join("; ")}</p>
     </article>
   );
@@ -68,7 +92,9 @@ function DictionaryEntryCard({
 export function DictionaryExplorerView() {
   const { toast } = useToast();
   const [entries, setEntries] = useState<DictionarySearchResult[]>([]);
-  const [discoveries, setDiscoveries] = useState<DictionaryDiscoveryResult[]>([]);
+  const [discoveries, setDiscoveries] = useState<DictionaryDiscoveryResult[]>(
+    [],
+  );
   const [hasExploredCompounds, setHasExploredCompounds] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isConnectionsOpen, setIsConnectionsOpen] = useState(false);
@@ -82,7 +108,9 @@ export function DictionaryExplorerView() {
   async function loadHistory() {
     const response = await fetch("/api/dictionary/history");
     if (!response.ok) return;
-    const payload = (await response.json()) as { entries: LookupHistoryEntry[] };
+    const payload = (await response.json()) as {
+      entries: LookupHistoryEntry[];
+    };
     setHistory(payload.entries);
   }
 
@@ -123,7 +151,8 @@ export function DictionaryExplorerView() {
       };
       setEntries(payload.entries);
       void loadHistory();
-      if (!payload.entries.length) setMessage("No active dictionary entries matched that search.");
+      if (!payload.entries.length)
+        setMessage("No active dictionary entries matched that search.");
     } catch {
       setMessage("Dictionary search could not be completed. Please try again.");
     } finally {
@@ -132,7 +161,9 @@ export function DictionaryExplorerView() {
   }
 
   async function clearHistory() {
-    const response = await fetch("/api/dictionary/history", { method: "DELETE" });
+    const response = await fetch("/api/dictionary/history", {
+      method: "DELETE",
+    });
     if (response.ok) setHistory([]);
   }
 
@@ -200,12 +231,19 @@ export function DictionaryExplorerView() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 md:px-8">
+    <div className="space-y-6">
       <header className="border-b border-border pb-6">
-        <p className="text-xs font-semibold uppercase text-primary">Explore Chinese</p>
-        <h1 className="mt-1 font-serif text-3xl font-bold md:text-4xl">Dictionary explorer</h1>
+        <p className="text-xs font-semibold uppercase text-primary">
+          Explore Chinese
+        </p>
+        <h1 className="mt-1 font-serif text-3xl font-bold md:text-4xl">
+          Dictionary explorer
+        </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Search the active CC-CEDICT release by Chinese form, pinyin, or English gloss. Best match prioritizes exact forms and definitions before partial matches. Exploring does not affect review until you add an entry to your collection.
+          Search the active CC-CEDICT release by Chinese form, pinyin, or
+          English gloss. Best match prioritizes exact forms and definitions
+          before partial matches. Exploring does not affect review until you add
+          an entry to your collection.
         </p>
       </header>
       <form
@@ -236,7 +274,8 @@ export function DictionaryExplorerView() {
             key={option.value}
             onClick={() => {
               setScope(option.value);
-              if (query.trim()) void searchDictionary(option.value, query, false);
+              if (query.trim())
+                void searchDictionary(option.value, query, false);
             }}
             size="sm"
             type="button"
@@ -247,10 +286,22 @@ export function DictionaryExplorerView() {
         ))}
       </div>
       {history.length ? (
-        <section aria-label="Recent dictionary searches" className="rounded-xl border border-border bg-card p-4">
+        <section
+          aria-label="Recent dictionary searches"
+          className="rounded-xl border border-border bg-card p-4"
+        >
           <div className="flex items-center justify-between gap-3">
-            <h2 className="inline-flex items-center gap-2 font-serif text-lg font-bold"><History className="size-4" /> Recent searches</h2>
-            <Button onClick={() => void clearHistory()} size="sm" type="button" variant="ghost"><Trash2 /> Clear</Button>
+            <h2 className="inline-flex items-center gap-2 font-serif text-lg font-bold">
+              <History className="size-4" /> Recent searches
+            </h2>
+            <Button
+              onClick={() => void clearHistory()}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Trash2 /> Clear
+            </Button>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {history.map((entry) => (
@@ -271,23 +322,89 @@ export function DictionaryExplorerView() {
           </div>
         </section>
       ) : null}
-      {message ? <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">{message}</p> : null}
+      {message ? (
+        <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
+          {message}
+        </p>
+      ) : null}
       <div className="space-y-3">
-        {entries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}
+        {entries.map((entry) => (
+          <DictionaryEntryCard
+            entry={entry}
+            isAdding={addingEntryId === entry.entryId}
+            key={entry.entryId}
+            onAdd={(candidate) => void addToCollection(candidate)}
+          />
+        ))}
       </div>
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-serif text-xl font-bold">Character connections</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Optional literal shared-character exploration from recent active cards.</p>
+            <h2 className="font-serif text-xl font-bold">
+              Character connections
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Optional literal shared-character exploration from recent active
+              cards.
+            </p>
           </div>
-          <Button aria-expanded={isConnectionsOpen} onClick={() => setIsConnectionsOpen((current) => !current)} type="button" variant="outline">
-            <ChevronDown className={isConnectionsOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+          <Button
+            aria-expanded={isConnectionsOpen}
+            onClick={() => setIsConnectionsOpen((current) => !current)}
+            type="button"
+            variant="outline"
+          >
+            <ChevronDown
+              className={
+                isConnectionsOpen
+                  ? "rotate-180 transition-transform"
+                  : "transition-transform"
+              }
+            />
             {isConnectionsOpen ? "Hide" : "Explore"}
           </Button>
         </div>
-        {isConnectionsOpen ? <div className="mt-4 border-t border-border pt-4"><p className="max-w-2xl text-sm leading-6 text-muted-foreground">Forms share at least one literal Chinese character. They may be unrelated in meaning or level.</p><Button className="mt-3" disabled={isDiscovering} onClick={() => void discoverCompounds()} type="button" variant="outline">{isDiscovering ? <LoaderCircle className="animate-spin" /> : <Compass />}{isDiscovering ? "Finding…" : "Find connections"}</Button>{hasExploredCompounds && !discoveries.length ? <p className="mt-4 text-sm text-muted-foreground">Add active Chinese cards first, then come back to explore character connections.</p> : null}{discoveries.length ? <div className="mt-4 space-y-3">{discoveries.map((entry) => <DictionaryEntryCard entry={entry} isAdding={addingEntryId === entry.entryId} key={entry.entryId} onAdd={(candidate) => void addToCollection(candidate)} />)}</div> : null}</div> : null}
+        {isConnectionsOpen ? (
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Forms share at least one literal Chinese character. They may be
+              unrelated in meaning or level.
+            </p>
+            <Button
+              className="mt-3"
+              disabled={isDiscovering}
+              onClick={() => void discoverCompounds()}
+              type="button"
+              variant="outline"
+            >
+              {isDiscovering ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Compass />
+              )}
+              {isDiscovering ? "Finding…" : "Find connections"}
+            </Button>
+            {hasExploredCompounds && !discoveries.length ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Add active Chinese cards first, then come back to explore
+                character connections.
+              </p>
+            ) : null}
+            {discoveries.length ? (
+              <div className="mt-4 space-y-3">
+                {discoveries.map((entry) => (
+                  <DictionaryEntryCard
+                    entry={entry}
+                    isAdding={addingEntryId === entry.entryId}
+                    key={entry.entryId}
+                    onAdd={(candidate) => void addToCollection(candidate)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
-    </main>
+    </div>
   );
 }
