@@ -40,26 +40,56 @@ function ScriptMatchRound({
   const [isChecked, setIsChecked] = useState(false);
   const usedOptionIds = new Set(Object.values(matches));
   const isComplete = Object.keys(matches).length === round.pairs.length;
+  const selectedPair = round.pairs.find((pair) => pair.id === selectedPairId);
 
   return (
     <article className="rounded-xl border border-border bg-card p-5 md:p-7">
       <p className="text-sm font-semibold text-primary">
         Match each Simplified character to its Traditional counterpart.
       </p>
+      <p aria-live="polite" className="mt-2 text-sm text-muted-foreground">
+        {isChecked
+          ? "Review your matches below."
+          : selectedPair
+            ? `${selectedPair.simplified} selected. Now choose its Traditional match.`
+            : `${Object.keys(matches).length} of ${round.pairs.length} pairs chosen. Select a Simplified character to begin.`}
+      </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            1. Simplified
+          </p>
           {round.pairs.map((pair) => {
             const matchedOptionId = matches[pair.id];
+            const matchedOption = round.options.find(
+              (option) => option.id === matchedOptionId,
+            );
             const isCorrect = matchedOptionId === pair.id;
             return (
               <button
-                className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left font-sans text-2xl font-bold ${isChecked ? (isCorrect ? "border-primary bg-primary/15" : "border-destructive bg-destructive/10") : selectedPairId === pair.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary"}`}
+                aria-pressed={selectedPairId === pair.id}
+                className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left font-sans text-2xl font-bold ${isChecked ? (isCorrect ? "border-primary bg-primary/15" : "border-destructive bg-destructive/10") : matchedOption ? "border-primary bg-primary/10" : selectedPairId === pair.id ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border bg-background hover:border-primary"}`}
                 disabled={isChecked}
                 key={pair.id}
-                onClick={() => setSelectedPairId(pair.id)}
+                onClick={() => {
+                  if (matchedOptionId) {
+                    setMatches((current) => {
+                      const next = { ...current };
+                      delete next[pair.id];
+                      return next;
+                    });
+                  }
+                  setSelectedPairId(pair.id);
+                }}
                 type="button"
               >
-                {pair.simplified}
+                <span>{pair.simplified}</span>
+                {matchedOption ? (
+                  <span className="inline-flex items-center gap-2 text-lg font-medium">
+                    <span className="text-muted-foreground">→</span>
+                    {matchedOption.text}
+                  </span>
+                ) : null}
                 {isChecked ? (
                   isCorrect ? (
                     <Check className="size-5 text-primary" />
@@ -72,10 +102,15 @@ function ScriptMatchRound({
           })}
         </div>
         <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            2. Traditional
+          </p>
           {round.options.map((option) => (
             <button
-              className="flex w-full rounded-lg border border-border bg-background px-4 py-3 text-left font-sans text-2xl font-bold hover:border-primary disabled:opacity-60"
-              disabled={isChecked || usedOptionIds.has(option.id)}
+              className="flex w-full rounded-lg border border-border bg-background px-4 py-3 text-left font-sans text-2xl font-bold hover:border-primary disabled:opacity-45"
+              disabled={
+                isChecked || !selectedPairId || usedOptionIds.has(option.id)
+              }
               key={option.id}
               onClick={() => {
                 if (!selectedPairId) return;
