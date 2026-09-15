@@ -28,8 +28,10 @@ import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 
 export function OverstoryView({
   initialCards,
+  playbackSpeed,
 }: {
   initialCards: WorkspaceCard[];
+  playbackSpeed: number;
 }) {
   const { data: cards = initialCards } = useQuery({
     queryKey: queryKeys.overstorySeeds,
@@ -164,7 +166,12 @@ export function OverstoryView({
             <div className="reading-content-base mt-5 min-h-96 rounded-xl border border-border bg-background p-5 leading-8">
               {isComplete && canGenerateSpeech(story) ? (
                 <div className="mb-4 border-b border-border pb-3">
-                  <SpeechButton disabled={false} speaker="narrator" text={story} />
+                  <SpeechButton
+                    defaultSpeed={playbackSpeed}
+                    disabled={false}
+                    speaker="narrator"
+                    text={story}
+                  />
                 </div>
               ) : null}
               {story ? (
