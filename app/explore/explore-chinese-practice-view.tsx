@@ -17,8 +17,8 @@ const exercises: {
 }[] = [
   {
     value: "pinyin",
-    title: "Match the reading",
-    description: "Choose the pinyin reading that belongs with a Chinese word.",
+    title: "Tone match",
+    description: "Choose the right tone-marked pinyin from related readings.",
   },
   {
     value: "script",
@@ -162,7 +162,7 @@ export function ExploreChinesePracticeView() {
           <p className="text-sm font-semibold text-primary">
             {round.exercise === "script"
               ? "Which Traditional form matches this Simplified word?"
-              : "Which pinyin reading matches this word?"}
+              : "Which tone-marked pinyin reading matches this word?"}
           </p>
           <h2 className="mt-4 font-sans text-4xl font-bold md:text-5xl">
             {round.exercise === "script" ? round.entry.simplified : shownForm}

@@ -35,9 +35,44 @@ const entries: DictionarySearchResult[] = [
   },
 ];
 
+const toneEntries: DictionarySearchResult[] = [
+  {
+    entryId: "1",
+    simplified: "妈",
+    traditional: "媽",
+    pinyin: "mā",
+    definitions: ["mother"],
+  },
+  {
+    entryId: "2",
+    simplified: "麻",
+    traditional: "麻",
+    pinyin: "má",
+    definitions: ["hemp"],
+  },
+  {
+    entryId: "3",
+    simplified: "马",
+    traditional: "馬",
+    pinyin: "mǎ",
+    definitions: ["horse"],
+  },
+  {
+    entryId: "4",
+    simplified: "骂",
+    traditional: "罵",
+    pinyin: "mà",
+    definitions: ["to scold"],
+  },
+];
+
 describe("Explore Chinese practice rounds", () => {
   it("builds a four-choice pinyin match", () => {
-    const round = createDictionaryPracticeRound("pinyin", entries, () => 0.4);
+    const round = createDictionaryPracticeRound(
+      "pinyin",
+      toneEntries,
+      () => 0.4,
+    );
 
     expect(round).not.toBeNull();
     expect(round?.options).toHaveLength(4);
@@ -47,6 +82,9 @@ describe("Explore Chinese practice rounds", () => {
     expect(
       round?.options.find((option) => option.id === round?.answerId)?.text,
     ).toBe(round?.entry.pinyin);
+    expect(round?.options.map((option) => option.text)).toEqual(
+      expect.arrayContaining(["mā", "má", "mǎ", "mà"]),
+    );
   });
 
   it("builds a Traditional recognition round only from differing forms", () => {
@@ -59,9 +97,7 @@ describe("Explore Chinese practice rounds", () => {
     ).toBe(round?.entry.traditional);
   });
 
-  it("does not create a round without three distinct distractors", () => {
-    expect(
-      createDictionaryPracticeRound("pinyin", entries.slice(0, 3)),
-    ).toBeNull();
+  it("does not create a tone round without matching base readings", () => {
+    expect(createDictionaryPracticeRound("pinyin", entries)).toBeNull();
   });
 });

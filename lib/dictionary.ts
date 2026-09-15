@@ -256,6 +256,20 @@ function shuffled<T>(items: T[], random: () => number) {
   return copy;
 }
 
+function pinyinToneBase(reading: string) {
+  return reading
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f1-5]/g, "")
+    .toLocaleLowerCase();
+}
+
+function sharesChineseCharacter(first: string, second: string) {
+  const firstCharacters = new Set(first.match(/\p{Script=Han}/gu) ?? []);
+  return (second.match(/\p{Script=Han}/gu) ?? []).some((character) =>
+    firstCharacters.has(character),
+  );
+}
+
 export function createDictionaryPracticeRound(
   exercise: DictionaryPracticeExercise,
   entries: DictionarySearchResult[],
@@ -269,14 +283,26 @@ export function createDictionaryPracticeRound(
 
   for (const entry of candidates) {
     const answer = exercise === "script" ? entry.traditional : entry.pinyin;
-    const distractors = shuffled(
-      forms.filter((candidate) => {
-        const candidateValue =
-          exercise === "script" ? candidate.traditional : candidate.pinyin;
-        return candidate.entryId !== entry.entryId && candidateValue !== answer;
-      }),
-      random,
-    ).slice(0, 3);
+    const availableDistractors = forms.filter((candidate) => {
+      const candidateValue =
+        exercise === "script" ? candidate.traditional : candidate.pinyin;
+      return candidate.entryId !== entry.entryId && candidateValue !== answer;
+    });
+    const closelyRelated = availableDistractors.filter((candidate) =>
+      exercise === "pinyin"
+        ? pinyinToneBase(candidate.pinyin) === pinyinToneBase(entry.pinyin)
+        : sharesChineseCharacter(candidate.simplified, entry.simplified),
+    );
+    const distractorPool =
+      exercise === "pinyin"
+        ? closelyRelated
+        : [
+            ...closelyRelated,
+            ...availableDistractors.filter(
+              (candidate) => !closelyRelated.includes(candidate),
+            ),
+          ];
+    const distractors = shuffled(distractorPool, random).slice(0, 3);
     if (distractors.length !== 3) continue;
 
     const options = shuffled(
@@ -313,14 +339,16 @@ export async function getDictionaryPracticeRound(
     .where(
       and(
         eq(dictionaryReleases.isActive, true),
-        sql`char_length(${dictionaryEntries.simplified}) between 1 and 4`,
+        exercise === "pinyin"
+          ? sql`char_length(${dictionaryEntries.simplified}) = 1`
+          : sql`char_length(${dictionaryEntries.simplified}) between 1 and 4`,
         exercise === "script"
           ? sql`${dictionaryEntries.simplified} <> ${dictionaryEntries.traditional}`
           : undefined,
       ),
     )
     .orderBy(sql`random()`)
-    .limit(32);
+    .limit(exercise === "pinyin" ? 256 : 64);
   return createDictionaryPracticeRound(
     exercise,
     await withLearnerCards(userId, entries),
