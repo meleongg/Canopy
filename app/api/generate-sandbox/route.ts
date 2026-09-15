@@ -9,6 +9,7 @@ import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 import { practicePromptInstructions } from "@/lib/practice-preferences";
 import { requireApiAuth } from "@/lib/session";
 import { getUserPreferences } from "@/lib/user-preferences";
+import { displayCardText } from "@/lib/script-variants";
 
 export const runtime = "edge";
 
@@ -33,6 +34,10 @@ export async function POST(request: Request) {
     });
   }
   const preferences = await getUserPreferences(auth.session.user.id);
+  const displaySeeds = seeds.map((seed) => ({
+    ...seed,
+    targetText: displayCardText(seed, preferences.chineseScript),
+  }));
 
   if (!hasOpenAIEnv()) {
     return new Response("OPENAI_API_KEY is required to generate stories.", {
@@ -54,7 +59,7 @@ export async function POST(request: Request) {
   );
 
   const moderation = await moderateText(
-    seeds.map((seed) => seed.targetText).join(" "),
+    displaySeeds.map((seed) => seed.targetText).join(" "),
   );
   if (moderation.flagged) {
     return new Response("Seed set was flagged by moderation.", { status: 400 });
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
     model: openai("gpt-4o-mini"),
     temperature: 0.3,
     system: `You are writing for The Overstory Sandbox. Write one short natural story paragraph for a language learner. ${practiceInstructions} Include every target term exactly once. Avoid lists, explanations, and Markdown formatting. Return plain text only.`,
-    prompt: JSON.stringify({ seeds }),
+    prompt: JSON.stringify({ seeds: displaySeeds }),
     onFinish: async ({ text }) => {
       const cleanedText = stripModelMarkdownMarkers(text).trim();
       if (cleanedText) {

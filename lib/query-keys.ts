@@ -3,5 +3,6 @@ export const queryKeys = {
   reviewQueue: ["reviewQueue"] as const,
   overstorySeeds: ["overstorySeeds"] as const,
   understorySeeds: ["understorySeeds"] as const,
+  userPreferences: ["userPreferences"] as const,
   practiceHistory: (filter: string) => ["practiceHistory", filter] as const,
 };

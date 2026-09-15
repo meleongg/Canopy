@@ -9,6 +9,7 @@ import {
   type SeedFilter,
 } from "@/components/canopy/card-utils";
 import type { WorkspaceCard } from "@/components/canopy/types";
+import { CardDisplayText } from "@/components/canopy/card-display-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,7 +96,7 @@ export function SeedPicker({
                 type="button"
                 variant="secondary"
               >
-                <span className="truncate">{card.targetText}</span>
+                <span className="truncate"><CardDisplayText card={card} /></span>
                 <X />
               </Button>
             ))
@@ -160,7 +161,7 @@ export function SeedPicker({
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">
-                    {card.targetText}
+                    <CardDisplayText card={card} />
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {card.definitions.join(", ")}

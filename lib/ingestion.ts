@@ -7,6 +7,9 @@ import {
 export type ParsedVocabularyEntry = {
   languageCode: string;
   targetText: string;
+  dictionaryEntryId?: string;
+  simplifiedText?: string;
+  traditionalText?: string;
   phoneticReading: string[];
   definitions: string[];
   exampleContexts?: ExampleContext[];

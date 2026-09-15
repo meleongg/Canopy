@@ -288,11 +288,17 @@ export async function lookupActiveDictionary(userId: string, text: string) {
 }
 
 export function dictionaryEntryAsCard(
-  entry: Pick<DictionaryLookup, "simplified" | "pinyin" | "definitions">,
+  entry: Pick<
+    DictionaryLookup,
+    "entryId" | "simplified" | "traditional" | "pinyin" | "definitions"
+  >,
 ) {
   return {
     languageCode: "zh-CN",
     targetText: entry.simplified,
+    dictionaryEntryId: entry.entryId,
+    simplifiedText: entry.simplified,
+    traditionalText: entry.traditional,
     phoneticReading: normalizeSuppliedReading(entry.pinyin),
     definitions: entry.definitions,
   };

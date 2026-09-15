@@ -8,6 +8,9 @@ vi.mock("@/db/client", () => ({
   getDb: vi.fn(),
   getSql: () => ({ transaction: mocks.transaction }),
 }));
+vi.mock("@/lib/script-variants", () => ({
+  enrichScriptVariants: async <T,>(entries: T[]) => entries,
+}));
 
 import { importVocabularyEntries } from "@/lib/cards";
 

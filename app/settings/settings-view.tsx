@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useTransition } from "react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useCanopyTheme } from "@/app/providers";
@@ -25,6 +26,7 @@ import { useToast } from "@/components/ui/toast";
 import { LanguageSelect } from "@/components/canopy/language-select";
 import { authClient } from "@/lib/auth-client";
 import type { UserPreferences } from "@/lib/user-preferences";
+import { queryKeys } from "@/lib/query-keys";
 
 const readingSizeOptions: {
   label: string;
@@ -53,7 +55,7 @@ const practicePreferenceOptions = {
     { value: "vocabulary", label: "Vocabulary" },
   ],
   chineseScript: [
-    { value: "match-cards", label: "Match cards" },
+    { value: "match-cards", label: "Original card forms" },
     { value: "simplified", label: "Simplified" },
     { value: "traditional", label: "Traditional" },
   ],
@@ -81,7 +83,8 @@ export function SettingsView({
   preferences: UserPreferences;
 }) {
   const router = useRouter();
-  const { setReadingSize, setTheme } = useCanopyTheme();
+  const queryClient = useQueryClient();
+  const { setChineseScript, setReadingSize, setTheme } = useCanopyTheme();
   const { toast } = useToast();
   const [name, setName] = useState(initialName);
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -137,8 +140,10 @@ export function SettingsView({
       });
       if (!response.ok) throw new Error();
       setPreferences(nextPreferences);
+      queryClient.setQueryData(queryKeys.userPreferences, nextPreferences);
       setTheme(nextPreferences.theme);
       setReadingSize(nextPreferences.readingSize);
+      setChineseScript(nextPreferences.chineseScript);
       toast("Learning preferences saved.");
     });
   }

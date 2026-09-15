@@ -19,6 +19,7 @@ import {
   growthLabel,
 } from "@/components/canopy/card-utils";
 import type { WorkspaceCard } from "@/components/canopy/types";
+import { CardDisplayText } from "@/components/canopy/card-display-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -259,7 +260,7 @@ export function CollectionView({
                   {growthLabel(card)} · {dueLabel(card)}
                 </p>
                 <h2 className="mt-1 truncate font-serif text-xl font-bold">
-                  {card.targetText}
+                  <CardDisplayText card={card} />
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {card.phoneticReading.join(" ") || card.definitions[0]}

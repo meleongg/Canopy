@@ -16,7 +16,9 @@ export async function POST(request: Request) {
     return new Response("Provide a dictionary entry.", { status: 400 });
   const [entry] = await getDb()
     .select({
+      entryId: dictionaryEntries.id,
       simplified: dictionaryEntries.simplified,
+      traditional: dictionaryEntries.traditional,
       pinyin: dictionaryEntries.pinyin,
       definitions: dictionaryEntries.definitions,
     })

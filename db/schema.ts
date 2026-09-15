@@ -121,6 +121,9 @@ export const flashcards = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     languageCode: text("language_code").notNull(),
     targetText: text("target_text").notNull(),
+    dictionaryEntryId: text("dictionary_entry_id"),
+    simplifiedText: text("simplified_text"),
+    traditionalText: text("traditional_text"),
     phoneticReading: jsonb("phonetic_reading").$type<string[]>().notNull(),
     definitions: jsonb("definitions").$type<string[]>().notNull(),
     linguisticMeta: jsonb("linguistic_meta").$type<{

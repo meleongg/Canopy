@@ -5,6 +5,7 @@ import { BookOpen, ChevronDown, Compass, History, LoaderCircle, Plus, Search, Tr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { useCanopyTheme } from "@/app/providers";
 import type {
   DictionarySearchResult,
   DictionaryDiscoveryResult,
@@ -34,13 +35,20 @@ function DictionaryEntryCard({
   isAdding: boolean;
   onAdd: (entry: ExplorerEntry) => void;
 }) {
+  const { chineseScript } = useCanopyTheme();
   const sharedWith = "sharedWith" in entry ? entry.sharedWith : [];
+  const primaryText =
+    chineseScript === "traditional" ? entry.traditional : entry.simplified;
+  const alternateText =
+    chineseScript === "traditional" ? entry.simplified : entry.traditional;
+  const alternateLabel =
+    chineseScript === "traditional" ? "Simplified" : "Traditional";
   return (
     <article className="rounded-xl border border-border bg-background p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-serif text-2xl font-bold">{entry.simplified}</h2>
-          {entry.traditional !== entry.simplified ? <p className="text-sm text-muted-foreground">Traditional: {entry.traditional}</p> : null}
+          <h2 className="font-serif text-2xl font-bold">{primaryText}</h2>
+          {alternateText !== primaryText ? <p className="text-sm text-muted-foreground">{alternateLabel}: {alternateText}</p> : null}
           <p className="mt-1 text-sm text-muted-foreground">{entry.pinyin}</p>
         </div>
         {entry.card ? (

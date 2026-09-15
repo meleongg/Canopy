@@ -29,6 +29,8 @@ export type DashboardCard = {
   id: string;
   languageCode: string;
   targetText: string;
+  simplifiedText: string | null;
+  traditionalText: string | null;
   phoneticReading: string[];
   definitions: string[];
   interval: number;
@@ -84,6 +86,8 @@ export async function getDashboardData(
       id: flashcards.id,
       languageCode: flashcards.languageCode,
       targetText: flashcards.targetText,
+      simplifiedText: flashcards.simplifiedText,
+      traditionalText: flashcards.traditionalText,
       phoneticReading: flashcards.phoneticReading,
       definitions: flashcards.definitions,
       interval: flashcards.interval,
@@ -151,6 +155,8 @@ export async function getCollectionPage(
         id: flashcards.id,
         languageCode: flashcards.languageCode,
         targetText: flashcards.targetText,
+        simplifiedText: flashcards.simplifiedText,
+        traditionalText: flashcards.traditionalText,
         phoneticReading: flashcards.phoneticReading,
         definitions: flashcards.definitions,
         interval: flashcards.interval,
@@ -192,6 +198,8 @@ export async function getPracticeCards(
       id: flashcards.id,
       languageCode: flashcards.languageCode,
       targetText: flashcards.targetText,
+      simplifiedText: flashcards.simplifiedText,
+      traditionalText: flashcards.traditionalText,
       phoneticReading: flashcards.phoneticReading,
       definitions: flashcards.definitions,
       interval: flashcards.interval,

@@ -29,6 +29,7 @@ import {
   growthLabel,
 } from "@/components/canopy/card-utils";
 import { LanguageSelect } from "@/components/canopy/language-select";
+import { CardDisplayText } from "@/components/canopy/card-display-text";
 import type { ImportDraft, WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -635,7 +636,7 @@ export function ReviewQueue({
                     {growthLabel(card)} · {dueLabel(card)}
                   </p>
                   <h3 className="mt-1 truncate font-serif text-xl font-bold">
-                    {card.targetText}
+                    <CardDisplayText card={card} />
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {card.phoneticReading.join(" ") || card.definitions[0]}
@@ -1032,7 +1033,7 @@ export function DashboardView({
                 >
                   <div className="min-w-0">
                     <p className="truncate font-serif text-lg font-semibold">
-                      {card.targetText}
+                      <CardDisplayText card={card} />
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {card.phoneticReading.join(" ") || card.definitions[0]}
