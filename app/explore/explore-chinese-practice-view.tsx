@@ -60,6 +60,13 @@ export function ExploreChinesePracticeView() {
     }
   }
 
+  function selectExercise(nextExercise: DictionaryPracticeExercise) {
+    setExercise(nextExercise);
+    setRound(null);
+    setSelectedId(null);
+    setMessage("");
+  }
+
   async function addToCollection() {
     if (!round) return;
     setIsAdding(true);
@@ -123,7 +130,7 @@ export function ExploreChinesePracticeView() {
           <button
             className={`rounded-xl border p-5 text-left transition ${exercise === option.value ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/70"}`}
             key={option.value}
-            onClick={() => void loadRound(option.value)}
+            onClick={() => selectExercise(option.value)}
             type="button"
           >
             <span className="font-serif text-xl font-bold">{option.title}</span>
@@ -157,7 +164,7 @@ export function ExploreChinesePracticeView() {
               ? "Which Traditional form matches this Simplified word?"
               : "Which pinyin reading matches this word?"}
           </p>
-          <h2 className="mt-4 font-serif text-4xl font-bold md:text-5xl">
+          <h2 className="mt-4 font-sans text-4xl font-bold md:text-5xl">
             {round.exercise === "script" ? round.entry.simplified : shownForm}
           </h2>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">

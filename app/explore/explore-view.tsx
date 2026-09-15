@@ -10,7 +10,7 @@ export function ExploreView() {
       <Tabs defaultValue="dictionary">
         <TabsList aria-label="Explore Chinese">
           <TabsTrigger value="dictionary">Dictionary</TabsTrigger>
-          <TabsTrigger value="practice">Gentle practice</TabsTrigger>
+          <TabsTrigger value="practice">Practice</TabsTrigger>
         </TabsList>
         <TabsContent value="dictionary">
           <DictionaryExplorerView />
