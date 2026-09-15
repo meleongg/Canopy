@@ -117,7 +117,7 @@ function ScriptMatchRound({
           </p>
           {round.options.map((option) => (
             <button
-              className="flex w-full rounded-lg border border-border bg-background px-4 py-3 text-left font-sans text-2xl font-bold hover:border-primary disabled:opacity-45"
+              className="flex min-h-20 w-full items-center rounded-lg border border-border bg-background px-5 py-4 text-left font-sans text-4xl font-bold hover:border-primary disabled:opacity-45"
               disabled={
                 isChecked || !selectedPairId || usedOptionIds.has(option.id)
               }
