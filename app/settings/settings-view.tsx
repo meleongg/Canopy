@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useTransition } from "react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useCanopyTheme } from "@/app/providers";
@@ -25,6 +26,7 @@ import { useToast } from "@/components/ui/toast";
 import { LanguageSelect } from "@/components/canopy/language-select";
 import { authClient } from "@/lib/auth-client";
 import type { UserPreferences } from "@/lib/user-preferences";
+import { queryKeys } from "@/lib/query-keys";
 
 const readingSizeOptions: {
   label: string;
@@ -81,6 +83,7 @@ export function SettingsView({
   preferences: UserPreferences;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { setChineseScript, setReadingSize, setTheme } = useCanopyTheme();
   const { toast } = useToast();
   const [name, setName] = useState(initialName);
@@ -137,6 +140,7 @@ export function SettingsView({
       });
       if (!response.ok) throw new Error();
       setPreferences(nextPreferences);
+      queryClient.setQueryData(queryKeys.userPreferences, nextPreferences);
       setTheme(nextPreferences.theme);
       setReadingSize(nextPreferences.readingSize);
       setChineseScript(nextPreferences.chineseScript);

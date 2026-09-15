@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { LanguageSelect } from "@/components/canopy/language-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { UserPreferences } from "@/lib/user-preferences";
+import { queryKeys } from "@/lib/query-keys";
 
 const options = {
   proficiency: [["beginner", "Beginner"], ["intermediate", "Intermediate"], ["advanced", "Advanced"]],
@@ -17,6 +19,7 @@ const options = {
 
 export function OnboardingView({ initialPreferences }: { initialPreferences: UserPreferences }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [preferences, setPreferences] = useState(initialPreferences);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -25,6 +28,10 @@ export function OnboardingView({ initialPreferences }: { initialPreferences: Use
     startTransition(async () => {
       const response = await fetch("/api/onboarding", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(preferences) });
       if (!response.ok) { setError("We could not save your defaults. Please try again."); return; }
+      queryClient.setQueryData(
+        queryKeys.userPreferences,
+        (await response.json()) as UserPreferences,
+      );
       router.push("/dashboard");
       router.refresh();
     });

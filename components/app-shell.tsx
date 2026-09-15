@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   History,
@@ -35,6 +36,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
+import type { UserPreferences } from "@/lib/user-preferences";
 
 type ShellUser = {
   name?: string | null;
@@ -59,9 +62,19 @@ const mobileNav = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<ShellUser | null>(null);
   const { theme, setChineseScript, setReadingSize, setTheme } = useCanopyTheme();
   const isOnboarding = pathname === "/onboarding";
+  const { data: preferences } = useQuery({
+    queryKey: queryKeys.userPreferences,
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Could not load preferences.");
+      return (await response.json()) as UserPreferences;
+    },
+  });
 
   useEffect(() => {
     let active = true;
@@ -71,27 +84,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .then((session: { user?: ShellUser } | null) => {
         if (active) {
           setUser(session?.user ?? null);
-          if (session?.user) {
-            void fetch("/api/settings")
-              .then((response) => (response.ok ? response.json() : null))
-              .then(
-                (
-                  preferences: {
-                    readingSize?: "default" | "large" | "extra-large";
-                    chineseScript?: "match-cards" | "simplified" | "traditional";
-                    theme?: "light" | "dark";
-                  } | null,
-                ) => {
-                  if (preferences?.theme && active) setTheme(preferences.theme);
-                  if (preferences?.readingSize && active) {
-                    setReadingSize(preferences.readingSize);
-                  }
-                  if (preferences?.chineseScript && active) {
-                    setChineseScript(preferences.chineseScript);
-                  }
-                },
-              );
-          }
         }
       })
       .catch(() => {
@@ -103,10 +95,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [pathname, setChineseScript, setReadingSize, setTheme]);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!preferences) return;
+    setTheme(preferences.theme);
+    setReadingSize(preferences.readingSize);
+    setChineseScript(preferences.chineseScript);
+  }, [preferences, setChineseScript, setReadingSize, setTheme]);
 
   async function signOut() {
     await authClient.signOut();
+    queryClient.removeQueries({ queryKey: queryKeys.userPreferences });
     setUser(null);
     router.push("/");
     router.refresh();
