@@ -61,6 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<ShellUser | null>(null);
   const { theme, setReadingSize, setTheme } = useCanopyTheme();
+  const isOnboarding = pathname === "/onboarding";
 
   useEffect(() => {
     let active = true;
@@ -111,7 +112,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-2 px-4 sm:gap-4 md:px-8">
-          <Link className="flex shrink-0 items-center gap-3" href="/">
+          <Link
+            className="flex shrink-0 items-center gap-3"
+            href={user ? "/dashboard" : "/"}
+          >
             <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card">
               <img
                 alt=""
@@ -131,7 +135,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="font-serif text-xl font-black">Canopy</span>
           </Link>
 
-          <nav className="hidden items-center gap-1 min-[1200px]:flex">
+          <nav
+            className={cn(
+              "hidden items-center gap-1 min-[1200px]:flex",
+              isOnboarding && "min-[1200px]:hidden",
+            )}
+          >
             {privateNav.map((item) => (
               <Button
                 asChild
@@ -149,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            {user ? (
+            {user && !isOnboarding ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -199,43 +208,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>{user.name ?? "Canopy"}</DropdownMenuLabel>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <TreePine className="mr-2 size-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/collection">
-                      <BookOpen className="mr-2 size-4" />
-                      Collection
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/explore">
-                      <Search className="mr-2 size-4" />
-                      Explore dictionary
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/overstory">
-                      <Leaf className="mr-2 size-4" />
-                      The Overstory
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/history">
-                      <History className="mr-2 size-4" />
-                      Practice history
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                      <Settings className="mr-2 size-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  {!isOnboarding ? (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard">
+                          <TreePine className="mr-2 size-4" />
+                          Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/collection">
+                          <BookOpen className="mr-2 size-4" />
+                          Collection
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/explore">
+                          <Search className="mr-2 size-4" />
+                          Explore dictionary
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/overstory">
+                          <Leaf className="mr-2 size-4" />
+                          The Overstory
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/history">
+                          <History className="mr-2 size-4" />
+                          Practice history
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/settings">
+                          <Settings className="mr-2 size-4" />
+                          Settings
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : null}
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="mr-2 size-4" />
                     Sign out
@@ -254,11 +267,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className={cn("flex flex-1 flex-col", user && "pb-20 md:pb-0")}>
+      <div
+        className={cn(
+          "flex flex-1 flex-col",
+          user && !isOnboarding && "pb-20 md:pb-0",
+        )}
+      >
         {children}
       </div>
 
-      {user ? (
+      {user && !isOnboarding ? (
         <nav
           aria-label="Primary navigation"
           className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-card/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"

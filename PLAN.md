@@ -45,7 +45,10 @@ The following roadmap items have been delivered and verified:
    supported, and typed chat as a reliable fallback.
 25. Learner-owned practice preferences for proficiency, correction style,
     conversation goal, Chinese script, formality, and default voice speed,
-    applied to Understory generation while keeping per-reply playback controls.
+    applied to Understory and Overstory generation while keeping per-reply
+    playback controls.
+26. Short, skippable new-learner onboarding that establishes practice defaults
+    before the first dashboard visit.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 

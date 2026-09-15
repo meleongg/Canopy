@@ -90,5 +90,28 @@ export async function updateUserPreferences(
     .onConflictDoUpdate({
       target: userPreferences.userId,
       set: { ...preferences, updatedAt: new Date() },
+  });
+}
+
+export async function getOnboardingCompletedAt(userId: string) {
+  const [preferences] = await getDb()
+    .select({ onboardingCompletedAt: userPreferences.onboardingCompletedAt })
+    .from(userPreferences)
+    .where(eq(userPreferences.userId, userId));
+
+  return preferences?.onboardingCompletedAt ?? null;
+}
+
+export async function completeOnboarding(
+  userId: string,
+  preferences: UserPreferences,
+) {
+  const now = new Date();
+  await getDb()
+    .insert(userPreferences)
+    .values({ userId, ...preferences, onboardingCompletedAt: now, updatedAt: now })
+    .onConflictDoUpdate({
+      target: userPreferences.userId,
+      set: { ...preferences, onboardingCompletedAt: now, updatedAt: now },
     });
 }

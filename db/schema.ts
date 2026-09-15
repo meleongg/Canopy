@@ -108,6 +108,7 @@ export const userPreferences = pgTable("user_preferences", {
   })
     .notNull()
     .default("1"),
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
