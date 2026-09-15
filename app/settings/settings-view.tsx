@@ -35,6 +35,44 @@ const readingSizeOptions: {
   { value: "extra-large", label: "Extra large" },
 ];
 
+const practicePreferenceOptions = {
+  proficiency: [
+    { value: "beginner", label: "Beginner" },
+    { value: "intermediate", label: "Intermediate" },
+    { value: "advanced", label: "Advanced" },
+  ],
+  correctionStyle: [
+    { value: "gentle", label: "Gentle" },
+    { value: "direct", label: "Direct" },
+    { value: "on-request", label: "On request" },
+  ],
+  conversationGoal: [
+    { value: "everyday", label: "Everyday" },
+    { value: "travel", label: "Travel" },
+    { value: "work", label: "Work" },
+    { value: "vocabulary", label: "Vocabulary" },
+  ],
+  chineseScript: [
+    { value: "match-cards", label: "Match cards" },
+    { value: "simplified", label: "Simplified" },
+    { value: "traditional", label: "Traditional" },
+  ],
+  formality: [
+    { value: "casual", label: "Casual" },
+    { value: "neutral", label: "Neutral" },
+    { value: "formal", label: "Formal" },
+  ],
+  playbackSpeed: [
+    { value: "0.75", label: "0.75×" },
+    { value: "1", label: "1×" },
+    { value: "1.25", label: "1.25×" },
+    { value: "1.5", label: "1.5×" },
+  ],
+} as const satisfies Record<
+  string,
+  readonly { value: string; label: string }[]
+>;
+
 export function SettingsView({
   initialName,
   preferences: initialPreferences,
@@ -167,7 +205,8 @@ export function SettingsView({
           <CardHeader>
             <CardTitle>Learning defaults</CardTitle>
             <CardDescription>
-              Used when you begin a new vocabulary import.
+              Defaults for imports and practice. You can still adjust controls
+              during a session.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -239,6 +278,176 @@ export function SettingsView({
                     {label}
                   </Button>
                 ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Practice proficiency</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Shapes the complexity and support in generated practice.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {practicePreferenceOptions.proficiency.map(({ label, value }) => (
+                  <Button
+                    aria-pressed={preferences.proficiency === value}
+                    disabled={isPending}
+                    key={value}
+                    onClick={() =>
+                      savePreferences({
+                        ...preferences,
+                        proficiency: value,
+                      })
+                    }
+                    type="button"
+                    variant={
+                      preferences.proficiency === value ? "default" : "outline"
+                    }
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Corrections</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Guides how your companion responds to mistakes in Understory.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {practicePreferenceOptions.correctionStyle.map(
+                  ({ label, value }) => (
+                    <Button
+                      aria-pressed={preferences.correctionStyle === value}
+                      disabled={isPending}
+                      key={value}
+                      onClick={() =>
+                        savePreferences({
+                          ...preferences,
+                          correctionStyle: value,
+                        })
+                      }
+                      type="button"
+                      variant={
+                        preferences.correctionStyle === value
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {label}
+                    </Button>
+                  ),
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Conversation goal</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {practicePreferenceOptions.conversationGoal.map(
+                  ({ label, value }) => (
+                    <Button
+                      aria-pressed={preferences.conversationGoal === value}
+                      disabled={isPending}
+                      key={value}
+                      onClick={() =>
+                        savePreferences({
+                          ...preferences,
+                          conversationGoal: value,
+                        })
+                      }
+                      type="button"
+                      variant={
+                        preferences.conversationGoal === value
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {label}
+                    </Button>
+                  ),
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Chinese script</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Used for Chinese generated practice; non-Chinese practice is
+                unchanged.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {practicePreferenceOptions.chineseScript.map(
+                  ({ label, value }) => (
+                    <Button
+                      aria-pressed={preferences.chineseScript === value}
+                      disabled={isPending}
+                      key={value}
+                      onClick={() =>
+                        savePreferences({
+                          ...preferences,
+                          chineseScript: value,
+                        })
+                      }
+                      type="button"
+                      variant={
+                        preferences.chineseScript === value
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {label}
+                    </Button>
+                  ),
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Conversation formality</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {practicePreferenceOptions.formality.map(({ label, value }) => (
+                  <Button
+                    aria-pressed={preferences.formality === value}
+                    disabled={isPending}
+                    key={value}
+                    onClick={() =>
+                      savePreferences({ ...preferences, formality: value })
+                    }
+                    type="button"
+                    variant={
+                      preferences.formality === value ? "default" : "outline"
+                    }
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Default voice speed</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                You can still change speed beside any completed reply.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {practicePreferenceOptions.playbackSpeed.map(
+                  ({ label, value }) => (
+                    <Button
+                      aria-pressed={preferences.playbackSpeed === value}
+                      disabled={isPending}
+                      key={value}
+                      onClick={() =>
+                        savePreferences({
+                          ...preferences,
+                          playbackSpeed: value,
+                        })
+                      }
+                      type="button"
+                      variant={
+                        preferences.playbackSpeed === value
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {label}
+                    </Button>
+                  ),
+                )}
               </div>
             </div>
           </CardContent>

@@ -5,6 +5,8 @@ import { getOpenAIKey, hasOpenAIEnv } from "@/db/env";
 import { getCardSeeds } from "@/lib/cards";
 import { saveChatSession } from "@/lib/ai-sessions";
 import { GARDEN_BOUNDARY_MESSAGE, moderateText } from "@/lib/openai";
+import { getUserPreferences } from "@/lib/user-preferences";
+import { practicePromptInstructions } from "@/lib/practice-preferences";
 import { stripModelMarkdownMarkers } from "@/lib/ai-text";
 import { requireApiAuth } from "@/lib/session";
 import {
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
       status: 404,
     });
   }
+  const preferences = await getUserPreferences(auth.session.user.id);
 
   if (!hasOpenAIEnv()) {
     return new Response("OPENAI_API_KEY is required to generate chat.", {
@@ -94,6 +97,11 @@ export async function POST(request: Request) {
         : languageCode === "fr-FR"
           ? "French"
           : "the target language";
+  const practiceInstructions = practicePromptInstructions(
+    preferences,
+    languageCode,
+    { includeCorrections: true },
+  );
   const conversation = parsed.data.messageHistory.length
     ? { messages: parsed.data.messageHistory as ModelMessage[] }
     : {
@@ -104,7 +112,7 @@ export async function POST(request: Request) {
     userTurns.length === UNDERSTORY_LEARNER_TURN_LIMIT
       ? "FINAL RESPONSE CONTRACT: this is the learner's final turn. Answer any direct point in their message, then warmly recap or reinforce useful vocabulary and close the scene. Do not ask, invite, offer, or imply a follow-up. Do not use a question mark or Chinese question mark."
       : "End with one natural question that invites the learner to answer.";
-  const system = `You are ${companion.name}, Canopy's companion for The Understory Chat. ${companion.prompt} Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. Use plain text only; never use Markdown formatting. ${closingInstruction} Selected vocabulary: ${targetWords}.`;
+  const system = `You are ${companion.name}, Canopy's companion for The Understory Chat. ${companion.prompt} Run a natural, low-pressure roleplay in ${setting}. The target language is ${targetLanguage}; respond primarily in that language, not English. If the target is Chinese, use Chinese characters first and include pinyin only when correcting or clarifying. ${practiceInstructions} Keep each reply to 1-3 short sentences. Weave in the selected vocabulary when appropriate, but do not force every word into every reply. If the learner writes English, answer in ${targetLanguage} and give only a very brief English hint if needed. Use plain text only; never use Markdown formatting. ${closingInstruction} Selected vocabulary: ${targetWords}.`;
   const generation = {
     model: openai("gpt-4o-mini"),
     temperature: userTurns.length === UNDERSTORY_LEARNER_TURN_LIMIT ? 0.2 : 0.7,
