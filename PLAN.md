@@ -52,6 +52,9 @@ The following roadmap items have been delivered and verified:
 27. Dictionary-backed Simplified/Traditional card variants with a single review
     record, reactive card display preferences, and a conservative enrichment
     path for existing and manually imported Chinese cards.
+28. Optional Explore Chinese pinyin matching and Simplified/Traditional
+    recognition practice, sourced from the active dictionary and kept outside
+    scheduled review until a learner explicitly adds a card.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -60,9 +63,8 @@ Decks, analytics, social features, and push notifications remain out of scope fo
 Explore dictionary-backed discovery features using the shared CC-CEDICT lookup
 data without turning its full corpus into learner cards or scheduled review:
 
-- Pinyin and tone contrast practice, Traditional/Simplified recognition, and
-  sense-selection exercises that remain outside the learner's formal review
-  rhythm until they choose to add a card.
+- Tone contrast and sense-selection exercises that remain outside the
+  learner's formal review rhythm until they choose to add a card.
 - A separate, curated “Explore Chinese” practice mode with deliberate
   topic/level filters rather than a random draw from the whole dictionary.
 - A separate, graph-style vocabulary map is deferred until Canopy has richer,
@@ -80,8 +82,3 @@ Add server-side AI rate limiting (for example, a dedicated Redis/Valkey store or
 Vercel WAF rule) after observing enough real activity to justify the operational
 cost and configuration. It must use Canopy-isolated credentials; do not share a
 database token with another project.
-
-Refine practice history when saved-session volume justifies it: add All,
-Overstory, and Understory filters with scoped empty states, then introduce
-pagination or a load-more control rather than expanding the initial 60-session
-list indefinitely.

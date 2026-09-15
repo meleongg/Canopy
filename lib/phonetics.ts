@@ -9,6 +9,14 @@ export function isChinese(languageCode: string) {
   return languageCode.startsWith("zh") || isCantonese(languageCode);
 }
 
+export function displayPhoneticReading(
+  languageCode: string,
+  reading: string[],
+) {
+  const text = reading.join(" ");
+  return isChinese(languageCode) ? text.toLocaleLowerCase() : text;
+}
+
 export function normalizeSuppliedReading(value: string) {
   const stripped = value.replace(/^\s*\[?|\]?\s*$/g, "").trim();
   const numberedTokens = stripped.match(/[a-züv:]+[1-5]/gi);

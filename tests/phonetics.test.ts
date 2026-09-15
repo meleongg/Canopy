@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSuppliedReading } from "@/lib/phonetics";
+import {
+  displayPhoneticReading,
+  normalizeSuppliedReading,
+} from "@/lib/phonetics";
 
 describe("normalizeSuppliedReading", () => {
   it("renders numbered Mandarin tones with neutral tones unmarked", () => {
@@ -10,5 +13,10 @@ describe("normalizeSuppliedReading", () => {
       "shí",
       "hou",
     ]);
+  });
+
+  it("uses lowercase Chinese readings without changing other languages", () => {
+    expect(displayPhoneticReading("zh-CN", ["Xī"])).toBe("xī");
+    expect(displayPhoneticReading("fr-FR", ["Paris"])).toBe("Paris");
   });
 });

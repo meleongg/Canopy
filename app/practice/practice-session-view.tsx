@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { practiceSourceLabel, type PracticeSource } from "@/lib/practice";
+import { displayPhoneticReading } from "@/lib/phonetics";
 
 export function PracticeSessionView({
   initialCards,
@@ -126,7 +127,10 @@ export function PracticeSessionView({
               </CardTitle>
               {card.phoneticReading.length > 0 ? (
                 <p className="mt-3 text-base text-muted-foreground">
-                  {card.phoneticReading.join(" ")}
+                  {displayPhoneticReading(
+                    card.languageCode,
+                    card.phoneticReading,
+                  )}
                 </p>
               ) : null}
             </div>

@@ -20,6 +20,7 @@ import {
 } from "@/components/canopy/card-utils";
 import type { WorkspaceCard } from "@/components/canopy/types";
 import { CardDisplayText } from "@/components/canopy/card-display-text";
+import { displayPhoneticReading } from "@/lib/phonetics";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -263,7 +264,10 @@ export function CollectionView({
                   <CardDisplayText card={card} />
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {card.phoneticReading.join(" ") || card.definitions[0]}
+                  {displayPhoneticReading(
+                    card.languageCode,
+                    card.phoneticReading,
+                  ) || card.definitions[0]}
                 </p>
               </div>
               <Badge>{card.languageCode} · Details</Badge>

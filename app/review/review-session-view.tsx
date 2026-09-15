@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { queryKeys } from "@/lib/query-keys";
+import { displayPhoneticReading } from "@/lib/phonetics";
 
 const ratingOptions = [
   { rating: 2, label: "Hard", description: "Needs another look", key: "1" },
@@ -202,7 +203,10 @@ export function ReviewSessionView({
               </CardTitle>
               {card.phoneticReading.length > 0 ? (
                 <p className="mt-3 text-base text-muted-foreground">
-                  {card.phoneticReading.join(" ")}
+                  {displayPhoneticReading(
+                    card.languageCode,
+                    card.phoneticReading,
+                  )}
                 </p>
               ) : null}
             </div>

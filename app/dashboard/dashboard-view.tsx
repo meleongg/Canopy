@@ -30,6 +30,7 @@ import {
 } from "@/components/canopy/card-utils";
 import { LanguageSelect } from "@/components/canopy/language-select";
 import { CardDisplayText } from "@/components/canopy/card-display-text";
+import { displayPhoneticReading } from "@/lib/phonetics";
 import type { ImportDraft, WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -639,7 +640,10 @@ export function ReviewQueue({
                     <CardDisplayText card={card} />
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {card.phoneticReading.join(" ") || card.definitions[0]}
+                    {displayPhoneticReading(
+                      card.languageCode,
+                      card.phoneticReading,
+                    ) || card.definitions[0]}
                   </p>
                 </div>
                 <Badge>{card.languageCode} · Details</Badge>
@@ -1036,7 +1040,10 @@ export function DashboardView({
                       <CardDisplayText card={card} />
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {card.phoneticReading.join(" ") || card.definitions[0]}
+                      {displayPhoneticReading(
+                        card.languageCode,
+                        card.phoneticReading,
+                      ) || card.definitions[0]}
                     </p>
                   </div>
                   <Badge>{card.languageCode}</Badge>
