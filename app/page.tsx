@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { BookOpen, MessageCircle, Sprout } from "lucide-react";
+import {
+  BookOpen,
+  Compass,
+  History,
+  MessageCircle,
+  Sprout,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,21 +18,27 @@ import { getServerSession } from "@/lib/session";
 
 const previews = [
   {
-    title: "The Sprouting Queue",
+    title: "Import & review",
     description:
-      "Revisit cards when they need a little more time to take root.",
+      "Preview a vocabulary export, keep only the cards you want, then revisit them when they are due.",
     icon: Sprout,
   },
   {
-    title: "The Overstory Sandbox",
+    title: "Practice in context",
     description: "Watch your vocabulary blossom into custom reading context.",
     icon: BookOpen,
   },
   {
-    title: "The Understory Chat",
+    title: "Read, speak, explore",
     description:
-      "Drop your conversational roots in a low-pressure dialogue with Bramble.",
+      "Use Overstory, Understory voice or text chat, and low-stakes Chinese contrasts without disturbing review.",
     icon: MessageCircle,
+  },
+  {
+    title: "Keep your trail",
+    description:
+      "Return to private completed practice and dictionary lookups whenever you need a refresher.",
+    icon: History,
   },
 ];
 
@@ -40,14 +52,15 @@ export default async function LandingPage() {
         <div className="mx-auto grid w-full max-w-7xl content-center gap-10 px-4 py-12 md:grid-cols-[1.1fr_0.9fr] md:px-8">
           <div className="flex flex-col justify-center">
             <p className="text-sm font-semibold uppercase text-primary">
-              Canopy
+              A private Chinese learning workspace
             </p>
             <h1 className="mt-3 max-w-3xl font-serif text-5xl font-black leading-tight md:text-7xl">
-              Vocabulary grows by use.
+              Bring your words into practice.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Import dictionary logs, review what is due, and turn selected
-              words into reading and conversation practice.
+              Preview a Mandarin or Cantonese vocabulary list, review on a
+              gentle rhythm, then use your own words in reading, conversation,
+              voice, and exploratory practice.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
@@ -60,6 +73,11 @@ export default async function LandingPage() {
                   <Link href="/login">Sign in</Link>
                 </Button>
               ) : null}
+              <Button asChild size="lg" variant="ghost">
+                <Link href={session ? "/explore" : "/login"}>
+                  <Compass /> Explore Chinese
+                </Link>
+              </Button>
             </div>
           </div>
 

@@ -85,7 +85,12 @@ async function upsertVocabularyEntries(
     if (isMissingDatabaseSchemaError(error)) {
       return { ok: false, message: databaseSetupMessage() };
     }
-    throw error;
+    console.error("Vocabulary import failed.", error);
+    return {
+      ok: false,
+      message:
+        "Your vocabulary was not saved. Please check the preview and try again.",
+    };
   }
 }
 
@@ -95,10 +100,25 @@ export async function importVocabularyAction(
 ): Promise<ActionState> {
   const rawText = String(formData.get("rawText") ?? "");
   const languageCode = String(formData.get("languageCode") ?? "zh-CN");
+  if (languageCode !== "zh-CN" && languageCode !== "zh-HK") {
+    return {
+      ok: false,
+      message: "Choose Mandarin or Cantonese before importing.",
+    };
+  }
   const file = formData.get("file");
   const fileText =
     file instanceof File && file.size > 0 ? await file.text() : "";
-  const entries = await parseVocabularyLog(fileText || rawText, languageCode);
+  let entries: ParsedVocabularyEntry[];
+  try {
+    entries = await parseVocabularyLog(fileText || rawText, languageCode);
+  } catch (error) {
+    console.error("Vocabulary parsing failed.", error);
+    return {
+      ok: false,
+      message: "That import could not be read. Paste plain text and try again.",
+    };
+  }
 
   return upsertVocabularyEntries(entries);
 }
@@ -124,6 +144,12 @@ export async function addFlashcardAction(
   formData: FormData,
 ): Promise<ActionState> {
   const languageCode = String(formData.get("manualLanguageCode") ?? "zh-CN");
+  if (languageCode !== "zh-CN" && languageCode !== "zh-HK") {
+    return {
+      ok: false,
+      message: "Choose Mandarin or Cantonese before adding a card.",
+    };
+  }
   const targetText = String(formData.get("targetText") ?? "").trim();
   const phonetic = String(formData.get("phoneticReading") ?? "").trim();
   const definitions = String(formData.get("definitions") ?? "").trim();
@@ -137,8 +163,24 @@ export async function addFlashcardAction(
   }
 
   const row = [targetText, phonetic, definitions].filter(Boolean).join("\t");
-  const entries = await parseVocabularyLog(row, languageCode);
+  let entries: ParsedVocabularyEntry[];
+  try {
+    entries = await parseVocabularyLog(row, languageCode);
+  } catch (error) {
+    console.error("Manual card parsing failed.", error);
+    return {
+      ok: false,
+      message: "That card could not be read. Check the word and definition.",
+    };
+  }
   const [entry] = entries;
+
+  if (!entry) {
+    return {
+      ok: false,
+      message: "Add a word or phrase and at least one plain-text definition.",
+    };
+  }
 
   if (entry && exampleContext) {
     entry.exampleContexts = [

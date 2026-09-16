@@ -84,6 +84,8 @@ const importExamples: Record<string, string> = {
   und: "kinship\tfamily relationship\nthreshold\tstarting point",
 };
 
+const MAX_IMPORT_FILE_BYTES = 1_000_000;
+
 function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.dashboardCards });
   void queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue });
@@ -118,9 +120,27 @@ function ImportPanel() {
   }, []);
 
   async function readImportFile(file: File) {
-    const text = await file.text();
-    setImportRawText(text);
-    setImportPreviewMessage(`Loaded ${file.name}. Preview before creating.`);
+    if (!file.name.toLocaleLowerCase().endsWith(".txt")) {
+      setImportPreviewMessage(
+        "Choose a plain .txt export. Other file types are not imported.",
+      );
+      return;
+    }
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      setImportPreviewMessage(
+        "That file is over 1 MB. Export a smaller plain-text vocabulary list and try again.",
+      );
+      return;
+    }
+    try {
+      const text = await file.text();
+      setImportRawText(text);
+      setImportPreviewMessage(`Loaded ${file.name}. Preview before creating.`);
+    } catch {
+      setImportPreviewMessage(
+        "That file could not be read. Try a UTF-8 plain-text export.",
+      );
+    }
   }
 
   async function previewImport() {
@@ -141,7 +161,10 @@ function ImportPanel() {
       });
 
       if (!response.ok) {
-        setImportPreviewMessage(await response.text());
+        setImportPreviewMessage(
+          (await response.text()) ||
+            "The preview could not be created. Please try again.",
+        );
         return;
       }
 
@@ -159,6 +182,10 @@ function ImportPanel() {
         drafts.length
           ? `Previewing ${drafts.length} flashcard draft${drafts.length === 1 ? "" : "s"}.`
           : "No importable entries found.",
+      );
+    } catch {
+      setImportPreviewMessage(
+        "The preview could not be created. Check your connection and try again.",
       );
     } finally {
       setImportPreviewPending(false);
@@ -415,7 +442,7 @@ function ImportPanel() {
               />
               <Button className="w-full" disabled={importPending} type="submit">
                 <Upload />
-                Create Flashcards
+                {importPending ? "Creating flashcards…" : "Create Flashcards"}
               </Button>
             </form>
           </div>
@@ -461,7 +488,12 @@ function AddCardPanel() {
           >
             Word or phrase
           </label>
-          <Input id="targetText" name="targetText" placeholder="机场" />
+          <Input
+            id="targetText"
+            name="targetText"
+            placeholder="机场"
+            required
+          />
           <label
             className="mt-4 block text-sm font-medium"
             htmlFor="phoneticReading"
@@ -483,6 +515,7 @@ function AddCardPanel() {
             id="definitions"
             name="definitions"
             placeholder="airport; terminal"
+            required
           />
           <label
             className="mt-4 block text-sm font-medium"
