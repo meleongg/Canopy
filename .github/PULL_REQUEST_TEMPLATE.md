@@ -42,4 +42,6 @@
 
 ## Reviewer notes
 
+<!-- Do not include local /tmp artifact paths here. Link only reviewer-accessible artifacts; share local walkthroughs in the user-facing handoff. -->
+
 - 
