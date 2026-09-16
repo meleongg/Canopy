@@ -1,6 +1,9 @@
 # Canopy private beta
 
-Canopy's beta finishes the personal learning loop: import vocabulary, review active cards, generate practice, and revisit completed practice privately.
+Canopy's private beta is feature-complete: learners can import vocabulary,
+review active cards, generate practice, and revisit completed practice
+privately. The focus now is observing real use and learning what deserves to
+grow next.
 
 ## Completed
 
