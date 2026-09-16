@@ -5,13 +5,23 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Canopy",
     short_name: "Canopy",
     description:
-      "A vocabulary workspace with The Sprouting Queue, The Overstory Sandbox, and The Understory Chat.",
-    start_url: "/",
+      "A private Mandarin vocabulary workspace for review, reading, and conversation practice.",
+    id: "/",
+    lang: "en",
+    start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     background_color: "#FDFBF7",
     theme_color: "#4A5D4E",
+    categories: ["education", "productivity"],
+    prefer_related_applications: false,
     icons: [
+      {
+        src: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
       {
         src: "/web-app-manifest-192x192.png",
         sizes: "192x192",
@@ -22,7 +32,27 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/web-app-manifest-512x512.png",
         sizes: "512x512",
         type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
         purpose: "maskable",
+      },
+    ],
+    shortcuts: [
+      {
+        name: "Dashboard",
+        short_name: "Dashboard",
+        description: "Open your vocabulary review dashboard.",
+        url: "/dashboard",
+      },
+      {
+        name: "Explore Chinese",
+        short_name: "Explore",
+        description: "Search the Chinese dictionary and try low-stakes practice.",
+        url: "/explore",
       },
     ],
   };

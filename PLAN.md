@@ -55,6 +55,9 @@ The following roadmap items have been delivered and verified:
 28. Optional Explore Chinese pinyin matching and Simplified/Traditional
     recognition practice, sourced from the active dictionary and kept outside
     scheduled review until a learner explicitly adds a card.
+29. Installable home-screen launch support with standalone display, Apple
+    metadata, purpose-appropriate icons, and authenticated entry points; it
+    does not promise fully offline learning.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
