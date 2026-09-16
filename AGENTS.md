@@ -27,6 +27,7 @@
 * **Human Control:** A recommended Auto-approve tier never authorizes an agent to merge. Only the user may approve, mark ready, or merge a pull request.
 * **Evidence:** Include screenshots for user-visible changes when reliable local capture is available; otherwise state why screenshots are unavailable.
 * **Clickable handoffs:** In every user-facing handoff, provide clickable Markdown links for all available deliverables and relevant artifacts, including pull requests, preview deployments, local HTML walkthroughs, and changed files. Do not leave a bare local path when a clickable link can be rendered.
+* **Local walkthroughs:** A `/tmp` HTML walkthrough is available only to the current user session. Link it in the user-facing handoff, but do not paste its filesystem path into a pull-request body. Include a walkthrough in the PR only when it has a durable, reviewer-accessible URL.
 * **Draft Deliverable:** For substantial work that belongs on a feature branch, commit the completed work, push the branch, and publish a draft pull request using the template. The draft PR is the final deliverable. Small changes and experiments do not require a new draft PR; add them to an existing relevant draft when appropriate.
 
 ## Definition of "Done"
