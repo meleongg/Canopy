@@ -29,7 +29,6 @@ export function LanguageSelect({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="zh-CN">Mandarin</SelectItem>
-        <SelectItem value="zh-HK">Cantonese</SelectItem>
       </SelectContent>
     </Select>
   );

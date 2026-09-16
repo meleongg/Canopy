@@ -77,7 +77,12 @@ export async function getUserPreferences(
     .from(userPreferences)
     .where(eq(userPreferences.userId, userId));
 
-  return preferences ?? defaultPreferences;
+  return {
+    ...(preferences ?? defaultPreferences),
+    // Keep legacy values stored for compatibility, but the beta currently
+    // exposes Mandarin imports only.
+    importLanguage: "zh-CN",
+  };
 }
 
 export async function updateUserPreferences(
@@ -90,7 +95,7 @@ export async function updateUserPreferences(
     .onConflictDoUpdate({
       target: userPreferences.userId,
       set: { ...preferences, updatedAt: new Date() },
-  });
+    });
 }
 
 export async function getOnboardingCompletedAt(userId: string) {
@@ -109,7 +114,12 @@ export async function completeOnboarding(
   const now = new Date();
   await getDb()
     .insert(userPreferences)
-    .values({ userId, ...preferences, onboardingCompletedAt: now, updatedAt: now })
+    .values({
+      userId,
+      ...preferences,
+      onboardingCompletedAt: now,
+      updatedAt: now,
+    })
     .onConflictDoUpdate({
       target: userPreferences.userId,
       set: { ...preferences, onboardingCompletedAt: now, updatedAt: now },

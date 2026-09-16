@@ -66,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<ShellUser | null>(null);
   const { theme, setChineseScript, setReadingSize, setTheme } = useCanopyTheme();
   const isOnboarding = pathname === "/onboarding";
+  const isLandingPage = pathname === "/";
   const { data: preferences } = useQuery({
     queryKey: queryKeys.userPreferences,
     enabled: Boolean(user),
@@ -139,30 +140,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="font-serif text-xl font-black">Canopy</span>
           </Link>
 
-          <nav
-            className={cn(
-              "hidden items-center gap-1 min-[1200px]:flex",
-              isOnboarding && "min-[1200px]:hidden",
-            )}
-          >
-            {privateNav.map((item) => (
-              <Button
-                asChild
-                className={cn(
-                  "h-9",
-                  pathname === item.href && "bg-card text-foreground",
-                )}
-                key={item.href}
-                size="sm"
-                variant="ghost"
-              >
-                <Link href={item.href}>{item.label}</Link>
-              </Button>
-            ))}
-          </nav>
+          {!isLandingPage ? (
+            <nav
+              className={cn(
+                "hidden items-center gap-1 min-[1200px]:flex",
+                isOnboarding && "min-[1200px]:hidden",
+              )}
+            >
+              {privateNav.map((item) => (
+                <Button
+                  asChild
+                  className={cn(
+                    "h-9",
+                    pathname === item.href && "bg-card text-foreground",
+                  )}
+                  key={item.href}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <Link href={item.href}>{item.label}</Link>
+                </Button>
+              ))}
+            </nav>
+          ) : null}
 
           <div className="ml-auto flex items-center gap-2">
-            {user && !isOnboarding ? (
+            {user && !isOnboarding && !isLandingPage ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -315,9 +318,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {["/", "/privacy", "/terms", "/attributions"].includes(pathname) ? (
         <footer className="border-t border-border bg-card/60">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
-            <p>
-              Canopy grows vocabulary through review, context, and dialogue.
-            </p>
+            <div>
+              <p>Canopy grows vocabulary through review, context, and dialogue.</p>
+              <p className="mt-1 text-xs">© 2026 Canopy. All rights reserved.</p>
+            </div>
             <nav aria-label="Legal" className="flex gap-4">
               <Link className="hover:text-foreground" href="/privacy">
                 Privacy

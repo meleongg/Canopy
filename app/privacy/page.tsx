@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Effective August 11, 2026
+        Effective September 15, 2026
       </p>
       <div className="mt-8 space-y-8 text-sm leading-7">
         <section>
@@ -21,8 +21,9 @@ export default function PrivacyPage() {
             Canopy stores the account details needed to provide your sign-in,
             including your name, email address, and authentication session
             information. It also stores the vocabulary you add, personal card
-            changes, review scheduling state, saved example context, and
-            completed practice sessions.
+            changes, review scheduling state, saved example context, completed
+            practice sessions, dictionary lookup history, and learning
+            preferences.
           </p>
         </section>
         <section>
@@ -40,10 +41,12 @@ export default function PrivacyPage() {
           </h2>
           <p className="mt-2">
             Canopy relies on infrastructure providers to host the application
-            and database. When you ask Canopy to generate AI content, the
-            selected vocabulary and the text needed for that request are sent to
-            OpenAI to produce the response. Do not include sensitive personal
-            information in vocabulary imports or practice prompts.
+            and database. When you ask Canopy to generate AI content or speech,
+            the selected vocabulary and text needed for that request are sent to
+            OpenAI. If you use optional speech-to-text, the recording is sent to
+            OpenAI for transcription and is not retained by Canopy after that
+            request completes. Do not include sensitive personal information in
+            vocabulary imports, practice prompts, or recordings.
           </p>
         </section>
         <section>
@@ -51,9 +54,10 @@ export default function PrivacyPage() {
             Retention and control
           </h2>
           <p className="mt-2">
-            You can edit, archive, or delete individual cards and delete saved
-            practice from within Canopy. To request account deletion or ask a
-            privacy question, contact us through the{" "}
+            You can edit, archive, or delete individual cards, clear dictionary
+            lookup history, and delete saved practice from within Canopy. To
+            request account deletion or ask a privacy question, contact us
+            through the{" "}
             <Link
               className="text-primary underline"
               href="https://github.com/meleongg/Canopy"

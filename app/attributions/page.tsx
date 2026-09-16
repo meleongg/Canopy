@@ -15,9 +15,10 @@ export default function AttributionsPage() {
         <section>
           <h2 className="font-serif text-xl font-semibold">CC-CEDICT</h2>
           <p className="mt-2">
-            Chinese dictionary definitions in Canopy are derived from CC-CEDICT
-            contributors and are normalized for lookup in Canopy. The source
-            data is available from the{" "}
+            Chinese forms, readings, and English glosses used in Canopy&apos;s
+            dictionary and practice exercises are derived from CC-CEDICT
+            contributors and normalized for lookup. The source data is
+            available from the{" "}
             <Link
               className="text-primary underline"
               href="https://www.mdbg.net/chinese/dictionary?page=cc-cedict"

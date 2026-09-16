@@ -12,16 +12,18 @@ export default function TermsPage() {
         Terms of Use
       </h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Effective August 11, 2026
+        Effective September 15, 2026
       </p>
       <div className="mt-8 space-y-8 text-sm leading-7">
         <section>
           <h2 className="font-serif text-xl font-semibold">Using Canopy</h2>
           <p className="mt-2">
-            Canopy is a private-beta vocabulary learning workspace. Use it for
-            lawful personal learning, keep your account credentials secure, and
-            provide accurate registration information. You are responsible for
-            the vocabulary and prompts you add.
+            Canopy is a private-beta vocabulary learning workspace for
+            English-speaking learners of Mandarin. Simplified and Traditional
+            Chinese are display choices, not separate language courses. Use
+            Canopy for lawful personal learning, keep your account credentials
+            secure, and provide accurate registration information. You are
+            responsible for the vocabulary and prompts you add.
           </p>
         </section>
         <section>
@@ -29,7 +31,7 @@ export default function TermsPage() {
             Generated content
           </h2>
           <p className="mt-2">
-            Stories, example context, and chat responses are generated to
+            Stories, example context, chat responses, and speech transcripts
             support language practice. They can be incomplete or inaccurate and
             should not be treated as professional advice or as a substitute for
             a trusted dictionary, teacher, or other specialist.
