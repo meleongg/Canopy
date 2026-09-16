@@ -73,11 +73,13 @@ export default async function LandingPage() {
                   <Link href="/login">Sign in</Link>
                 </Button>
               ) : null}
-              <Button asChild size="lg" variant="ghost">
-                <Link href={session ? "/explore" : "/login"}>
-                  <Compass /> Explore Chinese
-                </Link>
-              </Button>
+              {session ? (
+                <Button asChild size="lg" variant="ghost">
+                  <Link href="/explore">
+                    <Compass /> Explore Chinese
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           </div>
 
