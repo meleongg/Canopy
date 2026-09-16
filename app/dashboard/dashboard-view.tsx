@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -64,6 +64,7 @@ import {
 } from "@/lib/example-contexts";
 import { queryKeys } from "@/lib/query-keys";
 import type { LearningRhythmDay } from "@/lib/learning-rhythm";
+import type { UserPreferences } from "@/lib/user-preferences";
 import { cn } from "@/lib/utils";
 
 const initialImportState = {
@@ -103,21 +104,24 @@ function ImportPanel() {
     },
     initialImportState,
   );
-  const [importLanguage, setImportLanguage] = useState("zh-CN");
+  const [selectedImportLanguage, setSelectedImportLanguage] = useState<
+    string | null
+  >(null);
   const [importRawText, setImportRawText] = useState("");
   const [importDrafts, setImportDrafts] = useState<ImportDraft[]>([]);
   const [importPreviewMessage, setImportPreviewMessage] = useState("");
   const [importPreviewPending, setImportPreviewPending] = useState(false);
+  const { data: preferences } = useQuery({
+    queryKey: queryKeys.userPreferences,
+    queryFn: async (): Promise<UserPreferences> => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Could not load preferences.");
+      return (await response.json()) as UserPreferences;
+    },
+  });
 
-  useEffect(() => {
-    void fetch("/api/settings")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((preferences: { importLanguage?: string } | null) => {
-        if (preferences?.importLanguage) {
-          setImportLanguage(preferences.importLanguage);
-        }
-      });
-  }, []);
+  const importLanguage =
+    selectedImportLanguage ?? preferences?.importLanguage ?? "zh-CN";
 
   async function readImportFile(file: File) {
     if (!file.name.toLocaleLowerCase().endsWith(".txt")) {
@@ -236,7 +240,7 @@ function ImportPanel() {
         </label>
         <LanguageSelect
           value={importLanguage}
-          onValueChange={setImportLanguage}
+          onValueChange={setSelectedImportLanguage}
         />
 
         <label className="mt-4 block text-sm font-medium" htmlFor="rawText">

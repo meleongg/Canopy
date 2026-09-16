@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   ChevronDown,
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { useCanopyTheme } from "@/app/providers";
+import { queryKeys } from "@/lib/query-keys";
 import type {
   DictionarySearchResult,
   DictionaryDiscoveryResult,
@@ -34,6 +36,43 @@ type LookupHistoryEntry = {
   query: string;
   scope: DictionarySearchScope;
 };
+
+async function fetchLookupHistory(): Promise<LookupHistoryEntry[]> {
+  const response = await fetch("/api/dictionary/history");
+  if (!response.ok) throw new Error("Dictionary history could not be loaded.");
+  const payload = (await response.json()) as {
+    entries: LookupHistoryEntry[];
+  };
+  return payload.entries;
+}
+
+async function fetchDictionarySearch(
+  query: string,
+  scope: DictionarySearchScope,
+  saveHistory: boolean,
+): Promise<DictionarySearchResult[]> {
+  const response = await fetch("/api/dictionary/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, scope, saveHistory }),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  const payload = (await response.json()) as {
+    entries: DictionarySearchResult[];
+  };
+  return payload.entries;
+}
+
+async function fetchDictionaryDiscoveries(): Promise<
+  DictionaryDiscoveryResult[]
+> {
+  const response = await fetch("/api/dictionary/discover");
+  if (!response.ok) throw new Error(await response.text());
+  const payload = (await response.json()) as {
+    entries: DictionaryDiscoveryResult[];
+  };
+  return payload.entries;
+}
 
 function DictionaryEntryCard({
   entry,
@@ -91,37 +130,56 @@ function DictionaryEntryCard({
 
 export function DictionaryExplorerView() {
   const { toast } = useToast();
-  const [entries, setEntries] = useState<DictionarySearchResult[]>([]);
-  const [discoveries, setDiscoveries] = useState<DictionaryDiscoveryResult[]>(
-    [],
-  );
+  const queryClient = useQueryClient();
   const [hasExploredCompounds, setHasExploredCompounds] = useState(false);
-  const [isDiscovering, setIsDiscovering] = useState(false);
   const [isConnectionsOpen, setIsConnectionsOpen] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSubmittingSearch, setIsSubmittingSearch] = useState(false);
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<DictionarySearchScope>("all");
   const [addingEntryId, setAddingEntryId] = useState<string | null>(null);
-  const [history, setHistory] = useState<LookupHistoryEntry[]>([]);
-
-  async function loadHistory() {
-    const response = await fetch("/api/dictionary/history");
-    if (!response.ok) return;
-    const payload = (await response.json()) as {
-      entries: LookupHistoryEntry[];
-    };
-    setHistory(payload.entries);
-  }
-
-  useEffect(() => {
-    void fetch("/api/dictionary/history")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { entries: LookupHistoryEntry[] } | null) => {
-        if (payload) setHistory(payload.entries);
-      })
-      .catch(() => undefined);
-  }, []);
+  const [submittedSearch, setSubmittedSearch] = useState<{
+    query: string;
+    scope: DictionarySearchScope;
+  } | null>(null);
+  const historyQuery = useQuery({
+    queryKey: queryKeys.dictionaryHistory,
+    queryFn: fetchLookupHistory,
+  });
+  const searchQuery = useQuery({
+    queryKey: queryKeys.dictionarySearch(
+      submittedSearch?.scope ?? "all",
+      submittedSearch?.query ?? "",
+    ),
+    queryFn: () => {
+      if (!submittedSearch) return Promise.resolve([]);
+      return fetchDictionarySearch(
+        submittedSearch.query,
+        submittedSearch.scope,
+        false,
+      );
+    },
+    enabled: Boolean(submittedSearch),
+  });
+  const discoveriesQuery = useQuery({
+    queryKey: queryKeys.dictionaryDiscoveries,
+    queryFn: fetchDictionaryDiscoveries,
+    enabled: isConnectionsOpen && hasExploredCompounds,
+  });
+  const history = historyQuery.data ?? [];
+  const entries = searchQuery.data ?? [];
+  const discoveries = discoveriesQuery.data ?? [];
+  const isSearching = isSubmittingSearch || searchQuery.isFetching;
+  const isDiscovering = discoveriesQuery.isFetching;
+  const feedbackMessage =
+    message ||
+    (searchQuery.isError
+      ? "Dictionary search could not be completed. Please try again."
+      : discoveriesQuery.isError
+        ? "Related forms could not be found. Please try again."
+        : submittedSearch && !isSearching && entries.length === 0
+          ? "No active dictionary entries matched that search."
+          : "");
 
   async function searchDictionary(
     searchScope = scope,
@@ -133,30 +191,24 @@ export function DictionaryExplorerView() {
       setMessage("Enter Chinese, pinyin, or an English gloss to search.");
       return;
     }
-    setIsSearching(true);
+    setIsSubmittingSearch(true);
     setMessage("");
     try {
-      const response = await fetch("/api/dictionary/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: term,
-          scope: searchScope,
-          saveHistory,
-        }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      const payload = (await response.json()) as {
-        entries: DictionarySearchResult[];
-      };
-      setEntries(payload.entries);
-      void loadHistory();
-      if (!payload.entries.length)
-        setMessage("No active dictionary entries matched that search.");
+      if (saveHistory) {
+        const entries = await fetchDictionarySearch(term, searchScope, true);
+        queryClient.setQueryData(
+          queryKeys.dictionarySearch(searchScope, term),
+          entries,
+        );
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.dictionaryHistory,
+        });
+      }
+      setSubmittedSearch({ query: term, scope: searchScope });
     } catch {
       setMessage("Dictionary search could not be completed. Please try again.");
     } finally {
-      setIsSearching(false);
+      setIsSubmittingSearch(false);
     }
   }
 
@@ -164,25 +216,18 @@ export function DictionaryExplorerView() {
     const response = await fetch("/api/dictionary/history", {
       method: "DELETE",
     });
-    if (response.ok) setHistory([]);
+    if (response.ok) {
+      queryClient.setQueryData(queryKeys.dictionaryHistory, []);
+    }
   }
 
   async function discoverCompounds() {
-    setIsDiscovering(true);
     setMessage("");
-    try {
-      const response = await fetch("/api/dictionary/discover");
-      if (!response.ok) throw new Error(await response.text());
-      const payload = (await response.json()) as {
-        entries: DictionaryDiscoveryResult[];
-      };
-      setDiscoveries(payload.entries);
-      setHasExploredCompounds(true);
-    } catch {
-      setMessage("Related forms could not be found. Please try again.");
-    } finally {
-      setIsDiscovering(false);
+    if (hasExploredCompounds) {
+      await discoveriesQuery.refetch();
+      return;
     }
+    setHasExploredCompounds(true);
   }
 
   async function addToCollection(entry: ExplorerEntry) {
@@ -194,34 +239,45 @@ export function DictionaryExplorerView() {
         body: JSON.stringify({ entryId: entry.entryId }),
       });
       if (!response.ok) throw new Error(await response.text());
-      setEntries((current) =>
-        current.map((candidate) =>
-          candidate.entryId === entry.entryId
-            ? {
-                ...candidate,
-                card: {
-                  id: candidate.entryId,
-                  phoneticReading: candidate.pinyin.split(/\s+/),
-                  definitions: candidate.definitions,
-                },
-              }
-            : candidate,
-        ),
+      queryClient.setQueriesData<DictionarySearchResult[]>(
+        { queryKey: queryKeys.dictionarySearchRoot },
+        (current) =>
+          current?.map((candidate) =>
+            candidate.entryId === entry.entryId
+              ? {
+                  ...candidate,
+                  card: {
+                    id: candidate.entryId,
+                    phoneticReading: candidate.pinyin.split(/\s+/),
+                    definitions: candidate.definitions,
+                  },
+                }
+              : candidate,
+          ),
       );
-      setDiscoveries((current) =>
-        current.map((candidate) =>
-          candidate.entryId === entry.entryId
-            ? {
-                ...candidate,
-                card: {
-                  id: candidate.entryId,
-                  phoneticReading: candidate.pinyin.split(/\s+/),
-                  definitions: candidate.definitions,
-                },
-              }
-            : candidate,
-        ),
+      queryClient.setQueryData<DictionaryDiscoveryResult[]>(
+        queryKeys.dictionaryDiscoveries,
+        (current) =>
+          current?.map((candidate) =>
+            candidate.entryId === entry.entryId
+              ? {
+                  ...candidate,
+                  card: {
+                    id: candidate.entryId,
+                    phoneticReading: candidate.pinyin.split(/\s+/),
+                    definitions: candidate.definitions,
+                  },
+                }
+              : candidate,
+          ),
       );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboardCards });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.overstorySeeds });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.understorySeeds });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.dictionaryDiscoveries,
+      });
       toast(`${entry.simplified} added to your collection.`);
     } catch {
       setMessage("That entry could not be added. Please try again.");
@@ -322,9 +378,9 @@ export function DictionaryExplorerView() {
           </div>
         </section>
       ) : null}
-      {message ? (
+      {feedbackMessage ? (
         <p className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
-          {message}
+          {feedbackMessage}
         </p>
       ) : null}
       <div className="space-y-3">
@@ -384,7 +440,10 @@ export function DictionaryExplorerView() {
               )}
               {isDiscovering ? "Finding…" : "Find connections"}
             </Button>
-            {hasExploredCompounds && !discoveries.length ? (
+            {hasExploredCompounds &&
+            !isDiscovering &&
+            !discoveriesQuery.isError &&
+            !discoveries.length ? (
               <p className="mt-4 text-sm text-muted-foreground">
                 Add active Chinese cards first, then come back to explore
                 character connections.

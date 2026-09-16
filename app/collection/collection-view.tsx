@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
@@ -34,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { MAX_EXAMPLE_CONTEXTS } from "@/lib/example-contexts";
+import { queryKeys } from "@/lib/query-keys";
 
 type Scope = "active" | "archived";
 
@@ -44,6 +50,20 @@ type CollectionResponse = {
   pageSize: number;
 };
 
+async function fetchCollectionPage(
+  scope: Scope,
+  query: string,
+  page: number,
+): Promise<CollectionResponse> {
+  const response = await fetch(
+    `/api/cards?scope=${scope}&query=${encodeURIComponent(query)}&page=${page}`,
+  );
+  if (!response.ok) {
+    throw new Error("Collection refresh failed.");
+  }
+  return response.json() as Promise<CollectionResponse>;
+}
+
 export function CollectionView({
   initialCards,
   initialTotal,
@@ -52,57 +72,58 @@ export function CollectionView({
   initialTotal: number;
 }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [scope, setScope] = useState<Scope>("active");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<CollectionResponse>({
-    cards: initialCards,
-    total: initialTotal,
-    page: 1,
-    pageSize: 20,
-  });
   const [editingCard, setEditingCard] = useState<WorkspaceCard | null>(null);
   const [deletingCard, setDeletingCard] = useState<WorkspaceCard | null>(null);
   const [actionMessage, setActionMessage] = useState("");
+  const collectionQuery = useQuery({
+    queryKey: queryKeys.collection(scope, query, page),
+    queryFn: () => fetchCollectionPage(scope, query, page),
+    initialData:
+      scope === "active" && query === "" && page === 1
+        ? {
+            cards: initialCards,
+            total: initialTotal,
+            page: 1,
+            pageSize: 20,
+          }
+        : undefined,
+    placeholderData: keepPreviousData,
+  });
+  const result = collectionQuery.data ?? {
+    cards: [],
+    total: 0,
+    page,
+    pageSize: 20,
+  };
 
-  const loadPage = useCallback(
-    async (nextScope = scope, nextQuery = query, nextPage = page) => {
-      const response = await fetch(
-        `/api/cards?scope=${nextScope}&query=${encodeURIComponent(nextQuery)}&page=${nextPage}`,
-      );
-      if (!response.ok) {
-        setActionMessage(
-          "Your collection could not be refreshed. Please try again.",
-        );
-        return;
-      }
-      setResult((await response.json()) as CollectionResponse);
-    },
-    [page, query, scope],
-  );
+  function updateCachedPage(
+    updater: (current: CollectionResponse) => CollectionResponse,
+  ) {
+    queryClient.setQueryData<CollectionResponse>(
+      queryKeys.collection(scope, query, page),
+      (current) => (current ? updater(current) : current),
+    );
+  }
 
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetch(
-      `/api/cards?scope=${scope}&query=${encodeURIComponent(query)}&page=${page}`,
-      { signal: controller.signal },
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Collection refresh failed.");
-        }
-        return response.json() as Promise<CollectionResponse>;
-      })
-      .then(setResult)
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setActionMessage(
-            "Your collection could not be refreshed. Please try again.",
-          );
-        }
-      });
-    return () => controller.abort();
-  }, [page, query, scope]);
+  async function refreshCollection() {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.collectionRoot,
+    });
+  }
+
+  function invalidateCardConsumers() {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.dashboardCards });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.overstorySeeds });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.understorySeeds });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.dictionaryDiscoveries,
+    });
+  }
 
   async function updateCard(
     cardId: string,
@@ -145,7 +166,7 @@ export function CollectionView({
         definitions,
       })
     ) {
-      setResult((current) => ({
+      updateCachedPage((current) => ({
         ...current,
         cards: current.cards.map((card) =>
           card.id === editingCard.id
@@ -153,6 +174,8 @@ export function CollectionView({
             : card,
         ),
       }));
+      void refreshCollection();
+      invalidateCardConsumers();
       setEditingCard(null);
       toast("Card details saved.");
     }
@@ -160,11 +183,13 @@ export function CollectionView({
 
   async function moveCard(card: WorkspaceCard) {
     if (await updateCard(card.id, { archived: scope === "active" })) {
-      setResult((current) => ({
+      updateCachedPage((current) => ({
         ...current,
         cards: current.cards.filter((item) => item.id !== card.id),
         total: Math.max(0, current.total - 1),
       }));
+      void refreshCollection();
+      invalidateCardConsumers();
       toast(
         scope === "active"
           ? "Card archived."
@@ -176,11 +201,13 @@ export function CollectionView({
   async function deleteSelectedCard() {
     if (!deletingCard) return;
     if (await updateCard(deletingCard.id, {}, "DELETE")) {
-      setResult((current) => ({
+      updateCachedPage((current) => ({
         ...current,
         cards: current.cards.filter((card) => card.id !== deletingCard.id),
         total: Math.max(0, current.total - 1),
       }));
+      void refreshCollection();
+      invalidateCardConsumers();
       setDeletingCard(null);
       toast("Card permanently deleted.");
     }
@@ -192,7 +219,7 @@ export function CollectionView({
   ) {
     setActionMessage("");
     await action(formData);
-    await loadPage();
+    await refreshCollection();
   }
 
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
@@ -247,6 +274,7 @@ export function CollectionView({
       </div>
 
       <p className="text-sm text-muted-foreground">
+        {collectionQuery.isFetching ? "Updating collection… " : ""}
         {result.total} card{result.total === 1 ? "" : "s"}
       </p>
       <div className="space-y-2">
@@ -377,6 +405,14 @@ export function CollectionView({
           role="status"
         >
           {actionMessage}
+        </p>
+      ) : null}
+      {collectionQuery.isError ? (
+        <p
+          className="rounded-lg border border-primary/40 bg-card p-3 text-sm"
+          role="status"
+        >
+          Your collection could not be refreshed. Please try again.
         </p>
       ) : null}
 
