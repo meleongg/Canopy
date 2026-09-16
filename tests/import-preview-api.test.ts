@@ -24,7 +24,7 @@ describe("import preview API", () => {
     const response = await POST(
       new Request("http://test/api/import-preview", {
         method: "POST",
-        body: JSON.stringify({ rawText: " ", languageCode: "fr-FR" }),
+        body: JSON.stringify({ rawText: " ", languageCode: "zh-HK" }),
       }),
     );
 

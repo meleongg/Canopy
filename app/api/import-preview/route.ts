@@ -4,7 +4,7 @@ import { requireApiAuth } from "@/lib/session";
 
 const previewSchema = z.object({
   rawText: z.string().trim().min(1).max(1_000_000),
-  languageCode: z.enum(["zh-CN", "zh-HK"]),
+  languageCode: z.literal("zh-CN"),
 });
 
 export async function POST(request: Request) {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const parsed = previewSchema.safeParse(await request.json());
   if (!parsed.success) {
     return new Response(
-      "Paste a Chinese vocabulary list under 1 MB, then choose Mandarin or Cantonese.",
+      "Paste a Mandarin vocabulary list under 1 MB, then choose Mandarin.",
       { status: 400 },
     );
   }

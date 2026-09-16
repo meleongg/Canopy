@@ -100,10 +100,10 @@ export async function importVocabularyAction(
 ): Promise<ActionState> {
   const rawText = String(formData.get("rawText") ?? "");
   const languageCode = String(formData.get("languageCode") ?? "zh-CN");
-  if (languageCode !== "zh-CN" && languageCode !== "zh-HK") {
+  if (languageCode !== "zh-CN") {
     return {
       ok: false,
-      message: "Choose Mandarin or Cantonese before importing.",
+      message: "Choose Mandarin before importing.",
     };
   }
   const file = formData.get("file");
@@ -144,10 +144,10 @@ export async function addFlashcardAction(
   formData: FormData,
 ): Promise<ActionState> {
   const languageCode = String(formData.get("manualLanguageCode") ?? "zh-CN");
-  if (languageCode !== "zh-CN" && languageCode !== "zh-HK") {
+  if (languageCode !== "zh-CN") {
     return {
       ok: false,
-      message: "Choose Mandarin or Cantonese before adding a card.",
+      message: "Choose Mandarin before adding a card.",
     };
   }
   const targetText = String(formData.get("targetText") ?? "").trim();

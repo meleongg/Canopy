@@ -58,9 +58,9 @@ export default async function LandingPage() {
               Bring your words into practice.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Preview a Mandarin or Cantonese vocabulary list, review on a
-              gentle rhythm, then use your own words in reading, conversation,
-              voice, and exploratory practice.
+              Preview a Mandarin vocabulary list, choose Simplified or
+              Traditional display, review on a gentle rhythm, then use your own
+              words in reading, conversation, voice, and exploratory practice.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
