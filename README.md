@@ -1,61 +1,74 @@
 # Canopy
 
-Canopy is a language-agnostic vocabulary workspace built around The Sprouting Queue, The Overstory Sandbox, and The Understory Chat.
+Canopy is a private Mandarin vocabulary workspace for English-speaking
+learners. Bring in words you want to keep, review them on a gentle rhythm, and
+use them in reading, conversation, voice, and low-stakes dictionary practice.
 
-## Getting Started
+The beta supports Mandarin vocabulary with a learner-controlled Simplified or
+Traditional display preference. It is not a Cantonese course or a fully offline
+learning application.
+
+## What is included
+
+- A reviewed, editable import flow for Pleco-style UTF-8 text exports and
+  manually added vocabulary.
+- Private flashcards, archive/restore/delete controls, and a mobile-friendly
+  scheduled review session.
+- The Overstory for generated reading practice and the Understory for focused,
+  turn-based text or voice conversation.
+- Dictionary lookup, recent lookup history, contextual help, and optional
+  Explore Chinese contrast practice that stays outside scheduled review until a
+  learner adds a card.
+- Learner defaults for proficiency, correction style, conversation goal,
+  Chinese script, formality, playback speed, theme, and reading size.
+- A home-screen-ready web app manifest for Safari's **Add to Home Screen** and
+  other supported browsers. It launches into the authenticated workspace but
+  does not promise offline private learning or AI practice.
+
+## Local development
+
+Install dependencies:
 
 ```bash
+npm install
+```
+
+Make the following values available to local commands. For Next.js development,
+an ignored `.env` file is convenient; it must never be committed. Agents working
+in this repository do not read `.env` files.
+
+```dotenv
+CANOPY_DEV_DB_URL="https://…"
+CANOPY_DEV_OPENAI_KEY="…"
+CANOPY_DEV_AUTH_SECRET="at-least-32-characters"
+BETTER_AUTH_URL="http://localhost:3000"
+```
+
+The `CANOPY_DEV_*` values take precedence locally. For Vercel Preview and
+Production, configure `DATABASE_URL`, `OPENAI_API_KEY`, `BETTER_AUTH_SECRET`,
+and `BETTER_AUTH_URL`; keep OpenAI credentials server-only.
+
+Apply migrations to a new or current development database, then start the app:
+
+```bash
+npm run db:migrate
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-For local development, put these values in an ignored `.env` file; Next.js
-loads it automatically when you run `npm run dev`. Runtime configuration is
-validated through `db/env.ts` and expects these local-development variables:
-
-- `CANOPY_DEV_DB_URL`
-- `CANOPY_DEV_OPENAI_KEY`
-- `CANOPY_DEV_AUTH_SECRET`
-- `BETTER_AUTH_URL` with a fallback of `http://localhost:3000`
-
-For Vercel Preview and Production, configure `DATABASE_URL`, `OPENAI_API_KEY`,
-`BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL`. The local `CANOPY_DEV_*` values
-take precedence when present, while the standard names remain the deployment
-fallback. Keep OpenAI credentials server-only. Apply committed Drizzle
-migrations to the target Neon database before deploying code that depends on them:
-
-```bash
-DATABASE_URL="$CANOPY_PROD_DB_URL" npm run db:migrate
-```
-
-Use `npm run db:push` only for an intentional direct schema sync, such as local
-development; it does not provide the versioned deployment history of
-`db:migrate`. Use a dedicated OpenAI project with usage alerts and a
-conservative enforced spend cap. Server-side rate limiting is intentionally
-deferred until real beta activity justifies it.
-
-### Adopting an older local database
-
-If a development database was created with `db:push` before migrations were
-tracked, do not run `db:push` again once data migrations exist. First run the
-one-time adoption command, which verifies the old baseline schema before
-recording only migrations it already reflects, then apply pending migrations:
+If a development database predates tracked migrations, use the one-time
+baseline adoption command before applying pending migrations:
 
 ```bash
 npm run db:adopt-baseline
 npm run db:migrate
 ```
 
-The adoption command stops if migration history already exists or the expected
-baseline columns are absent. It does not apply new migrations itself.
-
-## Linguistic Processing
-
-- **Linguistic Processing (Pure JS / Pre-compiled Ecosystem):**
-  - _Mandarin:_ **`pinyin-pro`** (Accurately parses characters, polyphonic nuances, and tone markers natively on the server side).
-  - _Cantonese:_ **`to-jyutping`** (Extracts reliable, numerical Jyutping structures).
-  - _Tokenization:_ **`@node-rs/jieba`** (High-velocity Rust N-API tokenizer to segment multi-character vocabulary boundaries cleanly with zero local build toolchain requirements).
+`db:adopt-baseline` verifies the old schema before recording only the migration
+history it already reflects. It stops if history already exists or the expected
+baseline is absent. Use `npm run db:push` only for an intentional direct local
+schema sync; it is not a substitute for versioned deployment migrations.
 
 ## Validation
 
@@ -63,5 +76,22 @@ baseline columns are absent. It does not apply new migrations itself.
 npm run validate
 ```
 
-Run this before opening or updating a pull request. It runs linting, strict
-TypeScript checks, and the unit test suite in order.
+This runs linting, strict TypeScript checks, and the unit suite. Run it before
+opening or updating a pull request.
+
+## Data and linguistic sources
+
+- [CC-CEDICT lookup data](docs/cc-cedict.md) supplies shared Chinese forms,
+  readings, and English glosses. It remains separate from learner-owned cards.
+- [Pleco export workflow](docs/pleco-import-workflow.md) describes the supported
+  manual import path.
+- `pinyin-pro` supports Mandarin readings, and `@node-rs/jieba` supports
+  Chinese segmentation.
+
+## Deployment notes
+
+Run committed Drizzle migrations against the target Neon database before
+deploying code that depends on a schema change. Use a dedicated OpenAI project
+with usage alerts and a conservative enforced spend cap. Server-side AI rate
+limiting is intentionally deferred until real beta activity justifies its
+operational cost and configuration.
