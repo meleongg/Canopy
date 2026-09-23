@@ -178,7 +178,7 @@ function AddCardPanel() {
             value={dictionaryEntryId}
           />
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="targetText"
           >
             Word or phrase
@@ -256,7 +256,7 @@ function AddCardPanel() {
             </div>
           ) : null}
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="phoneticReading"
           >
             Reading
@@ -269,7 +269,7 @@ function AddCardPanel() {
             value={phoneticReading}
           />
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="definitions"
           >
             Definitions
@@ -283,7 +283,7 @@ function AddCardPanel() {
             value={definitions}
           />
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="exampleContext"
           >
             Context
