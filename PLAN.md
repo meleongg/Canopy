@@ -2,16 +2,14 @@
 
 Canopy remains a private Mandarin vocabulary workspace: capture words you care
 about, review them on a gentle rhythm, and use them in reading, conversation,
-voice, and low-stakes dictionary practice. Acquisition is pivoting away from
-Pleco exports, file upload, and batch text import toward an in-app vocabulary
-engine:
+voice, and low-stakes dictionary practice. Acquisition uses an in-app vocabulary
+engine (Pleco/upload import removed):
 
 **In-Context Capture → Grounded Verification (CC-CEDICT) → Flashcard Save → Spaced Repetition Review**
 
-Overstory, Understory, review, collection, and Explore Chinese stay. Batch
-Pleco/upload import has been removed (PR A). Acquisition continues through
-in-app Add Card with CC-CEDICT grounding (PR B) and LLM inbound/outbound
-assist (PR C).
+Overstory, Understory, review, collection, and Explore Chinese stay. Learners
+add Mandarin cards through Add Card with CC-CEDICT autofill and optional LLM
+inbound/outbound assist.
 
 ## Completed
 
@@ -77,7 +75,11 @@ The following roadmap items have been delivered and verified:
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
-## Acquisition pivot — complete
+## Acquisition pivot — complete ✅
+
+The planned A → B → C sequence is finished. No further acquisition-pivot PRs
+are queued. Remaining ideas below are optional nice-to-haves after real beta
+usage justifies them.
 
 Product decisions locked for this sequence:
 
@@ -88,7 +90,7 @@ Product decisions locked for this sequence:
 - Phrase-first headword capped at **8 Chinese characters**; looser limits for
   optional source/context text and outbound English intent. Soft, non-blocking
   help when the whole string has no solid CEDICT match (suggest splitting;
-  do not auto-create multiple cards in PR B).
+  do not auto-create multiple cards).
 - Inbound/outbound share one capture panel with a mode toggle.
 - Dedicated card-draft API for LLM capture; do not overload collection `generateContext`.
 - CEDICT owns pinyin + standard gloss when matched; LLM owns contextual meaning
@@ -101,7 +103,7 @@ including associated tests. **Shipped.**
 
 ### PR B — Easy Add Flashcard + CC-CEDICT autofill ✅
 
-Make capture the easiest path into the collection. **Shipped:**
+Make capture the easiest path into the collection. **Shipped.**
 
 - Dashboard Add Card debounced CC-CEDICT lookup via `POST /api/dictionary/autofill`.
 - Ranked matches fill an editable draft (reading + glosses); learner confirms Save.
@@ -113,7 +115,7 @@ Make capture the easiest path into the collection. **Shipped:**
 ### PR C — LLM in-context translation ✅
 
 Inbound and outbound capture modes on the same Add Card panel (mode toggle),
-reusing the dedicated OpenAI project. **Shipped in this change:**
+reusing the dedicated OpenAI project. **Shipped.**
 
 1. **Inbound:** target word/phrase + surrounding context → LLM explains meaning
    in that context → CC-CEDICT grounds headword when matched → confirm save.
@@ -140,7 +142,7 @@ data without turning its full corpus into learner cards or scheduled review:
   concise readings and definitions rather than unverified model-invented
   meanings.
 - Optional multi-card split from a long phrase after the learner accepts a
-  suggested segmentation (not auto-split in PR B).
+  suggested segmentation (not auto-split).
 
 CC-CEDICT supplies forms, readings, and English glosses. Frequency, level,
 semantic relationships, and example sentences require a separate reliable
