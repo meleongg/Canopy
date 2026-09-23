@@ -4,7 +4,7 @@ import {
   draftFieldsFromDictionaryEntry,
   headwordLengthMessage,
   MAX_HEADWORD_HAN_CHARS,
-} from "@/lib/card-autofill";
+} from "@/lib/card-draft";
 
 describe("card autofill helpers", () => {
   it("counts Han characters for the headword cap", () => {

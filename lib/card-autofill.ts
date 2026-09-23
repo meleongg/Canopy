@@ -1,58 +1,24 @@
 import {
-  dictionaryEntryAsCard,
   searchActiveDictionary,
   type DictionarySearchResult,
   type DictionarySearchScope,
 } from "@/lib/dictionary";
+import {
+  countHanCharacters,
+  headwordLengthMessage,
+  type AutofillMatch,
+  type AutofillResult,
+} from "@/lib/card-draft";
 
-export const MAX_HEADWORD_HAN_CHARS = 8;
-
-export type CardDraftFields = {
-  targetText: string;
-  phoneticReading: string;
-  definitions: string;
-  dictionaryEntryId?: string;
-};
-
-export type AutofillMatch = DictionarySearchResult & {
-  matchKind: "exact" | "partial" | "component";
-};
-
-export type AutofillResult = {
-  query: string;
-  matches: AutofillMatch[];
-  exactMatch: boolean;
-  suggestSplit: boolean;
-  helpMessage: string | null;
-};
-
-export function countHanCharacters(text: string) {
-  return (text.match(/\p{Script=Han}/gu) ?? []).length;
-}
-
-export function headwordLengthMessage(text: string) {
-  const hanCount = countHanCharacters(text);
-  if (hanCount > MAX_HEADWORD_HAN_CHARS) {
-    return `Keep the headword to ${MAX_HEADWORD_HAN_CHARS} Chinese characters or fewer (now ${hanCount}).`;
-  }
-  return null;
-}
-
-/** Shared mapping: CC-CEDICT entry → editable Add Card draft fields. */
-export function draftFieldsFromDictionaryEntry(
-  entry: Pick<
-    DictionarySearchResult,
-    "entryId" | "simplified" | "traditional" | "pinyin" | "definitions"
-  >,
-): CardDraftFields {
-  const card = dictionaryEntryAsCard(entry);
-  return {
-    targetText: card.targetText,
-    phoneticReading: card.phoneticReading.join(" "),
-    definitions: card.definitions.join("; "),
-    dictionaryEntryId: card.dictionaryEntryId,
-  };
-}
+export {
+  MAX_HEADWORD_HAN_CHARS,
+  countHanCharacters,
+  draftFieldsFromDictionaryEntry,
+  headwordLengthMessage,
+  type AutofillMatch,
+  type AutofillResult,
+  type CardDraftFields,
+} from "@/lib/card-draft";
 
 function inferSearchScope(query: string): DictionarySearchScope {
   if (/\p{Script=Han}/u.test(query)) return "chinese";
@@ -106,7 +72,11 @@ export async function matchDictionaryForCardAutofill(
   const scope = inferSearchScope(query);
   const entries = await searchActiveDictionary(userId, query, scope);
   const matches: AutofillMatch[] = entries.map((entry) => ({
-    ...entry,
+    entryId: entry.entryId,
+    traditional: entry.traditional,
+    simplified: entry.simplified,
+    pinyin: entry.pinyin,
+    definitions: entry.definitions,
     matchKind: rankMatchKind(query, entry),
   }));
 
@@ -120,7 +90,6 @@ export async function matchDictionaryForCardAutofill(
       ? "No CC-CEDICT matches yet. You can still fill the card manually and save."
       : null;
 
-  // Prefer exact, then component (useful for phrases), then other partials.
   matches.sort((left, right) => {
     const order = { exact: 0, component: 1, partial: 2 } as const;
     return order[left.matchKind] - order[right.matchKind];

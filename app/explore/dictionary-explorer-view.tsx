@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { useCanopyTheme } from "@/app/providers";
 import { queryKeys } from "@/lib/query-keys";
-import { draftFieldsFromDictionaryEntry } from "@/lib/card-autofill";
+import { draftFieldsFromDictionaryEntry } from "@/lib/card-draft";
 import type {
   DictionarySearchResult,
   DictionaryDiscoveryResult,

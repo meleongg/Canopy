@@ -61,7 +61,7 @@ import {
   MAX_HEADWORD_HAN_CHARS,
   type AutofillMatch,
   type AutofillResult,
-} from "@/lib/card-autofill";
+} from "@/lib/card-draft";
 import { MAX_EXAMPLE_CONTEXTS } from "@/lib/example-contexts";
 import { queryKeys } from "@/lib/query-keys";
 import type { LearningRhythmDay } from "@/lib/learning-rhythm";

@@ -13,7 +13,7 @@ import {
   type ParsedVocabularyEntry,
   buildManualVocabularyEntry,
 } from "@/lib/ingestion";
-import { headwordLengthMessage } from "@/lib/card-autofill";
+import { headwordLengthMessage } from "@/lib/card-draft";
 import { generateExampleContext } from "@/lib/openai";
 import { phoneticTextForSentence } from "@/lib/phonetics";
 import { requireAuth } from "@/lib/session";
