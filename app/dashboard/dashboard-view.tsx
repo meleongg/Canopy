@@ -191,15 +191,18 @@ function AddCardPanel() {
     <Card asChild>
       <form action={addAction}>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <CardTitle>Add Card</CardTitle>
               <CardDescription>
                 Type a Mandarin word, phrase, or English gloss. Matching
                 CC-CEDICT entries fill an editable draft—confirm before saving.
               </CardDescription>
             </div>
-            <PencilLine className="size-5 text-primary" />
+            <PencilLine
+              aria-hidden
+              className="mt-1 size-6 shrink-0 text-primary"
+            />
           </div>
         </CardHeader>
         <CardContent>
