@@ -11,6 +11,7 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  LoaderCircle,
   PencilLine,
   Search,
   Sparkles,
@@ -79,6 +80,9 @@ export function CollectionView({
   const [editingCard, setEditingCard] = useState<WorkspaceCard | null>(null);
   const [deletingCard, setDeletingCard] = useState<WorkspaceCard | null>(null);
   const [actionMessage, setActionMessage] = useState("");
+  const [generatingContextCardId, setGeneratingContextCardId] = useState<
+    string | null
+  >(null);
   const collectionQuery = useQuery({
     queryKey: queryKeys.collection(scope, query, page),
     queryFn: () => fetchCollectionPage(scope, query, page),
@@ -216,10 +220,20 @@ export function CollectionView({
   async function runContextAction(
     action: (formData: FormData) => Promise<void>,
     formData: FormData,
+    options?: { generatingCardId?: string },
   ) {
     setActionMessage("");
-    await action(formData);
-    await refreshCollection();
+    if (options?.generatingCardId) {
+      setGeneratingContextCardId(options.generatingCardId);
+    }
+    try {
+      await action(formData);
+      await refreshCollection();
+    } finally {
+      if (options?.generatingCardId) {
+        setGeneratingContextCardId(null);
+      }
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
@@ -316,6 +330,7 @@ export function CollectionView({
                         </p>
                         <Button
                           aria-label={`Remove context ${contextIndex + 1}`}
+                          disabled={generatingContextCardId === card.id}
                           onClick={() => {
                             const formData = new FormData();
                             formData.set("cardId", card.id);
@@ -345,6 +360,22 @@ export function CollectionView({
                   ))}
                 </div>
               ) : null}
+              {generatingContextCardId === card.id ? (
+                <div
+                  className="mt-4 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+                  <div>
+                    <p className="font-medium">Generating context…</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Writing an example sentence for this word. This can take a
+                      few seconds—please keep this card open.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button
                   onClick={() => setEditingCard(card)}
@@ -370,23 +401,35 @@ export function CollectionView({
                 </Button>
                 {scope === "active" ? (
                   <Button
+                    aria-busy={generatingContextCardId === card.id}
                     disabled={
-                      card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
+                      card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS ||
+                      generatingContextCardId === card.id
                     }
                     onClick={() => {
                       const formData = new FormData();
                       formData.set("cardId", card.id);
-                      void runContextAction(generateContextAction, formData);
+                      void runContextAction(
+                        generateContextAction,
+                        formData,
+                        { generatingCardId: card.id },
+                      );
                     }}
                     type="button"
                     variant="outline"
                   >
-                    <Sparkles />
+                    {generatingContextCardId === card.id ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <Sparkles />
+                    )}
                     {card.aiExampleContexts.length >= MAX_EXAMPLE_CONTEXTS
                       ? "Max contexts"
-                      : card.aiExampleContexts.length > 0
-                        ? "Generate another"
-                        : "Generate context"}
+                      : generatingContextCardId === card.id
+                        ? "Generating context…"
+                        : card.aiExampleContexts.length > 0
+                          ? "Generate another"
+                          : "Generate context"}
                   </Button>
                 ) : null}
               </div>
