@@ -51,7 +51,7 @@
 
 - **Core product loop:**
 
-1. **Capture (Grove Add Card):** Editable draft with CC-CEDICT autofill; later,
+1. **Capture (Grove Add Card):** Editable draft with CC-CEDICT autofill and
    LLM inbound/outbound assist on the same panel. Confirm to save. No external
    dictionary export import, file upload, or proprietary dictionary sync.
 2. **The Grove Dashboard:** Central hub with a "Sprouting Queue" (lightweight SM-2 SRS) and "Cluster Picker" (check 3-7 words to activate content generation).
