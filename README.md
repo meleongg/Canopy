@@ -1,29 +1,41 @@
 # Canopy
 
 Canopy is a private Mandarin vocabulary workspace for English-speaking
-learners. Bring in words you want to keep, review them on a gentle rhythm, and
-use them in reading, conversation, voice, and low-stakes dictionary practice.
+learners. Capture words in context, review them on a gentle rhythm, and use
+them in reading, conversation, voice, and low-stakes dictionary practice.
 
-The beta supports Mandarin vocabulary with a learner-controlled Simplified or
-Traditional display preference. It is not a Cantonese course or a fully offline
-learning application.
+The beta is Mandarin-only, with a learner-controlled Simplified or Traditional
+display preference. It is not a Cantonese course or a fully offline learning
+application.
 
-## What is included
+## What's built
 
-- In-app vocabulary capture: add Mandarin cards with CC-CEDICT autofill and LLM
-  inbound/outbound draft assist on the same Add Card panel.
-- Private flashcards, archive/restore/delete controls, and a mobile-friendly
-  scheduled review session.
-- The Overstory for generated reading practice and the Understory for focused,
-  turn-based text or voice conversation.
-- Dictionary lookup, recent lookup history, contextual help, and optional
-  Explore Chinese contrast practice that stays outside scheduled review until a
-  learner adds a card.
-- Learner defaults for proficiency, correction style, conversation goal,
-  Chinese script, formality, playback speed, theme, and reading size.
-- A home-screen-ready web app manifest for Safari's **Add to Home Screen** and
-  other supported browsers. It launches into the authenticated workspace but
-  does not promise offline private learning or AI practice.
+- **Add Card** — Mandarin capture with CC-CEDICT autofill and optional LLM
+  inbound (“from context”) / outbound (“how do I say…”) draft assist; editable
+  draft, then confirm to save
+- **Collection & review** — private flashcards with archive/restore/delete,
+  full-text search, and mobile-friendly SM-2 review
+- **Overstory & Understory** — generated reading practice and turn-based text
+  or voice conversation seeded from the learner’s own cards
+- **Dictionary & Explore** — lookup, recent history, contextual help, and
+  optional contrast practice that stays outside scheduled review until a card
+  is added
+- **Preferences & shell** — practice defaults, theme/reading size, onboarding,
+  Privacy/Terms/Attributions, and home-screen install support (not offline AI)
+
+## What could be next
+
+Optional after real beta usage justifies the work:
+
+- Tone-contrast or sense-selection exercises outside formal review
+- Curated Explore topics/levels (not a random draw from the whole dictionary)
+- Multi-card split from a long phrase after the learner accepts segmentation
+- Richer vocabulary-relationship exploration (beyond shared characters)
+- Stronger dictionary hints on learner-authored Understory replies
+- Server-side AI rate limiting once traffic warrants it
+
+Out of scope for now: social features, analytics leaderboards, complex deck
+management, and push notifications.
 
 ## Local development
 
@@ -83,12 +95,10 @@ opening or updating a pull request.
 
 - [CC-CEDICT lookup data](docs/cc-cedict.md) supplies shared Chinese forms,
   readings, and English glosses. It remains separate from learner-owned cards.
-  Acquisition is in-app Add Card capture with optional dictionary grounding and
-  LLM assist.
 - `pinyin-pro` supports Mandarin readings, and `@node-rs/jieba` supports
   Chinese segmentation.
-- See [PLAN.md](PLAN.md) for the completed private-beta roadmap and optional
-  nice-to-haves.
+- Product and technical detail: [docs/product-strategy.md](docs/product-strategy.md),
+  [docs/tech-spec.md](docs/tech-spec.md).
 
 ## Deployment notes
 
