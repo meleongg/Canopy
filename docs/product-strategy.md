@@ -2,23 +2,44 @@
 
 ## 1. One-Liner & Value Proposition
 
-- **One-Liner:** A cozy, habit-building vocabulary sandbox that transforms your personal dictionary lookups into immersive reading and dialogue practice.
-- **Target User:** The self-directed, intermediate-to-advanced language learner (Mandarin/Cantonese) who values authentic content over rigid curriculum.
-- **Value Proposition:** Canopy eliminates the "lookup graveyard" by turning static dictionary lists into living, personalized content. It bridges the gap between passive saving and active mastery through generative AI "Harvests" (Stories & Chat), offering a calm, aesthetic environment that rewards consistency over repetitive drilling.
+- **One-Liner:** A cozy, habit-building vocabulary sandbox that turns in-context
+  Mandarin discoveries into grounded flashcards, then into immersive reading and
+  dialogue practice.
+- **Target User:** The self-directed, intermediate-to-advanced Mandarin learner
+  (English-speaking) who values authentic content over rigid curriculum.
+- **Value Proposition:** Canopy eliminates the "lookup graveyard" by capturing
+  vocabulary **inside the app**—with CC-CEDICT grounding and optional LLM
+  context—then bridging passive saving to active mastery through generative AI
+  "Harvests" (Stories & Chat) in a calm, aesthetic environment.
 
 ## 2. Problems & Positioning
 
 - **Core Problems Solved:**
 
-1. **The Lookup Graveyard:** Saving words from Pleco/mobile apps but never actually reviewing or integrating them into memory.
-2. **Clinical Burnout:** Traditional flashcard apps feel like robotic data entry, killing the emotional connection and curiosity required for language acquisition.
-3. **Disconnected Learning:** Being trapped in "closed-garden" platforms that force you to study pre-selected generic content instead of your own discoveries.
+1. **The Lookup Graveyard:** Saving words in external tools or notes and never
+   reviewing or integrating them into memory.
+2. **Fragmented Capture:** Leaving the app to look up terms, export files, and
+   re-upload lists breaks the learning loop and loses surrounding context.
+3. **Clinical Burnout:** Traditional flashcard apps feel like robotic data entry,
+   killing the emotional connection and curiosity required for language acquisition.
+4. **Disconnected Learning:** Being trapped in "closed-garden" platforms that force
+   pre-selected generic content instead of the learner’s own discoveries from
+   media, lyrics, and real conversations.
+5. **Copyright Exposure from Proprietary Dictionaries:** Bundling or redistributing
+   third-party commercial dictionary text is out of bounds; Canopy uses CC-CEDICT
+   for lexical grounding and original LLM text for contextual explanation.
 
 - **Main Competitors:** Anki (too technical/clinical), Duolingo (too gamified/generic), LingQ/BaoBao (too cluttered/closed).
 - **Our Differentiators:**
-- **Agnostic Ingestion:** Accepts flexible text/dictionary logs rather than forcing a proprietary file format.
-- **The "Harvest" Sandbox:** Moves beyond flashcards; uses selected words to generate custom-tailored reading material and interactive roleplay.
-- **Cozy-First Design:** Prioritizes a grounding, aesthetic user experience that feels like a digital garden, not a data-entry workspace.
+- **In-Context Capture:** Headword (≤8 Chinese characters) plus optional source
+  context in one surface; inbound (decipher what you found) and outbound (how do
+  I say this) modes.
+- **Grounded Lexicon:** CC-CEDICT validates forms, readings, and standard glosses;
+  the LLM never replaces the licensed baseline dictionary.
+- **The "Harvest" Sandbox:** Moves beyond flashcards; uses selected words to
+  generate custom-tailored reading material and interactive roleplay.
+- **Cozy-First Design:** Prioritizes a grounding, aesthetic user experience that
+  feels like a digital garden, not a data-entry workspace.
 
 - **UI/UX & Branding Guide:**
 - **Identity:** Botanical, grounded, patient. Geometric tree iconography.
@@ -28,15 +49,21 @@
 
 ## 3. Scope Controls
 
-- **Core MVP Features:**
+- **Core product loop:**
 
-1. **Ingestion Drop-Zone:** Smart server-side parser for Pleco/tab-separated logs with atomic upsert (deduplication).
+1. **Capture (Grove Add Card):** Editable draft with CC-CEDICT autofill; later,
+   LLM inbound/outbound assist on the same panel. Confirm to save. No external
+   dictionary export import, file upload, or proprietary dictionary sync.
 2. **The Grove Dashboard:** Central hub with a "Sprouting Queue" (lightweight SM-2 SRS) and "Cluster Picker" (check 3-7 words to activate content generation).
 3. **The Overstory (Reading Sandbox):** Edge-runtime AI text streaming that weaves selected vocabulary into custom short stories.
-4. **The Understory (Interactive Helper):** A 3-turn interactive AI chat canvas for situational roleplay using selected vocabulary.
+4. **The Understory (Interactive Helper):** Interactive AI chat canvas for situational roleplay using selected vocabulary.
 
 - **Explicitly Out of Scope:**
+- External dictionary app export import, vocabulary file upload, cloud-folder
+  sync, or redistribution of proprietary dictionary databases.
 - Advanced data analytics, charts, or gamified leaderboards.
 - Social features or competitive ranking.
 - Complex, multi-layered deck management/filtering.
 - Automated push notification systems (focus on user-initiated "waterings").
+- Non-Mandarin acquisition in the near term (manual multi-language paths are
+  being removed with the import stack).
