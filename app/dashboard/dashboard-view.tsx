@@ -259,7 +259,7 @@ function AddCardPanel() {
             className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="phoneticReading"
           >
-            Reading
+            Pinyin
           </label>
           <Input
             id="phoneticReading"
