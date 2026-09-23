@@ -314,48 +314,12 @@ function AddCardPanel() {
             required
             value={definitions}
           />
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-2">
-            <label
-              className="mb-2 block text-sm font-medium"
-              htmlFor="exampleContext"
-            >
-              Context
-            </label>
-            <Button
-              disabled={!canGenerateContext || contextPending || addPending}
-              onClick={() => void generateContextDraft()}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              {contextPending ? (
-                <LoaderCircle className="animate-spin" />
-              ) : (
-                <Sparkles />
-              )}
-              {contextPending
-                ? "Generating context…"
-                : exampleContext.trim()
-                  ? "Context added"
-                  : "Generate context"}
-            </Button>
-          </div>
-          {contextPending ? (
-            <div
-              className="mb-2 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
-              role="status"
-              aria-live="polite"
-            >
-              <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
-              <div>
-                <p className="font-medium">Generating context…</p>
-                <p className="mt-1 text-muted-foreground">
-                  Writing one example sentence for this draft. You can still
-                  edit it before saving.
-                </p>
-              </div>
-            </div>
-          ) : null}
+          <label
+            className="mt-4 mb-2 block text-sm font-medium"
+            htmlFor="exampleContext"
+          >
+            Context
+          </label>
           <Textarea
             id="exampleContext"
             name="exampleContext"
@@ -369,6 +333,38 @@ function AddCardPanel() {
           <p className="mt-1 text-xs text-muted-foreground">
             One optional context on add. Generate more later from Collection.
           </p>
+          {contextPending ? (
+            <div
+              className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">Generating context…</p>
+                <p className="mt-1 text-muted-foreground">
+                  Writing one example sentence for this draft. You can still
+                  edit it before saving.
+                </p>
+              </div>
+            </div>
+          ) : null}
+          {canGenerateContext || contextPending ? (
+            <Button
+              className="mt-3 w-full"
+              disabled={!canGenerateContext || contextPending || addPending}
+              onClick={() => void generateContextDraft()}
+              type="button"
+              variant="outline"
+            >
+              {contextPending ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Sparkles />
+              )}
+              {contextPending ? "Generating context…" : "Generate context"}
+            </Button>
+          ) : null}
           {contextMessage ? (
             <p
               className={cn(
