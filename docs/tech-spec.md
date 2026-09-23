@@ -79,9 +79,8 @@ Learner vocabulary enters the collection through **Add Card** (and Dictionary
 explorer add-to-collection), not through batch file upload or external
 dictionary export import.
 
-**Removed in PR A (do not rebuild):** `POST /api/cards/import`,
-`POST /api/import-preview`, Pleco/list parsers, upload/drop-zone import UI, and
-their tests.
+**Removed:** `POST /api/cards/import`, `POST /api/import-preview`, Pleco/list
+parsers, upload/drop-zone import UI, and their tests. Do not rebuild them.
 
 **Current / near-term capture:**
 
@@ -146,8 +145,8 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 Before merge, run `npm run validate` (lint, TypeScript, and unit tests). Endpoint
 tests must cover card ownership, SM-2 rating updates, 3–7 story limits,
 moderation rejection, and the five-turn chat limit. Import/Pleco parser and
-upload tests are removed with PR A; replace coverage with CEDICT autofill and
-(later) card-draft API tests as those land.
+upload tests are gone; cover CEDICT autofill and (later) card-draft API tests
+as those land.
 
 ## 6. Private beta extensions
 

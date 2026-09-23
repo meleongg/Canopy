@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { userPreferences } from "@/db/schema";
 
-export const IMPORT_LANGUAGES = ["zh-CN", "zh-HK", "fr-FR", "und"] as const;
+export const IMPORT_LANGUAGES = ["zh-CN"] as const;
 export const THEMES = ["light", "dark"] as const;
 export const READING_SIZES = ["default", "large", "extra-large"] as const;
 export const PROFICIENCY_LEVELS = [

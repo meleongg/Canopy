@@ -10,15 +10,12 @@ import {
   FileText,
   MessageCircle,
   PencilLine,
-  Search,
   Sparkles,
   Trash2,
-  Upload,
   X,
 } from "lucide-react";
 import {
   addFlashcardAction,
-  createFlashcardsFromPreviewAction,
   generateContextAction,
   removeContextAction,
 } from "@/app/actions";
@@ -28,10 +25,9 @@ import {
   fetchCardsByScope,
   growthLabel,
 } from "@/components/canopy/card-utils";
-import { LanguageSelect } from "@/components/canopy/language-select";
 import { CardDisplayText } from "@/components/canopy/card-display-text";
 import { displayPhoneticReading } from "@/lib/phonetics";
-import type { ImportDraft, WorkspaceCard } from "@/components/canopy/types";
+import type { WorkspaceCard } from "@/components/canopy/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,402 +54,21 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  MAX_EXAMPLE_CONTEXTS,
-  type ExampleContext,
-} from "@/lib/example-contexts";
+import { MAX_EXAMPLE_CONTEXTS } from "@/lib/example-contexts";
 import { queryKeys } from "@/lib/query-keys";
 import type { LearningRhythmDay } from "@/lib/learning-rhythm";
-import type { UserPreferences } from "@/lib/user-preferences";
 import { cn } from "@/lib/utils";
-
-const initialImportState = {
-  ok: true,
-  message: "Paste a dictionary log or upload a .txt file.",
-};
 
 const initialAddState = {
   ok: true,
-  message: "Add one card directly.",
+  message: "Add one Mandarin card to your collection.",
 };
-
-const importExamples: Record<string, string> = {
-  "zh-CN":
-    "福利\tfu2li4\tnoun material benefit; welfare\n会议\thui4yi4\tmeeting; conference",
-  "zh-HK": "飲茶\tyum2 caa4\tdrink tea; dim sum\n附近\tnearby",
-  "fr-FR": "hôpital\thospital\nréunion\tmeeting",
-  und: "kinship\tfamily relationship\nthreshold\tstarting point",
-};
-
-const MAX_IMPORT_FILE_BYTES = 1_000_000;
 
 function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.dashboardCards });
   void queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue });
   void queryClient.invalidateQueries({ queryKey: queryKeys.overstorySeeds });
   void queryClient.invalidateQueries({ queryKey: queryKeys.understorySeeds });
-}
-
-function ImportPanel() {
-  const queryClient = useQueryClient();
-  const [importState, importAction, importPending] = useActionState(
-    async (state: typeof initialImportState, formData: FormData) => {
-      const result = await createFlashcardsFromPreviewAction(state, formData);
-      invalidate(queryClient);
-      return result;
-    },
-    initialImportState,
-  );
-  const [selectedImportLanguage, setSelectedImportLanguage] = useState<
-    string | null
-  >(null);
-  const [importRawText, setImportRawText] = useState("");
-  const [importDrafts, setImportDrafts] = useState<ImportDraft[]>([]);
-  const [importPreviewMessage, setImportPreviewMessage] = useState("");
-  const [importPreviewPending, setImportPreviewPending] = useState(false);
-  const { data: preferences } = useQuery({
-    queryKey: queryKeys.userPreferences,
-    queryFn: async (): Promise<UserPreferences> => {
-      const response = await fetch("/api/settings");
-      if (!response.ok) throw new Error("Could not load preferences.");
-      return (await response.json()) as UserPreferences;
-    },
-  });
-
-  const importLanguage =
-    selectedImportLanguage ?? preferences?.importLanguage ?? "zh-CN";
-
-  async function readImportFile(file: File) {
-    if (!file.name.toLocaleLowerCase().endsWith(".txt")) {
-      setImportPreviewMessage(
-        "Choose a plain .txt export. Other file types are not imported.",
-      );
-      return;
-    }
-    if (file.size > MAX_IMPORT_FILE_BYTES) {
-      setImportPreviewMessage(
-        "That file is over 1 MB. Export a smaller plain-text vocabulary list and try again.",
-      );
-      return;
-    }
-    try {
-      const text = await file.text();
-      setImportRawText(text);
-      setImportPreviewMessage(`Loaded ${file.name}. Preview before creating.`);
-    } catch {
-      setImportPreviewMessage(
-        "That file could not be read. Try a UTF-8 plain-text export.",
-      );
-    }
-  }
-
-  async function previewImport() {
-    const rawText = importRawText.trim();
-    if (!rawText) {
-      setImportPreviewMessage("Paste text or drop a .txt file first.");
-      return;
-    }
-
-    setImportPreviewPending(true);
-    setImportPreviewMessage("");
-
-    try {
-      const response = await fetch("/api/import-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText, languageCode: importLanguage }),
-      });
-
-      if (!response.ok) {
-        setImportPreviewMessage(
-          (await response.text()) ||
-            "The preview could not be created. Please try again.",
-        );
-        return;
-      }
-
-      const payload = (await response.json()) as { entries?: ImportDraft[] };
-      const drafts = (payload.entries ?? []).map((entry) => ({
-        ...entry,
-        exampleContexts: (entry.exampleContexts ?? []).slice(
-          0,
-          MAX_EXAMPLE_CONTEXTS,
-        ),
-      }));
-
-      setImportDrafts(drafts);
-      setImportPreviewMessage(
-        drafts.length
-          ? `Previewing ${drafts.length} flashcard draft${drafts.length === 1 ? "" : "s"}.`
-          : "No importable entries found.",
-      );
-    } catch {
-      setImportPreviewMessage(
-        "The preview could not be created. Check your connection and try again.",
-      );
-    } finally {
-      setImportPreviewPending(false);
-    }
-  }
-
-  function updateImportDraft(
-    index: number,
-    updater: (draft: ImportDraft) => ImportDraft,
-  ) {
-    setImportDrafts((current) =>
-      current.map((draft, draftIndex) =>
-        draftIndex === index ? updater(draft) : draft,
-      ),
-    );
-  }
-
-  function updateImportDraftContext(
-    draftIndex: number,
-    contextIndex: number,
-    updater: (context: ExampleContext) => ExampleContext,
-  ) {
-    updateImportDraft(draftIndex, (draft) => ({
-      ...draft,
-      exampleContexts: draft.exampleContexts.map((context, nextIndex) =>
-        nextIndex === contextIndex ? updater(context) : context,
-      ),
-    }));
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <CardTitle>Import</CardTitle>
-            <CardDescription>
-              Paste raw text or preview Pleco-style dictionary exports before
-              creating flashcards.
-            </CardDescription>
-          </div>
-          <Upload className="size-5 text-primary" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <label className="text-sm font-medium" htmlFor="languageCode">
-          Language
-        </label>
-        <LanguageSelect
-          value={importLanguage}
-          onValueChange={setSelectedImportLanguage}
-        />
-
-        <label className="mt-4 block text-sm font-medium" htmlFor="rawText">
-          Raw text
-        </label>
-        <Textarea
-          className="mt-2 min-h-36 border-dashed"
-          id="rawText"
-          onChange={(event) => setImportRawText(event.target.value)}
-          placeholder={importExamples[importLanguage]}
-          value={importRawText}
-        />
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Tabs and simple CSV are supported. Pleco exported examples are kept as
-          editable context sentences.
-        </p>
-
-        <div
-          className="mt-3 rounded-lg border border-dashed border-border bg-background p-3"
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => {
-            event.preventDefault();
-            const [file] = Array.from(event.dataTransfer.files);
-            if (file) {
-              void readImportFile(file);
-            }
-          }}
-        >
-          <Input
-            className="h-12 cursor-pointer p-1.5 file:mr-3 file:h-9 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary file:px-3 file:font-sans file:text-sm file:font-semibold file:text-primary-foreground file:transition-colors hover:file:bg-primary/90"
-            onChange={(event) => {
-              const [file] = Array.from(event.target.files ?? []);
-              if (file) {
-                void readImportFile(file);
-              }
-            }}
-            type="file"
-            accept=".txt,text/plain"
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            Drag and drop a Pleco export, dictionary history, bookmark export,
-            or plain .txt vocabulary list here.
-          </p>
-        </div>
-
-        <Button
-          className="mt-4 w-full"
-          disabled={importPreviewPending}
-          onClick={previewImport}
-          type="button"
-        >
-          <Search />
-          Preview Flashcards
-        </Button>
-        <p
-          className={cn(
-            "mt-3 text-sm",
-            importState.ok ? "text-muted-foreground" : "text-primary",
-          )}
-        >
-          {importPreviewMessage || importState.message}
-        </p>
-
-        {importDrafts.length > 0 ? (
-          <div className="mt-4 space-y-3">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">
-              Preview
-            </p>
-            {importDrafts.map((draft, draftIndex) => (
-              <div
-                className="rounded-lg border border-border bg-background p-3"
-                key={`${draft.targetText}-${draftIndex}`}
-              >
-                <label className="block text-xs font-semibold uppercase text-muted-foreground">
-                  Word
-                </label>
-                <Input
-                  className="mt-1 bg-card"
-                  onChange={(event) =>
-                    updateImportDraft(draftIndex, (current) => ({
-                      ...current,
-                      targetText: event.target.value,
-                    }))
-                  }
-                  value={draft.targetText}
-                />
-                <label className="mt-3 block text-xs font-semibold uppercase text-muted-foreground">
-                  Reading
-                </label>
-                <Input
-                  className="mt-1 bg-card"
-                  onChange={(event) =>
-                    updateImportDraft(draftIndex, (current) => ({
-                      ...current,
-                      phoneticReading: event.target.value
-                        .split(/\s+/)
-                        .filter(Boolean),
-                    }))
-                  }
-                  value={draft.phoneticReading.join(" ")}
-                />
-                <label className="mt-3 block text-xs font-semibold uppercase text-muted-foreground">
-                  Definitions
-                </label>
-                <Textarea
-                  className="mt-1 bg-card"
-                  onChange={(event) =>
-                    updateImportDraft(draftIndex, (current) => ({
-                      ...current,
-                      definitions: event.target.value
-                        .split(";")
-                        .map((definition) => definition.trim())
-                        .filter(Boolean),
-                    }))
-                  }
-                  value={draft.definitions.join("; ")}
-                />
-                {draft.exampleContexts.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Contexts
-                    </p>
-                    {draft.exampleContexts.map((context, contextIndex) => (
-                      <div
-                        className="rounded-lg border border-border bg-card p-2"
-                        key={`${context.sentence}-${contextIndex}`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-muted-foreground">
-                            Example {contextIndex + 1}
-                          </span>
-                          <Button
-                            onClick={() =>
-                              updateImportDraft(draftIndex, (current) => ({
-                                ...current,
-                                exampleContexts: current.exampleContexts.filter(
-                                  (_item, nextIndex) =>
-                                    nextIndex !== contextIndex,
-                                ),
-                              }))
-                            }
-                            size="icon"
-                            title="Remove context"
-                            type="button"
-                            variant="outline"
-                          >
-                            <X className="size-3" />
-                          </Button>
-                        </div>
-                        <Input
-                          className="mt-2 bg-background"
-                          onChange={(event) =>
-                            updateImportDraftContext(
-                              draftIndex,
-                              contextIndex,
-                              (current) => ({
-                                ...current,
-                                sentence: event.target.value,
-                              }),
-                            )
-                          }
-                          value={context.sentence}
-                        />
-                        <Input
-                          className="mt-2 bg-background"
-                          onChange={(event) =>
-                            updateImportDraftContext(
-                              draftIndex,
-                              contextIndex,
-                              (current) => ({
-                                ...current,
-                                phonetic: event.target.value,
-                              }),
-                            )
-                          }
-                          value={context.phonetic}
-                        />
-                        <Textarea
-                          className="mt-2 min-h-16 bg-background"
-                          onChange={(event) =>
-                            updateImportDraftContext(
-                              draftIndex,
-                              contextIndex,
-                              (current) => ({
-                                ...current,
-                                translation: event.target.value,
-                              }),
-                            )
-                          }
-                          value={context.translation}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-            <form action={importAction}>
-              <input
-                name="previewEntries"
-                type="hidden"
-                value={JSON.stringify(importDrafts)}
-              />
-              <Button className="w-full" disabled={importPending} type="submit">
-                <Upload />
-                {importPending ? "Creating flashcards…" : "Create Flashcards"}
-              </Button>
-            </form>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
 }
 
 function AddCardPanel() {
@@ -475,17 +90,14 @@ function AddCardPanel() {
             <div>
               <CardTitle>Add Card</CardTitle>
               <CardDescription>
-                Create a single flashcard without an import file.
+                Create a Mandarin flashcard for your private collection.
               </CardDescription>
             </div>
             <PencilLine className="size-5 text-primary" />
           </div>
         </CardHeader>
         <CardContent>
-          <label className="text-sm font-medium" htmlFor="manualLanguageCode">
-            Language
-          </label>
-          <LanguageSelect name="manualLanguageCode" />
+          <p className="text-sm text-muted-foreground">Language: Mandarin</p>
           <label
             className="mt-4 block text-sm font-medium"
             htmlFor="targetText"
@@ -660,7 +272,7 @@ export function ReviewQueue({
             <div className="rounded-xl border border-border bg-background p-5 text-sm text-muted-foreground lg:col-span-2">
               {archived
                 ? "No archived cards yet. Cards you archive will rest here."
-                : "Your collection is ready for its first seed. Import vocabulary or add a card to begin."}
+                : "Your collection is ready for its first seed. Add a card to begin."}
             </div>
           ) : null}
           {cards.map((card) => (
@@ -956,9 +568,7 @@ export function DashboardView({
   initialCards: WorkspaceCard[];
   initialLearningRhythm: LearningRhythmDay[];
 }) {
-  const [acquisitionMode, setAcquisitionMode] = useState<
-    "import" | "add" | null
-  >(null);
+  const [addCardOpen, setAddCardOpen] = useState(false);
   const { data: cards = [] } = useQuery({
     queryKey: queryKeys.dashboardCards,
     queryFn: () => fetchCardsByScope("active"),
@@ -989,15 +599,7 @@ export function DashboardView({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => setAcquisitionMode("import")}
-            type="button"
-            variant="outline"
-          >
-            <Upload />
-            Import vocabulary
-          </Button>
-          <Button
-            onClick={() => setAcquisitionMode("add")}
+            onClick={() => setAddCardOpen(true)}
             type="button"
             variant="outline"
           >
@@ -1128,26 +730,18 @@ export function DashboardView({
       </section>
 
       <Sheet
-        onOpenChange={(open) => {
-          if (!open) setAcquisitionMode(null);
-        }}
-        open={acquisitionMode !== null}
+        onOpenChange={setAddCardOpen}
+        open={addCardOpen}
       >
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>
-              {acquisitionMode === "import"
-                ? "Import vocabulary"
-                : "Add a card"}
-            </SheetTitle>
+            <SheetTitle>Add a card</SheetTitle>
             <SheetDescription>
-              {acquisitionMode === "import"
-                ? "Bring in a Pleco folder export or another vocabulary list, preview it, then create only the cards you want."
-                : "Add one word or phrase to your private learning collection."}
+              Add one Mandarin word or phrase to your private learning collection.
             </SheetDescription>
           </SheetHeader>
           <div className="mt-5">
-            {acquisitionMode === "import" ? <ImportPanel /> : <AddCardPanel />}
+            <AddCardPanel />
           </div>
         </SheetContent>
       </Sheet>

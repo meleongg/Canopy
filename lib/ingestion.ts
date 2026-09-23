@@ -1,8 +1,5 @@
 import { isChinese, phoneticTokensForText } from "@/lib/phonetics";
-import {
-  type ExampleContext,
-  MAX_EXAMPLE_CONTEXTS,
-} from "@/lib/example-contexts";
+import type { ExampleContext } from "@/lib/example-contexts";
 
 export type ParsedVocabularyEntry = {
   languageCode: string;
@@ -22,152 +19,11 @@ export type ParsedVocabularyEntry = {
 type NodeRsJiebaModule = typeof import("@node-rs/jieba");
 type NodeRsJiebaDictModule = typeof import("@node-rs/jieba/dict");
 
-function normalizeDefinitions(value: string | undefined) {
-  return (value ?? "")
+function normalizeDefinitions(value: string) {
+  return value
     .split(/[;/,]|(?:\s{2,})/)
     .map((definition) => definition.trim())
     .filter(Boolean);
-}
-
-function sanitizeImportedText(value: string) {
-  return value
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-    .replace(/\{[^}]*\}|\[[^\]]*\]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function splitRow(row: string) {
-  if (row.includes("\t")) {
-    return row.split(/\t+/).map((column) => column.trim());
-  }
-
-  return row.split(",").map((column) => column.trim());
-}
-
-function isCommentRow(row: string) {
-  return row.startsWith("//") || row.startsWith("#");
-}
-
-function isLikelyReading(value = "") {
-  return /[1-5āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/i.test(value);
-}
-
-function hasHan(value: string) {
-  return /\p{Script=Han}/u.test(value);
-}
-
-function isPartOfSpeechToken(value: string) {
-  return /^(noun|verb|adjective|adj|adverb|adv|pronoun|pron|preposition|prep|conjunction|conj|interjection|idiom|measure|particle)$/i.test(
-    value,
-  );
-}
-
-function isPinyinToken(value: string) {
-  return !hasHan(value) && /[1-5āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/i.test(value);
-}
-
-function isNeutralPinyinParticle(value: string) {
-  return /^(de|le|ge|men|zi)$/i.test(
-    value.replace(/[.,!?;:()[\]{}"“”‘’]/g, ""),
-  );
-}
-
-function cleanPlecoDefinition(value: string) {
-  return value
-    .replace(
-      /^(?:(?:noun|verb|adjective|adj|adverb|adv|pronoun|pron|preposition|prep|conjunction|conj|interjection|idiom|measure|particle|literary|figurative|fig)\s+)+/i,
-      "",
-    )
-    .trim();
-}
-
-function splitPlecoDefinitions(value: string) {
-  return value.split(";").map(cleanPlecoDefinition).filter(Boolean);
-}
-
-function parsePlecoBody(body: string): {
-  definitions: string[];
-  exampleContexts: ExampleContext[];
-} {
-  const tokens = body.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
-  const definitionChunks: string[] = [];
-  const exampleContexts: ExampleContext[] = [];
-  let definitionTokens: string[] = [];
-  let index = 0;
-
-  function flushDefinitions() {
-    const chunk = definitionTokens.join(" ").trim();
-    if (chunk) {
-      definitionChunks.push(chunk);
-    }
-    definitionTokens = [];
-  }
-
-  while (index < tokens.length) {
-    const token = tokens[index];
-
-    if (!hasHan(token)) {
-      definitionTokens.push(token);
-      index += 1;
-      continue;
-    }
-
-    flushDefinitions();
-
-    const sentenceTokens: string[] = [];
-    while (index < tokens.length && hasHan(tokens[index])) {
-      sentenceTokens.push(tokens[index]);
-      index += 1;
-    }
-
-    const phoneticTokens: string[] = [];
-    while (
-      index < tokens.length &&
-      (isPinyinToken(tokens[index]) ||
-        (phoneticTokens.length > 0 && isNeutralPinyinParticle(tokens[index])))
-    ) {
-      phoneticTokens.push(tokens[index]);
-      index += 1;
-    }
-
-    const translationTokens: string[] = [];
-    while (index < tokens.length && !hasHan(tokens[index])) {
-      const laterHanIndex = tokens.findIndex(
-        (nextToken, nextIndex) => nextIndex > index && hasHan(nextToken),
-      );
-      if (
-        translationTokens.length > 0 &&
-        laterHanIndex > index &&
-        isPartOfSpeechToken(tokens[index])
-      ) {
-        break;
-      }
-
-      translationTokens.push(tokens[index]);
-      index += 1;
-    }
-
-    if (
-      sentenceTokens.length > 0 &&
-      exampleContexts.length < MAX_EXAMPLE_CONTEXTS
-    ) {
-      exampleContexts.push({
-        sentence: sentenceTokens.join(" "),
-        phonetic: phoneticTokens.join(" "),
-        translation: translationTokens.join(" ").trim(),
-        generatedAt: new Date().toISOString(),
-      });
-    }
-  }
-
-  flushDefinitions();
-
-  return {
-    definitions: definitionChunks.flatMap(splitPlecoDefinitions),
-    exampleContexts,
-  };
 }
 
 async function segmentMandarin(text: string) {
@@ -182,83 +38,42 @@ async function segmentMandarin(text: string) {
   }
 }
 
-export async function parseVocabularyLog(
-  rawText: string,
-  languageCode = "zh-CN",
-): Promise<ParsedVocabularyEntry[]> {
-  const rows = rawText
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^\uFEFF/, "").trim())
-    .filter((line) => line && !isCommentRow(line));
+/** Build one learner-owned card entry from the Add Card form fields. */
+export async function buildManualVocabularyEntry(input: {
+  languageCode: string;
+  targetText: string;
+  phoneticReading?: string;
+  definitions: string;
+}): Promise<ParsedVocabularyEntry | null> {
+  const targetText = input.targetText.trim();
+  const definitions = normalizeDefinitions(input.definitions);
+  if (!targetText || definitions.length === 0) {
+    return null;
+  }
 
-  const entries = await Promise.all(
-    rows.map(async (row): Promise<ParsedVocabularyEntry | null> => {
-      const columns = splitRow(row);
-      const [rawTargetText, rawSecondColumn, ...rawRemainingColumns] = columns;
-      const targetText = sanitizeImportedText(rawTargetText ?? "");
-      const secondColumn = sanitizeImportedText(rawSecondColumn ?? "");
-      const remainingColumns = rawRemainingColumns.map(sanitizeImportedText);
-      if (!targetText || (!secondColumn && remainingColumns.length === 0)) {
-        return null;
-      }
-      const hasPlecoBody =
-        columns.length >= 3 &&
-        isLikelyReading(secondColumn) &&
-        remainingColumns.length === 1;
-      const hasExplicitReading = remainingColumns.length > 0;
-      const possibleReading = hasExplicitReading ? secondColumn : "";
-      const parsedPlecoBody = hasPlecoBody
-        ? parsePlecoBody(remainingColumns[0] ?? "")
-        : null;
-      const definitionColumns =
-        hasExplicitReading && !parsedPlecoBody
-          ? remainingColumns
-          : [secondColumn ?? ""];
-      const definitions = (parsedPlecoBody?.definitions.length
-        ? parsedPlecoBody.definitions
-        : normalizeDefinitions(definitionColumns.join("; "))
-      ).map(sanitizeImportedText).filter(Boolean);
-      const phoneticReading = phoneticTokensForText(
-        languageCode,
-        targetText,
-        possibleReading && definitions.length > 0 ? possibleReading : "",
-      );
-
-      if (isChinese(languageCode)) {
-        const segments = await segmentMandarin(targetText);
-        return {
-          languageCode,
-          targetText,
-          phoneticReading,
-          definitions:
-            definitions.length > 0
-              ? definitions
-              : [possibleReading ?? "Imported term"],
-          exampleContexts: parsedPlecoBody?.exampleContexts,
-          linguisticMeta: {
-            alternatives: segments.length > 1 ? segments : undefined,
-          },
-        };
-      }
-
-      return {
-        languageCode,
-        targetText,
-        phoneticReading,
-        definitions:
-          definitions.length > 0
-            ? definitions
-            : [possibleReading ?? "Imported term"],
-        exampleContexts: parsedPlecoBody?.exampleContexts,
-      };
-    }),
+  const phoneticReading = phoneticTokensForText(
+    input.languageCode,
+    targetText,
+    input.phoneticReading?.trim() ?? "",
   );
 
-  return Array.from(
-    new Map(
-      entries
-        .filter((entry): entry is ParsedVocabularyEntry => entry !== null)
-        .map((entry) => [`${entry.languageCode}:${entry.targetText}`, entry]),
-    ).values(),
-  );
+  if (isChinese(input.languageCode)) {
+    const segments = await segmentMandarin(targetText);
+    return {
+      languageCode: input.languageCode,
+      targetText,
+      phoneticReading,
+      definitions,
+      linguisticMeta: {
+        alternatives: segments.length > 1 ? segments : undefined,
+      },
+    };
+  }
+
+  return {
+    languageCode: input.languageCode,
+    targetText,
+    phoneticReading,
+    definitions,
+  };
 }

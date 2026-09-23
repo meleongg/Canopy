@@ -30,7 +30,7 @@ The following roadmap items have been delivered and verified:
 11. Public Privacy and Terms pages plus authenticated-surface cleanup.
 12. Optional Free practice that does not affect scheduling.
 13. ~~Validated manual Pleco UTF-8 export workflow; cloud-folder automation is deferred.~~
-    **Deprecated — removal is PR A.**
+    **Removed — batch Pleco/upload import deleted in PR A.**
 14. Dedicated Collection view with server-backed full-text search, active/archived browsing, pagination, personal card management, and context actions.
 15. Production deployment checklist verified in Vercel, Neon, and the dedicated OpenAI project, including migrations, usage alerts, and a conservative enforced spend cap.
 16. Stable shared Dictionary Help with per-round caching and configurable highlight density.
@@ -89,24 +89,21 @@ Product decisions locked for this sequence:
 - CEDICT owns pinyin + standard gloss when matched; LLM owns contextual meaning
   + example/source. Keep existing flashcard columns; add columns only if necessary.
 
-### PR A — Remove Pleco / upload / batch import
+### PR A — Remove Pleco / upload / batch import ✅
 
 Hard-remove the import acquisition path and all Pleco-facing product copy,
 including associated tests. Do not soft-deprecate.
 
-Expected scope (non-exhaustive):
+Completed in this change:
 
-- Dashboard `ImportPanel`, import/add mode toggle, file upload / drop-zone UI,
-  and related empty states (including DESIGN.md “link to import” recovery copy).
-- `POST /api/import-preview`, `POST /api/cards/import`, and Pleco/list parsers in
-  `lib/ingestion.ts` (and callers).
-- Tests such as `tests/import-preview-api.test.ts`, import cases in
-  `tests/cards-api.test.ts`, and Pleco cases in `tests/ingestion-and-srs.test.ts`.
-- Settings/onboarding language framing that existed only for import; Mandarin-only
-  acquisition going forward.
-- Docs/README already updated for this pivot; delete any remaining Pleco/upload
-  teaching copy if found.
-- Learner DB is already cleaned; no data backfill required.
+- Dashboard Import UI, upload/drop-zone, and import/add mode toggle removed;
+  Add Card remains the acquisition entry point.
+- `POST /api/import-preview`, `POST /api/cards/import`, and Pleco/list parsers
+  removed; manual add uses `buildManualVocabularyEntry`.
+- Import/Pleco tests removed or replaced with manual-entry coverage.
+- Settings/onboarding no longer expose multi-language import controls;
+  Mandarin-only acquisition for the private beta.
+- Learner DB was already cleaned; no data backfill required.
 
 ### PR B — Easy Add Flashcard + CC-CEDICT autofill
 
