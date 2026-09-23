@@ -42,6 +42,18 @@ export function normalizeSuppliedReading(value: string) {
     .filter(Boolean);
 }
 
+/** Strip tones/spaces so `jichang` matches `ji1 chang3` or `jī chǎng`. */
+export function compactPinyinKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/u:/gi, "v")
+    .replace(/ü/gi, "v")
+    .replace(/[1-5\s'’·.\-]/g, "");
+}
+
 function normalizeNumberedPinyinToken(token: string) {
   const normalized = token.replace(/u:/gi, "v");
   if (normalized.endsWith("5")) return normalized.slice(0, -1);

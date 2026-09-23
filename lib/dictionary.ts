@@ -17,7 +17,7 @@ import {
   dictionaryReleases,
   flashcards,
 } from "@/db/schema";
-import { normalizeSuppliedReading } from "@/lib/phonetics";
+import { compactPinyinKey, normalizeSuppliedReading } from "@/lib/phonetics";
 
 export type DictionaryLookup = {
   entryId: string;
@@ -174,11 +174,23 @@ export async function searchActiveDictionary(
   const normalizedQuery = query.trim();
   if (!normalizedQuery) return [] as DictionarySearchResult[];
 
+  const compactQuery = compactPinyinKey(normalizedQuery);
+  const compactPinyinColumn = sql`regexp_replace(regexp_replace(lower(${dictionaryEntries.pinyin}), 'u:', 'v', 'gi'), '[1-5[:space:]''’·.\-]', '', 'g')`;
   const chineseMatch = or(
     ilike(dictionaryEntries.simplified, `%${normalizedQuery}%`),
     ilike(dictionaryEntries.traditional, `%${normalizedQuery}%`),
   );
-  const pinyinMatch = ilike(dictionaryEntries.pinyin, `%${normalizedQuery}%`);
+  const tonedPinyinMatch = ilike(
+    dictionaryEntries.pinyin,
+    `%${normalizedQuery}%`,
+  );
+  const tonelessPinyinMatch =
+    compactQuery.length > 0
+      ? sql`${compactPinyinColumn} LIKE ${`%${compactQuery}%`}`
+      : undefined;
+  const pinyinMatch = tonelessPinyinMatch
+    ? or(tonedPinyinMatch, tonelessPinyinMatch)
+    : tonedPinyinMatch;
   const englishMatch = sql`lower(${dictionaryEntries.definitions}::text) LIKE ${`%${normalizedQuery.toLowerCase()}%`}`;
   const matchByScope = {
     all: or(chineseMatch, pinyinMatch, englishMatch),
@@ -186,7 +198,24 @@ export async function searchActiveDictionary(
     pinyin: pinyinMatch,
     english: englishMatch,
   }[scope];
-  const relevance = sql<number>`case
+  const relevance =
+    compactQuery.length > 0
+      ? sql<number>`case
+    when ${dictionaryEntries.simplified} = ${normalizedQuery}
+      or ${dictionaryEntries.traditional} = ${normalizedQuery} then 0
+    when lower(${dictionaryEntries.pinyin}) = lower(${normalizedQuery})
+      or ${compactPinyinColumn} = ${compactQuery} then 1
+    when exists (
+      select 1 from jsonb_array_elements_text(${dictionaryEntries.definitions}) definition
+      where lower(definition) = lower(${normalizedQuery})
+    ) then 2
+    when ${dictionaryEntries.simplified} ilike ${`${normalizedQuery}%`}
+      or ${dictionaryEntries.traditional} ilike ${`${normalizedQuery}%`} then 3
+    when ${dictionaryEntries.pinyin} ilike ${`${normalizedQuery}%`}
+      or ${compactPinyinColumn} like ${`${compactQuery}%`} then 4
+    else 5
+  end`
+      : sql<number>`case
     when ${dictionaryEntries.simplified} = ${normalizedQuery}
       or ${dictionaryEntries.traditional} = ${normalizedQuery} then 0
     when lower(${dictionaryEntries.pinyin}) = lower(${normalizedQuery}) then 1

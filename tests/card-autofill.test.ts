@@ -5,6 +5,7 @@ import {
   headwordLengthMessage,
   MAX_HEADWORD_HAN_CHARS,
 } from "@/lib/card-draft";
+import { compactPinyinKey } from "@/lib/phonetics";
 
 describe("card autofill helpers", () => {
   it("counts Han characters for the headword cap", () => {
@@ -36,5 +37,14 @@ describe("card autofill helpers", () => {
       dictionaryEntryId: "entry-1",
       definitions: "airport; airfield",
     });
+  });
+});
+
+describe("toneless pinyin keys", () => {
+  it("collapses numbered and spaced readings for lookup", () => {
+    expect(compactPinyinKey("ji1 chang3")).toBe("jichang");
+    expect(compactPinyinKey("jī chǎng")).toBe("jichang");
+    expect(compactPinyinKey("jichang")).toBe("jichang");
+    expect(compactPinyinKey("ji chang")).toBe("jichang");
   });
 });

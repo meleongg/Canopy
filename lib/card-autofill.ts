@@ -9,6 +9,7 @@ import {
   type AutofillMatch,
   type AutofillResult,
 } from "@/lib/card-draft";
+import { compactPinyinKey } from "@/lib/phonetics";
 
 export {
   MAX_HEADWORD_HAN_CHARS,
@@ -22,8 +23,9 @@ export {
 
 function inferSearchScope(query: string): DictionarySearchScope {
   if (/\p{Script=Han}/u.test(query)) return "chinese";
-  if (/[1-5āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/i.test(query)) return "pinyin";
-  return "english";
+  // Latin queries may be English glosses or toneless/toned pinyin (`jichang`,
+  // `ji chang`, `ji1chang3`). Search all so both surfaces can match.
+  return "all";
 }
 
 function rankMatchKind(
@@ -31,6 +33,11 @@ function rankMatchKind(
   entry: DictionarySearchResult,
 ): AutofillMatch["matchKind"] {
   if (entry.simplified === query || entry.traditional === query) {
+    return "exact";
+  }
+  const compactQuery = compactPinyinKey(query);
+  const compactEntry = compactPinyinKey(entry.pinyin);
+  if (compactQuery && compactEntry === compactQuery) {
     return "exact";
   }
   if (

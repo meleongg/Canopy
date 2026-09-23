@@ -189,13 +189,13 @@ function AddCardPanel() {
             onChange={(event) => {
               updateTargetText(event.target.value);
             }}
-            placeholder="机场 or airport"
+            placeholder="机场, jichang, or airport"
             required
             value={targetText}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Headwords up to {MAX_HEADWORD_HAN_CHARS} Chinese characters. English
-            gloss search is supported.
+            Headwords up to {MAX_HEADWORD_HAN_CHARS} Chinese characters. Search
+            by hanzi, toneless pinyin, or English gloss.
           </p>
           {lengthHelp ? (
             <p className="mt-2 text-sm text-primary" role="status">
