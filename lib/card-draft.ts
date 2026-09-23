@@ -1,12 +1,36 @@
 import { normalizeSuppliedReading } from "@/lib/phonetics";
 
 export const MAX_HEADWORD_HAN_CHARS = 8;
+export const MAX_SOURCE_CONTEXT_CHARS = 500;
+export const MAX_ENGLISH_INTENT_CHARS = 500;
+
+export type CaptureMode = "inbound" | "outbound";
 
 export type CardDraftFields = {
   targetText: string;
   phoneticReading: string;
   definitions: string;
   dictionaryEntryId?: string;
+};
+
+/** One editable draft option returned by `/api/cards/draft`. */
+export type CardDraftOption = {
+  id: string;
+  register: "casual" | "neutral" | "formal" | null;
+  registerLabel: string | null;
+  headword: string;
+  phoneticReading: string;
+  definitions: string;
+  contextualMeaning: string;
+  sourceSentence: string;
+  dictionaryEntryId: string | null;
+  grounded: boolean;
+};
+
+export type CardDraftAssistResult = {
+  mode: CaptureMode;
+  options: CardDraftOption[];
+  helpMessage: string | null;
 };
 
 /** Client-safe shape returned by `/api/dictionary/autofill`. */

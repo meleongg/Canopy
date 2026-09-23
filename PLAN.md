@@ -10,7 +10,8 @@ engine:
 
 Overstory, Understory, review, collection, and Explore Chinese stay. Batch
 Pleco/upload import has been removed (PR A). Acquisition continues through
-in-app Add Card with CC-CEDICT grounding (PR B) and planned LLM assist (PR C).
+in-app Add Card with CC-CEDICT grounding (PR B) and LLM inbound/outbound
+assist (PR C).
 
 ## Completed
 
@@ -71,10 +72,12 @@ The following roadmap items have been delivered and verified:
     does not promise fully offline learning.
 30. Collection generate-context loading feedback (spinner, inline status, and
     disabled controls while an example is being written).
+31. Add Card LLM inbound/outbound draft assist with mode toggle, dedicated
+    `POST /api/cards/draft`, and CC-CEDICT grounding of lexical fields.
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
-## Next up — acquisition pivot (execute in order)
+## Acquisition pivot — complete
 
 Product decisions locked for this sequence:
 
@@ -86,8 +89,8 @@ Product decisions locked for this sequence:
   optional source/context text and outbound English intent. Soft, non-blocking
   help when the whole string has no solid CEDICT match (suggest splitting;
   do not auto-create multiple cards in PR B).
-- Inbound/outbound share one capture panel with a mode toggle (UI polish in PR C).
-- New card-draft API for LLM capture; do not overload collection `generateContext`.
+- Inbound/outbound share one capture panel with a mode toggle.
+- Dedicated card-draft API for LLM capture; do not overload collection `generateContext`.
 - CEDICT owns pinyin + standard gloss when matched; LLM owns contextual meaning
   + example/source. Keep existing flashcard columns; add columns only if necessary.
 
@@ -98,7 +101,7 @@ including associated tests. **Shipped.**
 
 ### PR B — Easy Add Flashcard + CC-CEDICT autofill ✅
 
-Make capture the easiest path into the collection. **Shipped in this change:**
+Make capture the easiest path into the collection. **Shipped:**
 
 - Dashboard Add Card debounced CC-CEDICT lookup via `POST /api/dictionary/autofill`.
 - Ranked matches fill an editable draft (reading + glosses); learner confirms Save.
@@ -107,20 +110,19 @@ Make capture the easiest path into the collection. **Shipped in this change:**
 - Shared `draftFieldsFromDictionaryEntry` used by Add Card and Dictionary explorer.
 - Logical contract remains on existing flashcard columns.
 
-### PR C — LLM in-context translation (UI details TBD)
+### PR C — LLM in-context translation ✅
 
-Add inbound and outbound capture modes on the same panel (mode toggle), reusing
-the dedicated OpenAI project.
+Inbound and outbound capture modes on the same Add Card panel (mode toggle),
+reusing the dedicated OpenAI project. **Shipped in this change:**
 
 1. **Inbound:** target word/phrase + surrounding context → LLM explains meaning
    in that context → CC-CEDICT grounds headword when matched → confirm save.
 2. **Outbound:** English communicative intent → 1–2 natural Mandarin options by
    register → isolate headword → CC-CEDICT verifies → confirm save.
 
-Invariants: no proprietary dictionary text; new card-draft API; CEDICT for
-lexical fields when matched; LLM for original contextual explanations/examples.
-Exact control layout and microcopy are a design concern inside this PR—keep the
-panel intuitive and low-friction.
+Invariants: no proprietary dictionary text; `POST /api/cards/draft` for LLM
+capture; CEDICT for lexical fields when matched; LLM for original contextual
+explanations/examples.
 
 ## Nice-to-have after beta activity justifies it
 

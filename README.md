@@ -10,10 +10,9 @@ learning application.
 
 ## What is included
 
-- In-app vocabulary capture: add Mandarin cards manually, with CC-CEDICT
-  grounding planned for matched forms, readings, and glosses, plus later LLM
-  in-context assist. Batch file upload / external dictionary export import has
-  been removed.
+- In-app vocabulary capture: add Mandarin cards with CC-CEDICT autofill and LLM
+  inbound/outbound draft assist on the same panel. Batch file upload / external
+  dictionary export import has been removed.
 - Private flashcards, archive/restore/delete controls, and a mobile-friendly
   scheduled review session.
 - The Overstory for generated reading practice and the Understory for focused,
@@ -88,8 +87,8 @@ opening or updating a pull request.
   Acquisition is in-app capture, not external dictionary export upload.
 - `pinyin-pro` supports Mandarin readings, and `@node-rs/jieba` supports
   Chinese segmentation.
-- See [PLAN.md](PLAN.md) for the acquisition pivot (remove import → CEDICT
-  autofill → LLM inbound/outbound).
+- See [PLAN.md](PLAN.md) for the completed acquisition pivot (import removal,
+  CEDICT autofill, LLM inbound/outbound).
 
 ## Deployment notes
 

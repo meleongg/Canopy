@@ -82,14 +82,15 @@ dictionary export import.
 **Removed:** `POST /api/cards/import`, `POST /api/import-preview`, Pleco/list
 parsers, upload/drop-zone import UI, and their tests. Do not rebuild them.
 
-**Current / near-term capture:**
+**Current capture:**
 
 - Manual Add Card creates one learner-owned Mandarin flashcard with editable
   headword, reading, definitions, and optional context. Debounced CC-CEDICT
   autofill (`POST /api/dictionary/autofill`) fills an editable draft from ranked
   matches (≤8 Chinese-character headwords; soft split help when needed).
-- Planned (PR C): LLM inbound/outbound card-draft assist on the same panel
-  (mode toggle), grounded by CC-CEDICT via a dedicated draft API.
+- LLM inbound/outbound assist on the same panel (mode toggle) via
+  `POST /api/cards/draft`. CEDICT grounds pinyin/gloss when matched; the LLM
+  supplies original contextual meaning and example/source text only.
 
 `POST /api/cards/review`
 
@@ -145,8 +146,7 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 Before merge, run `npm run validate` (lint, TypeScript, and unit tests). Endpoint
 tests must cover card ownership, SM-2 rating updates, 3–7 story limits,
 moderation rejection, and the five-turn chat limit. Import/Pleco parser and
-upload tests are gone; cover CEDICT autofill and (later) card-draft API tests
-as those land.
+upload tests are gone; cover CEDICT autofill and card-draft API tests.
 
 ## 6. Private beta extensions
 
