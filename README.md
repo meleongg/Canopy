@@ -12,8 +12,8 @@ learning application.
 
 - In-app vocabulary capture: add Mandarin cards manually, with CC-CEDICT
   grounding planned for matched forms, readings, and glosses, plus later LLM
-  in-context assist. Batch file upload / external dictionary export import is
-  deprecated and being removed.
+  in-context assist. Batch file upload / external dictionary export import has
+  been removed.
 - Private flashcards, archive/restore/delete controls, and a mobile-friendly
   scheduled review session.
 - The Overstory for generated reading practice and the Understory for focused,

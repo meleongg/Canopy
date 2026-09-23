@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import { LanguageSelect } from "@/components/canopy/language-select";
 import { authClient } from "@/lib/auth-client";
 import type { UserPreferences } from "@/lib/user-preferences";
 import { queryKeys } from "@/lib/query-keys";
@@ -210,25 +209,16 @@ export function SettingsView({
           <CardHeader>
             <CardTitle>Learning defaults</CardTitle>
             <CardDescription>
-              Defaults for imports and practice. You can still adjust controls
-              during a session.
+              Defaults for practice. You can still adjust controls during a
+              session.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium" htmlFor="importLanguage">
-                Default import language
-              </label>
-              <LanguageSelect
-                value={preferences.importLanguage}
-                onValueChange={(importLanguage) =>
-                  savePreferences({
-                    ...preferences,
-                    importLanguage:
-                      importLanguage as UserPreferences["importLanguage"],
-                  })
-                }
-              />
+              <p className="text-sm font-medium">Learning language</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Mandarin (private beta)
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium">Theme</p>

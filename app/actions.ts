@@ -11,7 +11,7 @@ import {
 } from "@/lib/database-errors";
 import {
   type ParsedVocabularyEntry,
-  parseVocabularyLog,
+  buildManualVocabularyEntry,
 } from "@/lib/ingestion";
 import { generateExampleContext } from "@/lib/openai";
 import { phoneticTextForSentence } from "@/lib/phonetics";
@@ -27,34 +27,6 @@ type ActionState = {
   message: string;
 };
 
-function entriesFromPreviewJson(value: string): ParsedVocabularyEntry[] {
-  const parsed = JSON.parse(value) as Partial<ParsedVocabularyEntry>[];
-
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed
-    .map((entry) => ({
-      languageCode: String(entry.languageCode ?? "zh-CN"),
-      targetText: String(entry.targetText ?? "").trim(),
-      phoneticReading: Array.isArray(entry.phoneticReading)
-        ? entry.phoneticReading.map(String).filter(Boolean)
-        : String(entry.phoneticReading ?? "")
-            .split(/\s+/)
-            .filter(Boolean),
-      definitions: Array.isArray(entry.definitions)
-        ? entry.definitions.map(String).filter(Boolean)
-        : String(entry.definitions ?? "")
-            .split(/[;/,]|(?:\s{2,})/)
-            .map((definition) => definition.trim())
-            .filter(Boolean),
-      exampleContexts: normalizeExampleContexts(entry.exampleContexts),
-      linguisticMeta: entry.linguisticMeta,
-    }))
-    .filter((entry) => entry.targetText && entry.definitions.length > 0);
-}
-
 async function upsertVocabularyEntries(
   entries: ParsedVocabularyEntry[],
 ): Promise<ActionState> {
@@ -63,12 +35,12 @@ async function upsertVocabularyEntries(
   if (!hasDatabaseEnv()) {
     return {
       ok: false,
-      message: "Database env is missing. Add runtime vars in Vercel to import.",
+      message: "Database env is missing. Add runtime vars in Vercel to continue.",
     };
   }
 
   if (entries.length === 0) {
-    return { ok: false, message: "Drop or paste at least one vocabulary row." };
+    return { ok: false, message: "Add at least one vocabulary card." };
   }
 
   try {
@@ -77,65 +49,23 @@ async function upsertVocabularyEntries(
     revalidatePath("/collection");
     revalidatePath("/overstory");
     revalidatePath("/understory/setup");
+    const saved = result.importedCount + result.updatedCount;
     return {
       ok: true,
-      message: `Imported ${result.importedCount} new and updated ${result.updatedCount} existing vocabulary rows.`,
+      message:
+        saved === 1
+          ? "Saved your flashcard."
+          : `Saved ${result.importedCount} new and updated ${result.updatedCount} existing cards.`,
     };
   } catch (error) {
     if (isMissingDatabaseSchemaError(error)) {
       return { ok: false, message: databaseSetupMessage() };
     }
-    console.error("Vocabulary import failed.", error);
+    console.error("Vocabulary save failed.", error);
     return {
       ok: false,
-      message:
-        "Your vocabulary was not saved. Please check the preview and try again.",
+      message: "Your vocabulary was not saved. Please try again.",
     };
-  }
-}
-
-export async function importVocabularyAction(
-  _previousState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const rawText = String(formData.get("rawText") ?? "");
-  const languageCode = String(formData.get("languageCode") ?? "zh-CN");
-  if (languageCode !== "zh-CN") {
-    return {
-      ok: false,
-      message: "Choose Mandarin before importing.",
-    };
-  }
-  const file = formData.get("file");
-  const fileText =
-    file instanceof File && file.size > 0 ? await file.text() : "";
-  let entries: ParsedVocabularyEntry[];
-  try {
-    entries = await parseVocabularyLog(fileText || rawText, languageCode);
-  } catch (error) {
-    console.error("Vocabulary parsing failed.", error);
-    return {
-      ok: false,
-      message: "That import could not be read. Paste plain text and try again.",
-    };
-  }
-
-  return upsertVocabularyEntries(entries);
-}
-
-export async function createFlashcardsFromPreviewAction(
-  _previousState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const previewEntries = String(formData.get("previewEntries") ?? "");
-  if (!previewEntries) {
-    return { ok: false, message: "Preview at least one vocabulary row first." };
-  }
-
-  try {
-    return upsertVocabularyEntries(entriesFromPreviewJson(previewEntries));
-  } catch {
-    return { ok: false, message: "Preview data could not be imported." };
   }
 }
 
@@ -143,13 +73,7 @@ export async function addFlashcardAction(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const languageCode = String(formData.get("manualLanguageCode") ?? "zh-CN");
-  if (languageCode !== "zh-CN") {
-    return {
-      ok: false,
-      message: "Choose Mandarin before adding a card.",
-    };
-  }
+  const languageCode = "zh-CN";
   const targetText = String(formData.get("targetText") ?? "").trim();
   const phonetic = String(formData.get("phoneticReading") ?? "").trim();
   const definitions = String(formData.get("definitions") ?? "").trim();
@@ -162,10 +86,14 @@ export async function addFlashcardAction(
     };
   }
 
-  const row = [targetText, phonetic, definitions].filter(Boolean).join("\t");
-  let entries: ParsedVocabularyEntry[];
+  let entry: ParsedVocabularyEntry | null;
   try {
-    entries = await parseVocabularyLog(row, languageCode);
+    entry = await buildManualVocabularyEntry({
+      languageCode,
+      targetText,
+      phoneticReading: phonetic,
+      definitions,
+    });
   } catch (error) {
     console.error("Manual card parsing failed.", error);
     return {
@@ -173,7 +101,6 @@ export async function addFlashcardAction(
       message: "That card could not be read. Check the word and definition.",
     };
   }
-  const [entry] = entries;
 
   if (!entry) {
     return {
@@ -182,7 +109,7 @@ export async function addFlashcardAction(
     };
   }
 
-  if (entry && exampleContext) {
+  if (exampleContext) {
     entry.exampleContexts = [
       {
         sentence: exampleContext,
@@ -197,7 +124,7 @@ export async function addFlashcardAction(
     ];
   }
 
-  return upsertVocabularyEntries(entries);
+  return upsertVocabularyEntries([entry]);
 }
 
 export async function reviewCardAction(formData: FormData) {
