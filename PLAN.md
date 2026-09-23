@@ -8,9 +8,9 @@ engine:
 
 **In-Context Capture → Grounded Verification (CC-CEDICT) → Flashcard Save → Spaced Repetition Review**
 
-Overstory, Understory, review, collection, and Explore Chinese stay. Pleco
-integration, manual `.txt` export import / upload, and static third-party
-dictionary sync workflows are deprecated and will be removed in PR A below.
+Overstory, Understory, review, collection, and Explore Chinese stay. Batch
+Pleco/upload import has been removed (PR A). Acquisition continues through
+in-app Add Card with CC-CEDICT grounding (PR B) and planned LLM assist (PR C).
 
 ## Completed
 
@@ -69,6 +69,8 @@ The following roadmap items have been delivered and verified:
 29. Installable home-screen launch support with standalone display, Apple
     metadata, purpose-appropriate icons, and authenticated entry points; it
     does not promise fully offline learning.
+30. Collection generate-context loading feedback (spinner, inline status, and
+    disabled controls while an example is being written).
 
 Decks, analytics, social features, and push notifications remain out of scope for the private beta.
 
@@ -92,36 +94,18 @@ Product decisions locked for this sequence:
 ### PR A — Remove Pleco / upload / batch import ✅
 
 Hard-remove the import acquisition path and all Pleco-facing product copy,
-including associated tests. Do not soft-deprecate.
+including associated tests. **Shipped.**
 
-Completed in this change:
+### PR B — Easy Add Flashcard + CC-CEDICT autofill ✅
 
-- Dashboard Import UI, upload/drop-zone, and import/add mode toggle removed;
-  Add Card remains the acquisition entry point.
-- `POST /api/import-preview`, `POST /api/cards/import`, and Pleco/list parsers
-  removed; manual add uses `buildManualVocabularyEntry`.
-- Import/Pleco tests removed or replaced with manual-entry coverage.
-- Settings/onboarding no longer expose multi-language import controls;
-  Mandarin-only acquisition for the private beta.
-- Learner DB was already cleaned; no data backfill required.
+Make capture the easiest path into the collection. **Shipped in this change:**
 
-### PR B — Easy Add Flashcard + CC-CEDICT autofill
-
-Make capture the easiest path into the collection.
-
-- As the learner types or pastes a Mandarin headword/phrase (≤8 characters) or
-  uses English-gloss search where supported, rank active CC-CEDICT matches and
-  fill reading + standard glosses into an **editable draft**.
-- Exact phrase misses: keep the learner’s phrase as `targetText`, optionally
-  surface component/token matches, show soft split help, never block save.
-- Share grounding helpers with Dictionary explorer “add to collection”.
-- Logical contract mapped onto existing columns (no rename migration):
-  - `targetText` ← headword
-  - `phoneticReading` ← grounded pinyin when CEDICT matches
-  - `definitions` ← standard CEDICT glosses
-  - `aiExampleContext` / context fields ← contextual note + source sentence
-    (manual in this PR; LLM fill in PR C)
-  - optional audio remains out of band / existing TTS paths
+- Dashboard Add Card debounced CC-CEDICT lookup via `POST /api/dictionary/autofill`.
+- Ranked matches fill an editable draft (reading + glosses); learner confirms Save.
+- Headword capped at 8 Chinese characters; soft split help when the whole phrase
+  has no exact match; save is never blocked for lack of a match.
+- Shared `draftFieldsFromDictionaryEntry` used by Add Card and Dictionary explorer.
+- Logical contract remains on existing flashcard columns.
 
 ### PR C — LLM in-context translation (UI details TBD)
 

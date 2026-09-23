@@ -13,6 +13,7 @@ import {
   type ParsedVocabularyEntry,
   buildManualVocabularyEntry,
 } from "@/lib/ingestion";
+import { headwordLengthMessage } from "@/lib/card-autofill";
 import { generateExampleContext } from "@/lib/openai";
 import { phoneticTextForSentence } from "@/lib/phonetics";
 import { requireAuth } from "@/lib/session";
@@ -78,12 +79,20 @@ export async function addFlashcardAction(
   const phonetic = String(formData.get("phoneticReading") ?? "").trim();
   const definitions = String(formData.get("definitions") ?? "").trim();
   const exampleContext = String(formData.get("exampleContext") ?? "").trim();
+  const dictionaryEntryId = String(
+    formData.get("dictionaryEntryId") ?? "",
+  ).trim();
 
   if (!targetText || !definitions) {
     return {
       ok: false,
       message: "Add a target word and at least one definition.",
     };
+  }
+
+  const lengthHelp = headwordLengthMessage(targetText);
+  if (lengthHelp) {
+    return { ok: false, message: lengthHelp };
   }
 
   let entry: ParsedVocabularyEntry | null;
@@ -107,6 +116,10 @@ export async function addFlashcardAction(
       ok: false,
       message: "Add a word or phrase and at least one plain-text definition.",
     };
+  }
+
+  if (dictionaryEntryId) {
+    entry.dictionaryEntryId = dictionaryEntryId;
   }
 
   if (exampleContext) {

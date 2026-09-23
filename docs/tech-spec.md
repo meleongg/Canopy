@@ -85,9 +85,9 @@ parsers, upload/drop-zone import UI, and their tests. Do not rebuild them.
 **Current / near-term capture:**
 
 - Manual Add Card creates one learner-owned Mandarin flashcard with editable
-  headword, reading, definitions, and optional context.
-- Planned (PR B): CC-CEDICT autofill into an editable draft before save; shared
-  helpers with Dictionary explorer add.
+  headword, reading, definitions, and optional context. Debounced CC-CEDICT
+  autofill (`POST /api/dictionary/autofill`) fills an editable draft from ranked
+  matches (≤8 Chinese-character headwords; soft split help when needed).
 - Planned (PR C): LLM inbound/outbound card-draft assist on the same panel
   (mode toggle), grounded by CC-CEDICT via a dedicated draft API.
 
