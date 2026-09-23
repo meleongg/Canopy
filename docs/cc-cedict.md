@@ -1,9 +1,14 @@
 # CC-CEDICT lookup data
 
 Canopy uses CC-CEDICT only as shared Chinese-English lookup data. It is not a
-learner card import: the corpus belongs in `dictionary_releases` and
+bulk learner-card import: the corpus belongs in `dictionary_releases` and
 `dictionary_entries`, while each learner's cards remain in `words` and
 `flashcards`.
+
+Learner cards are created through in-app capture (Add Card / dictionary add)
+that may copy matched forms, readings, and glosses from the active release.
+Canopy does not ingest proprietary third-party dictionary exports or vocabulary
+file uploads as a source of card text.
 
 ## Source and attribution
 

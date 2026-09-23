@@ -10,8 +10,10 @@ learning application.
 
 ## What is included
 
-- A reviewed, editable import flow for Pleco-style UTF-8 text exports and
-  manually added vocabulary.
+- In-app vocabulary capture: add Mandarin cards manually, with CC-CEDICT
+  grounding planned for matched forms, readings, and glosses, plus later LLM
+  in-context assist. Batch file upload / external dictionary export import is
+  deprecated and being removed.
 - Private flashcards, archive/restore/delete controls, and a mobile-friendly
   scheduled review session.
 - The Overstory for generated reading practice and the Understory for focused,
@@ -83,10 +85,11 @@ opening or updating a pull request.
 
 - [CC-CEDICT lookup data](docs/cc-cedict.md) supplies shared Chinese forms,
   readings, and English glosses. It remains separate from learner-owned cards.
-- [Pleco export workflow](docs/pleco-import-workflow.md) describes the supported
-  manual import path.
+  Acquisition is in-app capture, not external dictionary export upload.
 - `pinyin-pro` supports Mandarin readings, and `@node-rs/jieba` supports
   Chinese segmentation.
+- See [PLAN.md](PLAN.md) for the acquisition pivot (remove import → CEDICT
+  autofill → LLM inbound/outbound).
 
 ## Deployment notes
 

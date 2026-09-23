@@ -96,8 +96,9 @@ Strictly use the two designated font families to maintain the organic book/garde
   successful, independent mutations such as card edits, archive/restore, or
   deletion.
 - Every workflow must describe unavailable actions and provide a recovery path:
-  empty collections link to import, unavailable AI generation explains its seed
-  requirement, and completed practice links to History.
+  empty collections link to Add Card (or Dictionary explore), unavailable AI
+  generation explains its seed requirement, and completed practice links to
+  History.
 - Dialogs must be keyboard-operable, focus-managed, labelled, and include a
   visible cancel path. Destructive confirmations must name the affected item and
   state whether the action is irreversible.

@@ -6,8 +6,13 @@ Canopy is a Next.js 16 App Router application with TypeScript, Better Auth, Neon
 
 Vocabulary cards are owned by the learner. Each `flashcards` row stores its own
 language, text, reading, definitions, optional linguistic metadata, scheduling,
-and saved context. This prevents one learner’s import or edits from changing
-another learner’s vocabulary.
+and saved context. This prevents one learner’s edits from changing another
+learner’s vocabulary.
+
+Shared CC-CEDICT data lives in `dictionary_releases` / `dictionary_entries` and
+is never treated as a bulk learner-card import. Acquisition is in-app Mandarin
+capture with optional CEDICT grounding and (planned) LLM contextual assist—not
+file upload or batch import from external dictionary apps.
 
 ## 2. Data Schema
 
@@ -50,19 +55,42 @@ export const flashcards = pgTable(
 );
 ```
 
+### Logical capture contract (column mapping)
+
+Product language may describe a capture schema. Prefer mapping onto existing
+columns; add new columns only when mapping is insufficient:
+
+| Logical field | Storage |
+| --- | --- |
+| `headword` | `targetText` (≤8 Chinese characters for new capture; script display follows learner Simplified/Traditional preference) |
+| `pinyin` | `phoneticReading` (prefer CC-CEDICT when matched) |
+| `definition_cedict` | `definitions` (standard glosses from the active release) |
+| `contextual_meaning` | `aiExampleContext` / context payload (LLM or learner note) |
+| `source_sentence` | same context payload (where the learner found it, or generated example) |
+| `audio_url` | optional / synthesized elsewhere; not required to save |
+
 `ai_sessions` is retained for persisted AI-session history. It has a `userId`, `sessionType` (`story_sandbox` or `helper_chat`), `languageCode`, selected word IDs, and structured story or message content.
 
 ## 3. MVP Capabilities
 
-### Grove: ingestion and review
+### Grove: capture and review
 
-`POST /api/cards/import`
+Learner vocabulary enters the collection through **Add Card** (and Dictionary
+explorer add-to-collection), not through batch file upload or external
+dictionary export import.
 
-- Payload: `{ rawText: string, languageCode: "zh-CN" | "zh-HK" | "fr-FR" | "und" }`
-- Response: `{ importedCount: number, updatedCount: number }`
-- Requires authentication.
-- Parses tab-separated, CSV-like, and Pleco-style rows. It skips blank/comment rows, normalizes Unicode, removes control characters and bracketed parsing syntax from persisted fields, and deduplicates in the request.
-- **Atomic persistence:** Parse and validate the complete payload before opening a transaction. Then upsert cards by `(userId, languageCode, targetText)` in one database transaction. If any write fails, roll back the entire import and return an error; never leave a partial batch of cards. Keep the transaction limited to database writes so parsing and phonetic segmentation do not hold locks.
+**Removed in PR A (do not rebuild):** `POST /api/cards/import`,
+`POST /api/import-preview`, Pleco/list parsers, upload/drop-zone import UI, and
+their tests.
+
+**Current / near-term capture:**
+
+- Manual Add Card creates one learner-owned Mandarin flashcard with editable
+  headword, reading, definitions, and optional context.
+- Planned (PR B): CC-CEDICT autofill into an editable draft before save; shared
+  helpers with Dictionary explorer add.
+- Planned (PR C): LLM inbound/outbound card-draft assist on the same panel
+  (mode toggle), grounded by CC-CEDICT via a dedicated draft API.
 
 `POST /api/cards/review`
 
@@ -71,9 +99,18 @@ export const flashcards = pgTable(
 - Requires authentication and ownership of the card.
 - Applies SM-2 scheduling. A rating below 3 resets repetition and schedules the card for tomorrow; successful repetitions schedule at 1 day, 6 days, then the EF-derived interval.
 
-`GET /api/cards` returns only the requesting user’s serialized cards. `POST /api/import-preview` parses input for the editable dashboard preview before it is persisted.
+`GET /api/cards` returns only the requesting user’s serialized cards.
 
-The `/dashboard` Grove uses the Linen/Slate Night canvas, a paste and file drop-zone, editable import preview, manual add form, Sprouting Queue, tactile `2`, `3`, `4`, and check-mark review controls, and a compact consistency summary.
+The `/dashboard` Grove uses the Linen/Slate Night canvas, Add Card capture,
+Sprouting Queue, tactile `2`, `3`, `4`, and check-mark review controls, and a
+compact consistency summary.
+
+### Legal and grounding invariants
+
+- Use CC-CEDICT (CC BY-SA 4.0) for baseline lexical definitions and readings.
+- Use the LLM only for original contextual explanations and example sentences.
+- Never scrape, ingest, store, or redistribute proprietary dictionary databases
+  or commercial dictionary export files as Canopy source material.
 
 ### Overstory: reading sandbox
 
@@ -106,7 +143,11 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 
 ## 5. Verification
 
-Before merge, run `npm run lint && npx tsc --noEmit`, then `npm run test`. Endpoint tests must cover malformed imports, repeated imports, rollback on a failed multi-row import, card ownership, SM-2 rating updates, 3–7 story limits, moderation rejection, and the five-turn chat limit.
+Before merge, run `npm run validate` (lint, TypeScript, and unit tests). Endpoint
+tests must cover card ownership, SM-2 rating updates, 3–7 story limits,
+moderation rejection, and the five-turn chat limit. Import/Pleco parser and
+upload tests are removed with PR A; replace coverage with CEDICT autofill and
+(later) card-draft API tests as those land.
 
 ## 6. Private beta extensions
 
