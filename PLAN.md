@@ -28,8 +28,8 @@ The following roadmap items have been delivered and verified:
 10. Compact Dashboard and gentle seven-day learning rhythm.
 11. Public Privacy and Terms pages plus authenticated-surface cleanup.
 12. Optional Free practice that does not affect scheduling.
-13. ~~Validated manual Pleco UTF-8 export workflow; cloud-folder automation is deferred.~~
-    **Removed — batch Pleco/upload import deleted in PR A.**
+13. ~~Batch vocabulary file import / external dictionary export upload.~~
+    **Removed — batch upload/import deleted in PR A.**
 14. Dedicated Collection view with server-backed full-text search, active/archived browsing, pagination, personal card management, and context actions.
 15. Production deployment checklist verified in Vercel, Neon, and the dedicated OpenAI project, including migrations, usage alerts, and a conservative enforced spend cap.
 16. Stable shared Dictionary Help with per-round caching and configurable highlight density.
@@ -84,7 +84,7 @@ usage justifies them.
 Product decisions locked for this sequence:
 
 - Mandarin-only acquisition for now.
-- Hard-remove Pleco, upload, and batch import (no soft-deprecate, no paste-list importer).
+- Hard-remove upload and batch import (no soft-deprecate, no paste-list importer).
 - Shared CEDICT autofill helpers across Dashboard Add Card and Dictionary explorer add.
 - Match → editable draft → learner confirms Save.
 - Phrase-first headword capped at **8 Chinese characters**; looser limits for
@@ -96,9 +96,9 @@ Product decisions locked for this sequence:
 - CEDICT owns pinyin + standard gloss when matched; LLM owns contextual meaning
   + example/source. Keep existing flashcard columns; add columns only if necessary.
 
-### PR A — Remove Pleco / upload / batch import ✅
+### PR A — Remove upload / batch import ✅
 
-Hard-remove the import acquisition path and all Pleco-facing product copy,
+Hard-remove the import acquisition path and all import-facing product copy,
 including associated tests. **Shipped.**
 
 ### PR B — Easy Add Flashcard + CC-CEDICT autofill ✅
