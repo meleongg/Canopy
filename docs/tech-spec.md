@@ -11,8 +11,7 @@ learner’s vocabulary.
 
 Shared CC-CEDICT data lives in `dictionary_releases` / `dictionary_entries` and
 is never treated as a bulk learner-card import. Acquisition is in-app Mandarin
-capture with optional CEDICT grounding and (planned) LLM contextual assist—not
-file upload or batch import from external dictionary apps.
+capture with optional CEDICT grounding and LLM contextual assist on Add Card.
 
 ## 2. Data Schema
 
@@ -76,11 +75,10 @@ columns; add new columns only when mapping is insufficient:
 ### Grove: capture and review
 
 Learner vocabulary enters the collection through **Add Card** (and Dictionary
-explorer add-to-collection), not through batch file upload or external
-dictionary export import.
+explorer add-to-collection).
 
-**Removed:** `POST /api/cards/import`, `POST /api/import-preview`, Pleco/list
-parsers, upload/drop-zone import UI, and their tests. Do not rebuild them.
+Do not rebuild removed batch-import surfaces (`POST /api/cards/import`,
+`POST /api/import-preview`, upload/drop-zone UI, or their parsers/tests).
 
 **Current capture:**
 
@@ -110,7 +108,7 @@ compact consistency summary.
 - Use CC-CEDICT (CC BY-SA 4.0) for baseline lexical definitions and readings.
 - Use the LLM only for original contextual explanations and example sentences.
 - Never scrape, ingest, store, or redistribute proprietary dictionary databases
-  or commercial dictionary export files as Canopy source material.
+  as Canopy source material.
 
 ### Overstory: reading sandbox
 
@@ -145,8 +143,8 @@ Follow `DESIGN.md` exactly: Merriweather for display text, Plus Jakarta Sans for
 
 Before merge, run `npm run validate` (lint, TypeScript, and unit tests). Endpoint
 tests must cover card ownership, SM-2 rating updates, 3–7 story limits,
-moderation rejection, and the five-turn chat limit. Import/Pleco parser and
-upload tests are gone; cover CEDICT autofill and card-draft API tests.
+moderation rejection, the five-turn chat limit, CEDICT autofill, and card-draft
+API behavior.
 
 ## 6. Private beta extensions
 

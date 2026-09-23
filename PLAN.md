@@ -3,7 +3,7 @@
 Canopy remains a private Mandarin vocabulary workspace: capture words you care
 about, review them on a gentle rhythm, and use them in reading, conversation,
 voice, and low-stakes dictionary practice. Acquisition uses an in-app vocabulary
-engine (Pleco/upload import removed):
+engine:
 
 **In-Context Capture → Grounded Verification (CC-CEDICT) → Flashcard Save → Spaced Repetition Review**
 
