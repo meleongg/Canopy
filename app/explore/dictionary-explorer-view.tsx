@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { useCanopyTheme } from "@/app/providers";
 import { queryKeys } from "@/lib/query-keys";
+import { draftFieldsFromDictionaryEntry } from "@/lib/card-draft";
 import type {
   DictionarySearchResult,
   DictionaryDiscoveryResult,
@@ -239,6 +240,7 @@ export function DictionaryExplorerView() {
         body: JSON.stringify({ entryId: entry.entryId }),
       });
       if (!response.ok) throw new Error(await response.text());
+      const draft = draftFieldsFromDictionaryEntry(entry);
       queryClient.setQueriesData<DictionarySearchResult[]>(
         { queryKey: queryKeys.dictionarySearchRoot },
         (current) =>
@@ -248,8 +250,11 @@ export function DictionaryExplorerView() {
                   ...candidate,
                   card: {
                     id: candidate.entryId,
-                    phoneticReading: candidate.pinyin.split(/\s+/),
-                    definitions: candidate.definitions,
+                    phoneticReading: draft.phoneticReading.split(/\s+/).filter(Boolean),
+                    definitions: draft.definitions
+                      .split(";")
+                      .map((definition) => definition.trim())
+                      .filter(Boolean),
                   },
                 }
               : candidate,
@@ -264,8 +269,11 @@ export function DictionaryExplorerView() {
                   ...candidate,
                   card: {
                     id: candidate.entryId,
-                    phoneticReading: candidate.pinyin.split(/\s+/),
-                    definitions: candidate.definitions,
+                    phoneticReading: draft.phoneticReading.split(/\s+/).filter(Boolean),
+                    definitions: draft.definitions
+                      .split(";")
+                      .map((definition) => definition.trim())
+                      .filter(Boolean),
                   },
                 }
               : candidate,

@@ -13,6 +13,7 @@ import {
   type ParsedVocabularyEntry,
   buildManualVocabularyEntry,
 } from "@/lib/ingestion";
+import { headwordLengthMessage } from "@/lib/card-draft";
 import { generateExampleContext } from "@/lib/openai";
 import { phoneticTextForSentence } from "@/lib/phonetics";
 import { requireAuth } from "@/lib/session";
@@ -78,12 +79,20 @@ export async function addFlashcardAction(
   const phonetic = String(formData.get("phoneticReading") ?? "").trim();
   const definitions = String(formData.get("definitions") ?? "").trim();
   const exampleContext = String(formData.get("exampleContext") ?? "").trim();
+  const dictionaryEntryId = String(
+    formData.get("dictionaryEntryId") ?? "",
+  ).trim();
 
   if (!targetText || !definitions) {
     return {
       ok: false,
       message: "Add a target word and at least one definition.",
     };
+  }
+
+  const lengthHelp = headwordLengthMessage(targetText);
+  if (lengthHelp) {
+    return { ok: false, message: lengthHelp };
   }
 
   let entry: ParsedVocabularyEntry | null;
@@ -109,6 +118,10 @@ export async function addFlashcardAction(
     };
   }
 
+  if (dictionaryEntryId) {
+    entry.dictionaryEntryId = dictionaryEntryId;
+  }
+
   if (exampleContext) {
     entry.exampleContexts = [
       {
@@ -125,6 +138,54 @@ export async function addFlashcardAction(
   }
 
   return upsertVocabularyEntries([entry]);
+}
+
+type DraftContextState = {
+  ok: boolean;
+  message: string;
+  sentence?: string;
+};
+
+export async function generateDraftContextAction(
+  formData: FormData,
+): Promise<DraftContextState> {
+  await requireAuth();
+
+  const targetText = String(formData.get("targetText") ?? "").trim();
+  const phoneticReading = String(formData.get("phoneticReading") ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const definitions = String(formData.get("definitions") ?? "")
+    .split(/[;/,]|(?:\s{2,})/)
+    .map((definition) => definition.trim())
+    .filter(Boolean);
+
+  if (!targetText || definitions.length === 0) {
+    return {
+      ok: false,
+      message: "Add a word and definition before generating context.",
+    };
+  }
+
+  try {
+    const context = await generateExampleContext({
+      targetText,
+      phoneticReading,
+      definitions,
+      languageCode: "zh-CN",
+    });
+    return {
+      ok: true,
+      message: "Context draft ready. You can edit it before saving.",
+      sentence: context.sentence,
+    };
+  } catch (error) {
+    console.error("Draft context generation failed.", error);
+    return {
+      ok: false,
+      message: "Context could not be generated. Try again, or write your own.",
+    };
+  }
 }
 
 export async function reviewCardAction(formData: FormData) {

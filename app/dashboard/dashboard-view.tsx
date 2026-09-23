@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,6 +8,7 @@ import {
   ArchiveRestore,
   BookOpen,
   FileText,
+  LoaderCircle,
   MessageCircle,
   PencilLine,
   Sparkles,
@@ -17,6 +18,7 @@ import {
 import {
   addFlashcardAction,
   generateContextAction,
+  generateDraftContextAction,
   removeContextAction,
 } from "@/app/actions";
 import {
@@ -54,6 +56,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  draftFieldsFromDictionaryEntry,
+  headwordLengthMessage,
+  MAX_HEADWORD_HAN_CHARS,
+  type AutofillMatch,
+  type AutofillResult,
+} from "@/lib/card-draft";
 import { MAX_EXAMPLE_CONTEXTS } from "@/lib/example-contexts";
 import { queryKeys } from "@/lib/query-keys";
 import type { LearningRhythmDay } from "@/lib/learning-rhythm";
@@ -73,33 +82,138 @@ function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
 
 function AddCardPanel() {
   const queryClient = useQueryClient();
+  const [targetText, setTargetText] = useState("");
+  const [phoneticReading, setPhoneticReading] = useState("");
+  const [definitions, setDefinitions] = useState("");
+  const [exampleContext, setExampleContext] = useState("");
+  const [dictionaryEntryId, setDictionaryEntryId] = useState("");
+  const [autofill, setAutofill] = useState<AutofillResult | null>(null);
+  const [autofillPending, setAutofillPending] = useState(false);
+  const [contextPending, setContextPending] = useState(false);
+  const [contextMessage, setContextMessage] = useState("");
   const [addState, addAction, addPending] = useActionState(
     async (state: typeof initialAddState, formData: FormData) => {
       const result = await addFlashcardAction(state, formData);
-      invalidate(queryClient);
+      if (result.ok) {
+        setTargetText("");
+        setPhoneticReading("");
+        setDefinitions("");
+        setExampleContext("");
+        setDictionaryEntryId("");
+        setAutofill(null);
+        setContextMessage("");
+        invalidate(queryClient);
+      }
       return result;
     },
     initialAddState,
   );
 
+  const lengthHelp = headwordLengthMessage(targetText.trim());
+  const canGenerateContext =
+    Boolean(targetText.trim()) &&
+    Boolean(definitions.trim()) &&
+    !lengthHelp &&
+    !exampleContext.trim();
+
+  async function generateContextDraft() {
+    if (!canGenerateContext || contextPending) return;
+    setContextPending(true);
+    setContextMessage("");
+    try {
+      const formData = new FormData();
+      formData.set("targetText", targetText.trim());
+      formData.set("phoneticReading", phoneticReading.trim());
+      formData.set("definitions", definitions.trim());
+      const result = await generateDraftContextAction(formData);
+      if (result.ok && result.sentence) {
+        setExampleContext(result.sentence);
+      }
+      setContextMessage(result.message);
+    } catch {
+      setContextMessage(
+        "Context could not be generated. Try again, or write your own.",
+      );
+    } finally {
+      setContextPending(false);
+    }
+  }
+
+  useEffect(() => {
+    const query = targetText.trim();
+    if (!query) {
+      return;
+    }
+
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        setAutofillPending(true);
+        try {
+          const response = await fetch("/api/dictionary/autofill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query }),
+          });
+          if (!response.ok) {
+            setAutofill(null);
+            return;
+          }
+          setAutofill((await response.json()) as AutofillResult);
+        } catch {
+          setAutofill(null);
+        } finally {
+          setAutofillPending(false);
+        }
+      })();
+    }, 320);
+
+    return () => window.clearTimeout(handle);
+  }, [targetText]);
+
+  function applyMatch(match: AutofillMatch) {
+    const draft = draftFieldsFromDictionaryEntry(match);
+    setTargetText(draft.targetText);
+    setPhoneticReading(draft.phoneticReading);
+    setDefinitions(draft.definitions);
+    setDictionaryEntryId(draft.dictionaryEntryId ?? "");
+  }
+
+  function updateTargetText(value: string) {
+    setTargetText(value);
+    setDictionaryEntryId("");
+    if (!value.trim()) {
+      setAutofill(null);
+      setAutofillPending(false);
+    }
+  }
+
   return (
     <Card asChild>
       <form action={addAction}>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <CardTitle>Add Card</CardTitle>
               <CardDescription>
-                Create a Mandarin flashcard for your private collection.
+                Type a Mandarin word, phrase, or English gloss. Matching
+                CC-CEDICT entries fill an editable draft—confirm before saving.
               </CardDescription>
             </div>
-            <PencilLine className="size-5 text-primary" />
+            <PencilLine
+              aria-hidden
+              className="mt-1 size-6 shrink-0 text-primary"
+            />
           </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">Language: Mandarin</p>
+          <input
+            name="dictionaryEntryId"
+            type="hidden"
+            value={dictionaryEntryId}
+          />
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="targetText"
           >
             Word or phrase
@@ -107,22 +221,90 @@ function AddCardPanel() {
           <Input
             id="targetText"
             name="targetText"
-            placeholder="机场"
+            onChange={(event) => {
+              updateTargetText(event.target.value);
+            }}
+            placeholder="机场, jichang, or airport"
             required
+            value={targetText}
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Headwords up to {MAX_HEADWORD_HAN_CHARS} Chinese characters. Search
+            by hanzi, toneless pinyin, or English gloss.
+          </p>
+          {lengthHelp ? (
+            <p className="mt-2 text-sm text-primary" role="status">
+              {lengthHelp}
+            </p>
+          ) : null}
+          {autofillPending ? (
+            <p
+              className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
+              role="status"
+            >
+              <LoaderCircle className="size-4 animate-spin" />
+              Looking up CC-CEDICT matches…
+            </p>
+          ) : null}
+          {autofill?.helpMessage ? (
+            <p className="mt-3 text-sm text-muted-foreground" role="status">
+              {autofill.helpMessage}
+            </p>
+          ) : null}
+          {autofill && autofill.matches.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Dictionary matches
+              </p>
+              {autofill.matches.map((match) => (
+                <button
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-card"
+                  key={match.entryId}
+                  onClick={() => applyMatch(match)}
+                  type="button"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-serif text-lg font-semibold">
+                        {match.simplified}
+                        {match.traditional !== match.simplified
+                          ? ` · ${match.traditional}`
+                          : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {match.pinyin}
+                      </p>
+                      <p className="mt-1 truncate text-sm">
+                        {match.definitions.slice(0, 3).join("; ")}
+                      </p>
+                    </div>
+                    <Badge>
+                      {match.matchKind === "exact"
+                        ? "Exact"
+                        : match.matchKind === "component"
+                          ? "In phrase"
+                          : "Match"}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="phoneticReading"
           >
-            Reading
+            Pinyin
           </label>
           <Input
             id="phoneticReading"
             name="phoneticReading"
-            placeholder="Optional; auto-generates for Chinese"
+            onChange={(event) => setPhoneticReading(event.target.value)}
+            placeholder="Filled from CC-CEDICT when matched"
+            value={phoneticReading}
           />
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="definitions"
           >
             Definitions
@@ -130,11 +312,13 @@ function AddCardPanel() {
           <Input
             id="definitions"
             name="definitions"
+            onChange={(event) => setDefinitions(event.target.value)}
             placeholder="airport; terminal"
             required
+            value={definitions}
           />
           <label
-            className="mt-4 block text-sm font-medium"
+            className="mt-4 mb-2 block text-sm font-medium"
             htmlFor="exampleContext"
           >
             Context
@@ -142,11 +326,68 @@ function AddCardPanel() {
           <Textarea
             id="exampleContext"
             name="exampleContext"
-            placeholder="Optional example sentence"
+            onChange={(event) => {
+              setExampleContext(event.target.value);
+              setContextMessage("");
+            }}
+            placeholder="Optional example or source sentence"
+            value={exampleContext}
           />
-          <Button className="mt-4 w-full" disabled={addPending} type="submit">
+          <p className="mt-1 text-xs text-muted-foreground">
+            One optional context on add. Generate more later from Collection.
+          </p>
+          {contextPending ? (
+            <div
+              className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">Generating context…</p>
+                <p className="mt-1 text-muted-foreground">
+                  Writing one example sentence for this draft. You can still
+                  edit it before saving.
+                </p>
+              </div>
+            </div>
+          ) : null}
+          {canGenerateContext || contextPending ? (
+            <Button
+              className="mt-3 w-full"
+              disabled={!canGenerateContext || contextPending || addPending}
+              onClick={() => void generateContextDraft()}
+              type="button"
+              variant="outline"
+            >
+              {contextPending ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Sparkles />
+              )}
+              {contextPending ? "Generating context…" : "Generate context"}
+            </Button>
+          ) : null}
+          {contextMessage ? (
+            <p
+              className={cn(
+                "mt-2 text-sm",
+                exampleContext.trim()
+                  ? "text-muted-foreground"
+                  : "text-primary",
+              )}
+              role="status"
+            >
+              {contextMessage}
+            </p>
+          ) : null}
+          <Button
+            className="mt-4 w-full"
+            disabled={addPending || Boolean(lengthHelp) || contextPending}
+            type="submit"
+          >
             <FileText />
-            Add Flashcard
+            {addPending ? "Saving…" : "Add Flashcard"}
           </Button>
           <p
             className={cn(
