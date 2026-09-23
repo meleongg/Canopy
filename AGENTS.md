@@ -27,7 +27,7 @@
 * **Human Control:** A recommended Auto-approve tier never authorizes an agent to merge. Only the user may approve, mark ready, or merge a pull request.
 * **Evidence:** Include screenshots for user-visible changes when reliable local capture is available; otherwise state why screenshots are unavailable.
 * **Clickable handoffs:** In every user-facing handoff, provide clickable Markdown links for all available deliverables and relevant artifacts, including pull requests, preview deployments, local HTML walkthroughs, and changed files. Do not leave a bare local path when a clickable link can be rendered.
-* **Local walkthroughs:** A `/tmp` HTML walkthrough is available only to the current user session. Link it in the user-facing handoff, but do not paste its filesystem path into a pull-request body. Include a walkthrough in the PR only when it has a durable, reviewer-accessible URL.
+* **Local walkthroughs:** `/explain-diff-html` writes its HTML report to `/tmp` on local disk; that file is available only to the current user session. Link it in the user-facing handoff, but do not add the local `/tmp` link (or its filesystem path) to the pull-request description. Include a walkthrough in the PR only when it has a durable, reviewer-accessible URL.
 * **Draft Deliverable:** For substantial work that belongs on a feature branch, commit the completed work, push the branch, and publish a draft pull request using the template. The draft PR is the final deliverable. Small changes and experiments do not require a new draft PR; add them to an existing relevant draft when appropriate.
 
 ## Definition of "Done"
@@ -36,5 +36,5 @@ Before you present a task as complete or draft a pull request, you must execute
 these validation gates in order:
 
 1. **Local Validation:** Run `npm run validate` and ensure linting, TypeScript, and unit tests have zero errors.
-2. **Diff Explanation:** For substantial or high-risk changes, call the `/explain-diff-html` skill. For small follow-up fixes, produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks. In both cases, run `git diff --check`.
+2. **Diff Explanation:** For substantial or high-risk changes, call the `/explain-diff-html` skill (output lands under `/tmp` locally; share that link in the handoff only—never in the PR description). For small follow-up fixes, produce a clean terminal diff detailing exactly which files were altered and why, highlighting any potential architectural risks. In both cases, run `git diff --check`.
 3. **Draft PR for Feature Work:** For substantial feature-branch work, commit and push the validated changes, then publish the required draft PR. Do not mark it ready for review, approve it, or merge it.
