@@ -140,6 +140,54 @@ export async function addFlashcardAction(
   return upsertVocabularyEntries([entry]);
 }
 
+type DraftContextState = {
+  ok: boolean;
+  message: string;
+  sentence?: string;
+};
+
+export async function generateDraftContextAction(
+  formData: FormData,
+): Promise<DraftContextState> {
+  await requireAuth();
+
+  const targetText = String(formData.get("targetText") ?? "").trim();
+  const phoneticReading = String(formData.get("phoneticReading") ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const definitions = String(formData.get("definitions") ?? "")
+    .split(/[;/,]|(?:\s{2,})/)
+    .map((definition) => definition.trim())
+    .filter(Boolean);
+
+  if (!targetText || definitions.length === 0) {
+    return {
+      ok: false,
+      message: "Add a word and definition before generating context.",
+    };
+  }
+
+  try {
+    const context = await generateExampleContext({
+      targetText,
+      phoneticReading,
+      definitions,
+      languageCode: "zh-CN",
+    });
+    return {
+      ok: true,
+      message: "Context draft ready. You can edit it before saving.",
+      sentence: context.sentence,
+    };
+  } catch (error) {
+    console.error("Draft context generation failed.", error);
+    return {
+      ok: false,
+      message: "Context could not be generated. Try again, or write your own.",
+    };
+  }
+}
+
 export async function reviewCardAction(formData: FormData) {
   const session = await requireAuth();
 

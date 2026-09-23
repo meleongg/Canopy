@@ -18,6 +18,7 @@ import {
 import {
   addFlashcardAction,
   generateContextAction,
+  generateDraftContextAction,
   removeContextAction,
 } from "@/app/actions";
 import {
@@ -88,6 +89,8 @@ function AddCardPanel() {
   const [dictionaryEntryId, setDictionaryEntryId] = useState("");
   const [autofill, setAutofill] = useState<AutofillResult | null>(null);
   const [autofillPending, setAutofillPending] = useState(false);
+  const [contextPending, setContextPending] = useState(false);
+  const [contextMessage, setContextMessage] = useState("");
   const [addState, addAction, addPending] = useActionState(
     async (state: typeof initialAddState, formData: FormData) => {
       const result = await addFlashcardAction(state, formData);
@@ -98,6 +101,7 @@ function AddCardPanel() {
         setExampleContext("");
         setDictionaryEntryId("");
         setAutofill(null);
+        setContextMessage("");
         invalidate(queryClient);
       }
       return result;
@@ -106,6 +110,34 @@ function AddCardPanel() {
   );
 
   const lengthHelp = headwordLengthMessage(targetText.trim());
+  const canGenerateContext =
+    Boolean(targetText.trim()) &&
+    Boolean(definitions.trim()) &&
+    !lengthHelp &&
+    !exampleContext.trim();
+
+  async function generateContextDraft() {
+    if (!canGenerateContext || contextPending) return;
+    setContextPending(true);
+    setContextMessage("");
+    try {
+      const formData = new FormData();
+      formData.set("targetText", targetText.trim());
+      formData.set("phoneticReading", phoneticReading.trim());
+      formData.set("definitions", definitions.trim());
+      const result = await generateDraftContextAction(formData);
+      if (result.ok && result.sentence) {
+        setExampleContext(result.sentence);
+      }
+      setContextMessage(result.message);
+    } catch {
+      setContextMessage(
+        "Context could not be generated. Try again, or write your own.",
+      );
+    } finally {
+      setContextPending(false);
+    }
+  }
 
   useEffect(() => {
     const query = targetText.trim();
@@ -282,22 +314,77 @@ function AddCardPanel() {
             required
             value={definitions}
           />
-          <label
-            className="mt-4 mb-2 block text-sm font-medium"
-            htmlFor="exampleContext"
-          >
-            Context
-          </label>
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-2">
+            <label
+              className="mb-2 block text-sm font-medium"
+              htmlFor="exampleContext"
+            >
+              Context
+            </label>
+            <Button
+              disabled={!canGenerateContext || contextPending || addPending}
+              onClick={() => void generateContextDraft()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {contextPending ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                <Sparkles />
+              )}
+              {contextPending
+                ? "Generating context…"
+                : exampleContext.trim()
+                  ? "Context added"
+                  : "Generate context"}
+            </Button>
+          </div>
+          {contextPending ? (
+            <div
+              className="mb-2 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">Generating context…</p>
+                <p className="mt-1 text-muted-foreground">
+                  Writing one example sentence for this draft. You can still
+                  edit it before saving.
+                </p>
+              </div>
+            </div>
+          ) : null}
           <Textarea
             id="exampleContext"
             name="exampleContext"
-            onChange={(event) => setExampleContext(event.target.value)}
+            onChange={(event) => {
+              setExampleContext(event.target.value);
+              setContextMessage("");
+            }}
             placeholder="Optional example or source sentence"
             value={exampleContext}
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            One optional context on add. Generate more later from Collection.
+          </p>
+          {contextMessage ? (
+            <p
+              className={cn(
+                "mt-2 text-sm",
+                exampleContext.trim()
+                  ? "text-muted-foreground"
+                  : "text-primary",
+              )}
+              role="status"
+            >
+              {contextMessage}
+            </p>
+          ) : null}
           <Button
             className="mt-4 w-full"
-            disabled={addPending || Boolean(lengthHelp)}
+            disabled={addPending || Boolean(lengthHelp) || contextPending}
             type="submit"
           >
             <FileText />
