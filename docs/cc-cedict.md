@@ -7,8 +7,8 @@ bulk learner-card import: the corpus belongs in `dictionary_releases` and
 
 Learner cards are created through in-app capture (Add Card / dictionary add)
 that may copy matched forms, readings, and glosses from the active release.
-Canopy does not ingest proprietary third-party dictionary exports or vocabulary
-file uploads as a source of card text.
+Canopy does not use proprietary third-party dictionary databases as a source of
+card text.
 
 ## Source and attribution
 

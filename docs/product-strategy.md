@@ -18,8 +18,8 @@
 
 1. **The Lookup Graveyard:** Saving words in external tools or notes and never
    reviewing or integrating them into memory.
-2. **Fragmented Capture:** Leaving the app to look up terms, export files, and
-   re-upload lists breaks the learning loop and loses surrounding context.
+2. **Fragmented Capture:** Leaving the app to look up terms elsewhere and
+   losing surrounding context breaks the learning loop.
 3. **Clinical Burnout:** Traditional flashcard apps feel like robotic data entry,
    killing the emotional connection and curiosity required for language acquisition.
 4. **Disconnected Learning:** Being trapped in "closed-garden" platforms that force
@@ -52,18 +52,16 @@
 - **Core product loop:**
 
 1. **Capture (Grove Add Card):** Editable draft with CC-CEDICT autofill and
-   LLM inbound/outbound assist on the same panel. Confirm to save. No external
-   dictionary export import, file upload, or proprietary dictionary sync.
+   LLM inbound/outbound assist on the same panel. Confirm to save.
 2. **The Grove Dashboard:** Central hub with a "Sprouting Queue" (lightweight SM-2 SRS) and "Cluster Picker" (check 3-7 words to activate content generation).
 3. **The Overstory (Reading Sandbox):** Edge-runtime AI text streaming that weaves selected vocabulary into custom short stories.
 4. **The Understory (Interactive Helper):** Interactive AI chat canvas for situational roleplay using selected vocabulary.
 
 - **Explicitly Out of Scope:**
-- External dictionary app export import, vocabulary file upload, cloud-folder
-  sync, or redistribution of proprietary dictionary databases.
+- External dictionary-app file sync, vocabulary file upload, or redistribution
+  of proprietary dictionary databases.
 - Advanced data analytics, charts, or gamified leaderboards.
 - Social features or competitive ranking.
 - Complex, multi-layered deck management/filtering.
 - Automated push notification systems (focus on user-initiated "waterings").
-- Non-Mandarin acquisition in the near term (manual multi-language paths are
-  being removed with the import stack).
+- Non-Mandarin acquisition in the near term (private beta is Mandarin-only).

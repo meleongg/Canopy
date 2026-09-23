@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Effective September 15, 2026
+        Effective September 22, 2026
       </p>
       <div className="mt-8 space-y-8 text-sm leading-7">
         <section>
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
             OpenAI. If you use optional speech-to-text, the recording is sent to
             OpenAI for transcription and is not retained by Canopy after that
             request completes. Do not include sensitive personal information in
-            vocabulary imports, practice prompts, or recordings.
+            vocabulary cards, practice prompts, or recordings.
           </p>
         </section>
         <section>
