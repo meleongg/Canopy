@@ -85,6 +85,13 @@
       "when": 1789446589773,
       "tag": "0011_wandering_tattoo",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790452282092,
+      "tag": "0012_chinese_script_simplified_default",
+      "breakpoints": true
     }
   ]
 }

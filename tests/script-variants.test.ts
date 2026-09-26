@@ -12,7 +12,6 @@ describe("displayCardText", () => {
   it("switches a matched Chinese card without changing its canonical text", () => {
     expect(displayCardText(card, "simplified")).toBe("学习");
     expect(displayCardText(card, "traditional")).toBe("學習");
-    expect(displayCardText(card, "match-cards")).toBe("学习");
   });
 
   it("keeps unmatched and non-Chinese cards in their original form", () => {

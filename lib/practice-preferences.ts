@@ -29,11 +29,9 @@ export function practicePromptInstructions(
   }[preferences.conversationGoal];
   const scriptInstruction =
     languageCode === "zh-CN" || languageCode === "zh-HK"
-      ? preferences.chineseScript === "simplified"
-        ? "Write Chinese in Simplified characters."
-        : preferences.chineseScript === "traditional"
-          ? "Write Chinese in Traditional characters."
-          : "Match the Chinese script used by the selected vocabulary."
+      ? preferences.chineseScript === "traditional"
+        ? "Write Chinese in Traditional characters."
+        : "Write Chinese in Simplified characters."
       : "";
   const formalityInstruction = `Use a ${preferences.formality} register unless the scene clearly calls for a different one.`;
 

@@ -85,7 +85,7 @@ function ThemeProvider({ children }: { children: ReactNode }) {
     },
   );
   const [chineseScript, setChineseScriptState] =
-    useState<ChineseScriptPreference>("match-cards");
+    useState<ChineseScriptPreference>("simplified");
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
