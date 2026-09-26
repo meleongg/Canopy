@@ -55,12 +55,6 @@ const defaultPreferences: UserPreferences = {
   playbackSpeed: "1",
 };
 
-function normalizeChineseScript(
-  value: string | null | undefined,
-): ChineseScriptPreference {
-  return value === "traditional" ? "traditional" : "simplified";
-}
-
 export async function getUserPreferences(
   userId: string,
 ): Promise<UserPreferences> {
@@ -81,9 +75,6 @@ export async function getUserPreferences(
 
   return {
     ...(preferences ?? defaultPreferences),
-    chineseScript: normalizeChineseScript(
-      preferences?.chineseScript ?? defaultPreferences.chineseScript,
-    ),
     // Keep legacy values stored for compatibility, but the beta currently
     // exposes Mandarin imports only.
     importLanguage: "zh-CN",
