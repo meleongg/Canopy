@@ -94,10 +94,10 @@ export const userPreferences = pgTable("user_preferences", {
     .notNull()
     .default("everyday"),
   chineseScript: text("chinese_script", {
-    enum: ["match-cards", "simplified", "traditional"],
+    enum: ["simplified", "traditional"],
   })
     .notNull()
-    .default("match-cards"),
+    .default("simplified"),
   formality: text("formality", {
     enum: ["casual", "neutral", "formal"],
   })

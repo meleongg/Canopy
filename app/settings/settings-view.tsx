@@ -54,7 +54,6 @@ const practicePreferenceOptions = {
     { value: "vocabulary", label: "Vocabulary" },
   ],
   chineseScript: [
-    { value: "match-cards", label: "Original card forms" },
     { value: "simplified", label: "Simplified" },
     { value: "traditional", label: "Traditional" },
   ],
@@ -364,8 +363,8 @@ export function SettingsView({
             <div>
               <p className="text-sm font-medium">Chinese script</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Used for Chinese generated practice; non-Chinese practice is
-                unchanged.
+                Defaults to Simplified. Used for Chinese card display and
+                generated practice.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {practicePreferenceOptions.chineseScript.map(

@@ -16,9 +16,8 @@ export function displayCardText(
   script: ChineseScriptPreference,
 ) {
   if (!card.languageCode.startsWith("zh")) return card.targetText;
-  if (script === "simplified") return card.simplifiedText ?? card.targetText;
   if (script === "traditional") return card.traditionalText ?? card.targetText;
-  return card.targetText;
+  return card.simplifiedText ?? card.targetText;
 }
 
 export async function enrichScriptVariants(

@@ -17,11 +17,7 @@ export const CONVERSATION_GOALS = [
   "work",
   "vocabulary",
 ] as const;
-export const CHINESE_SCRIPTS = [
-  "match-cards",
-  "simplified",
-  "traditional",
-] as const;
+export const CHINESE_SCRIPTS = ["simplified", "traditional"] as const;
 export const FORMALITY_LEVELS = ["casual", "neutral", "formal"] as const;
 export const PLAYBACK_SPEEDS = ["0.75", "1", "1.25", "1.5"] as const;
 
@@ -54,7 +50,7 @@ const defaultPreferences: UserPreferences = {
   proficiency: "intermediate",
   correctionStyle: "gentle",
   conversationGoal: "everyday",
-  chineseScript: "match-cards",
+  chineseScript: "simplified",
   formality: "neutral",
   playbackSpeed: "1",
 };
