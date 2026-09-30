@@ -238,6 +238,7 @@ function AddCardPanel() {
       return;
     }
 
+    const controller = new AbortController();
     const handle = window.setTimeout(() => {
       void (async () => {
         setAutofillPending(true);
@@ -246,6 +247,7 @@ function AddCardPanel() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query }),
+            signal: controller.signal,
           });
           if (!response.ok) {
             setAutofill(null);
@@ -253,14 +255,22 @@ function AddCardPanel() {
           }
           setAutofill((await response.json()) as AutofillResult);
         } catch {
+          if (controller.signal.aborted) {
+            return;
+          }
           setAutofill(null);
         } finally {
-          setAutofillPending(false);
+          if (!controller.signal.aborted) {
+            setAutofillPending(false);
+          }
         }
       })();
     }, 320);
 
-    return () => window.clearTimeout(handle);
+    return () => {
+      controller.abort();
+      window.clearTimeout(handle);
+    };
   }, [captureMode, targetText]);
 
   function applyMatch(match: AutofillMatch) {
@@ -718,10 +728,15 @@ export function ReviewQueue({
   ).length;
 
   async function runAction(
-    action: (formData: FormData) => Promise<void>,
+    action: (formData: FormData) => Promise<{ ok: boolean; message: string }>,
     formData: FormData,
   ) {
-    await action(formData);
+    const result = await action(formData);
+    if (!result.ok) {
+      setActionMessage(result.message);
+      return;
+    }
+    setActionMessage("");
     invalidate(queryClient);
   }
 

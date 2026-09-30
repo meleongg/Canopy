@@ -241,6 +241,8 @@ export function UnderstoryChatView({
 
         if (!response.ok) {
           setChatError(await response.text());
+          setMessages(messages);
+          setChatInput(content);
           return;
         }
 
@@ -261,6 +263,8 @@ export function UnderstoryChatView({
         });
       } catch {
         setChatError("Your reply could not be sent. Please try again.");
+        setMessages(messages);
+        setChatInput(content);
       } finally {
         setIsSending(false);
       }
