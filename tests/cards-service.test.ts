@@ -41,6 +41,7 @@ describe("atomic vocabulary imports", () => {
     expect(mocks.transaction).toHaveBeenCalledTimes(1);
     expect(queries).toHaveLength(2);
     expect(queries[0]).toContain("insert into flashcards");
+    expect(queries[0]).toContain("archived_at = null");
     expect(queries[0]).not.toContain("insert into words");
   });
 

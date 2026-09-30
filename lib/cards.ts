@@ -69,6 +69,7 @@ export async function importVocabularyEntries(
           simplified_text = coalesce(excluded.simplified_text, flashcards.simplified_text),
           traditional_text = coalesce(excluded.traditional_text, flashcards.traditional_text),
           linguistic_meta = excluded.linguistic_meta,
+          archived_at = null,
           ai_example_context = case
             when ${exampleContexts !== null}
               then excluded.ai_example_context

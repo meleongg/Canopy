@@ -218,7 +218,7 @@ export function CollectionView({
   }
 
   async function runContextAction(
-    action: (formData: FormData) => Promise<void>,
+    action: (formData: FormData) => Promise<{ ok: boolean; message: string }>,
     formData: FormData,
     options?: { generatingCardId?: string },
   ) {
@@ -227,7 +227,11 @@ export function CollectionView({
       setGeneratingContextCardId(options.generatingCardId);
     }
     try {
-      await action(formData);
+      const result = await action(formData);
+      if (!result.ok) {
+        setActionMessage(result.message);
+        return;
+      }
       await refreshCollection();
     } finally {
       if (options?.generatingCardId) {

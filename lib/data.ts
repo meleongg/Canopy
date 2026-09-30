@@ -105,8 +105,7 @@ export async function getDashboardData(
         ? and(eq(flashcards.userId, userId), scopeCondition)
         : eq(flashcards.userId, userId),
     )
-    .orderBy(asc(flashcards.nextReviewAt))
-    .limit(60);
+    .orderBy(asc(flashcards.nextReviewAt));
 
   return rows.map(({ aiExampleContext, ...card }) => ({
     ...card,
@@ -246,6 +245,7 @@ export async function getDashboardLearningRhythm(
       .where(
         and(
           eq(flashcards.userId, userId),
+          isNull(flashcards.archivedAt),
           gte(flashcards.lastReviewedAt, start),
         ),
       ),

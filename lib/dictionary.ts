@@ -153,6 +153,7 @@ async function withLearnerCards(
         .where(
           and(
             eq(flashcards.userId, userId),
+            isNull(flashcards.archivedAt),
             inArray(flashcards.targetText, forms),
           ),
         )

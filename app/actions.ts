@@ -188,31 +188,47 @@ export async function generateDraftContextAction(
   }
 }
 
-export async function reviewCardAction(formData: FormData) {
+export async function reviewCardAction(formData: FormData): Promise<ActionState> {
   const session = await requireAuth();
 
   if (!hasDatabaseEnv()) {
-    return;
+    return {
+      ok: false,
+      message: "Database env is missing. Add runtime vars in Vercel to continue.",
+    };
   }
 
   const cardId = String(formData.get("cardId") ?? "");
   const quality = Number(formData.get("quality") ?? 0);
   if (![2, 3, 4, 5].includes(quality)) {
-    return;
+    return { ok: false, message: "Choose a valid review rating." };
   }
-  await reviewCard(session.user.id, cardId, quality as 2 | 3 | 4 | 5);
+  const next = await reviewCard(
+    session.user.id,
+    cardId,
+    quality as 2 | 3 | 4 | 5,
+  );
+  if (!next) {
+    return { ok: false, message: "That card could not be reviewed." };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/collection");
   revalidatePath("/overstory");
   revalidatePath("/understory/setup");
+  return { ok: true, message: "Review saved." };
 }
 
-export async function generateContextAction(formData: FormData) {
+export async function generateContextAction(
+  formData: FormData,
+): Promise<ActionState> {
   const session = await requireAuth();
 
   if (!hasDatabaseEnv()) {
-    return;
+    return {
+      ok: false,
+      message: "Database env is missing. Add runtime vars in Vercel to continue.",
+    };
   }
 
   const cardId = String(formData.get("cardId") ?? "");
@@ -233,14 +249,18 @@ export async function generateContextAction(formData: FormData) {
     .limit(1);
 
   if (!card) {
-    return;
+    return { ok: false, message: "That card could not be found." };
+  }
+
+  const existingContexts = normalizeExampleContexts(card.aiExampleContext);
+  if (existingContexts.length >= MAX_EXAMPLE_CONTEXTS) {
+    return {
+      ok: false,
+      message: `This card already has ${MAX_EXAMPLE_CONTEXTS} contexts.`,
+    };
   }
 
   const aiExampleContext = await generateExampleContext(card);
-  const existingContexts = normalizeExampleContexts(card.aiExampleContext);
-  if (existingContexts.length >= MAX_EXAMPLE_CONTEXTS) {
-    return;
-  }
 
   await db
     .update(flashcards)
@@ -250,25 +270,36 @@ export async function generateContextAction(formData: FormData) {
         MAX_EXAMPLE_CONTEXTS,
       ),
     })
-    .where(eq(flashcards.id, card.cardId));
+    .where(
+      and(
+        eq(flashcards.id, card.cardId),
+        eq(flashcards.userId, session.user.id),
+      ),
+    );
 
   revalidatePath("/dashboard");
   revalidatePath("/collection");
   revalidatePath("/overstory");
   revalidatePath("/understory/setup");
+  return { ok: true, message: "Added a new context." };
 }
 
-export async function removeContextAction(formData: FormData) {
+export async function removeContextAction(
+  formData: FormData,
+): Promise<ActionState> {
   const session = await requireAuth();
 
   if (!hasDatabaseEnv()) {
-    return;
+    return {
+      ok: false,
+      message: "Database env is missing. Add runtime vars in Vercel to continue.",
+    };
   }
 
   const cardId = String(formData.get("cardId") ?? "");
   const contextIndex = Number(formData.get("contextIndex") ?? -1);
   if (!cardId || contextIndex < 0) {
-    return;
+    return { ok: false, message: "Choose a context to remove." };
   }
 
   const db = getDb();
@@ -283,7 +314,7 @@ export async function removeContextAction(formData: FormData) {
     .limit(1);
 
   if (!card) {
-    return;
+    return { ok: false, message: "That card could not be found." };
   }
 
   const contexts = normalizeExampleContexts(card.aiExampleContext).filter(
@@ -301,4 +332,5 @@ export async function removeContextAction(formData: FormData) {
   revalidatePath("/collection");
   revalidatePath("/overstory");
   revalidatePath("/understory/setup");
+  return { ok: true, message: "Context removed." };
 }
