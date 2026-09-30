@@ -278,9 +278,7 @@ function AddCardPanel() {
     setDictionaryEntryId(option.dictionaryEntryId ?? "");
     const contextParts = [
       option.sourceSentence,
-      option.contextualMeaning
-        ? `Note: ${option.contextualMeaning}`
-        : null,
+      option.contextualMeaning ? `Note: ${option.contextualMeaning}` : null,
     ].filter(Boolean);
     setExampleContext(contextParts.join("\n\n"));
   }
@@ -306,367 +304,43 @@ function AddCardPanel() {
   }
 
   return (
-    <Card asChild>
-      <form action={addAction}>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <CardTitle>Add Card</CardTitle>
-              <CardDescription>
-                Capture Mandarin in context or draft how you want to say
-                something. CC-CEDICT grounds readings and glosses; optional LLM
-                assist fills meaning and examples—confirm before saving.
-              </CardDescription>
-            </div>
-            <PencilLine
-              aria-hidden
-              className="mt-1 size-6 shrink-0 text-primary"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Language: Mandarin</p>
-          <Tabs
-            className="mt-4"
-            onValueChange={(value) =>
-              switchCaptureMode(value as CaptureMode)
-            }
-            value={captureMode}
-          >
-            <TabsList aria-label="Capture mode" className="grid w-full grid-cols-2">
-              <TabsTrigger value="inbound">From context</TabsTrigger>
-              <TabsTrigger value="outbound">How do I say…</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <input
-            name="dictionaryEntryId"
-            type="hidden"
-            value={dictionaryEntryId}
-          />
+    <form action={addAction}>
+      <p className="text-sm text-muted-foreground">Language: Mandarin</p>
+      <Tabs
+        className="mt-4"
+        onValueChange={(value) => switchCaptureMode(value as CaptureMode)}
+        value={captureMode}
+      >
+        <TabsList aria-label="Capture mode" className="grid w-full grid-cols-2">
+          <TabsTrigger value="inbound">From context</TabsTrigger>
+          <TabsTrigger value="outbound">How do I say…</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <input name="dictionaryEntryId" type="hidden" value={dictionaryEntryId} />
 
-          {captureMode === "outbound" ? (
-            <>
-              <label
-                className="mt-4 mb-2 block text-sm font-medium"
-                htmlFor="englishIntent"
-              >
-                English intent
-              </label>
-              <Textarea
-                id="englishIntent"
-                maxLength={MAX_ENGLISH_INTENT_CHARS}
-                onChange={(event) => {
-                  setEnglishIntent(event.target.value);
-                  setDraftMessage("");
-                }}
-                placeholder='e.g. my car broke down'
-                value={englishIntent}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Up to {MAX_ENGLISH_INTENT_CHARS} characters. Draft 1–2 natural
-                Mandarin options, then pick one to edit before saving.
-              </p>
-              {draftPending ? (
-                <div
-                  className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
-                  <div>
-                    <p className="font-medium">Drafting Mandarin options…</p>
-                    <p className="mt-1 text-muted-foreground">
-                      Isolating a headword and checking CC-CEDICT before you
-                      confirm.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-              <Button
-                className="mt-3 w-full"
-                disabled={!canDraftOutbound || assistBusy || addPending}
-                onClick={() => void runDraftAssist()}
-                type="button"
-                variant="outline"
-              >
-                {draftPending ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <Sparkles />
-                )}
-                {draftPending ? "Drafting…" : "Draft Mandarin options"}
-              </Button>
-            </>
-          ) : (
-            <>
-              <label
-                className="mt-4 mb-2 block text-sm font-medium"
-                htmlFor="targetText"
-              >
-                Word or phrase
-              </label>
-              <Input
-                id="targetText"
-                name="targetText"
-                onChange={(event) => {
-                  updateTargetText(event.target.value);
-                }}
-                placeholder="机场, jichang, or airport"
-                required
-                value={targetText}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Headwords up to {MAX_HEADWORD_HAN_CHARS} Chinese characters.
-                Search by hanzi, toneless pinyin, or English gloss.
-              </p>
-              {lengthHelp ? (
-                <p className="mt-2 text-sm text-primary" role="status">
-                  {lengthHelp}
-                </p>
-              ) : null}
-              {autofillPending ? (
-                <p
-                  className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
-                  role="status"
-                >
-                  <LoaderCircle className="size-4 animate-spin" />
-                  Looking up CC-CEDICT matches…
-                </p>
-              ) : null}
-              {autofill?.helpMessage ? (
-                <p className="mt-3 text-sm text-muted-foreground" role="status">
-                  {autofill.helpMessage}
-                </p>
-              ) : null}
-              {autofill && autofill.matches.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs font-semibold uppercase text-muted-foreground">
-                    Dictionary matches
-                  </p>
-                  {autofill.matches.map((match) => (
-                    <button
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-card"
-                      key={match.entryId}
-                      onClick={() => applyMatch(match)}
-                      type="button"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-serif text-lg font-semibold">
-                            {match.simplified}
-                            {match.traditional !== match.simplified
-                              ? ` · ${match.traditional}`
-                              : ""}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {match.pinyin}
-                          </p>
-                          <p className="mt-1 truncate text-sm">
-                            {match.definitions.slice(0, 3).join("; ")}
-                          </p>
-                        </div>
-                        <Badge>
-                          {match.matchKind === "exact"
-                            ? "Exact"
-                            : match.matchKind === "component"
-                              ? "In phrase"
-                              : "Match"}
-                        </Badge>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              <label
-                className="mt-4 mb-2 block text-sm font-medium"
-                htmlFor="sourceContext"
-              >
-                Surrounding context
-              </label>
-              <Textarea
-                id="sourceContext"
-                maxLength={MAX_SOURCE_CONTEXT_CHARS}
-                onChange={(event) => {
-                  setSourceContext(event.target.value);
-                  setDraftMessage("");
-                }}
-                placeholder="Optional lyric, subtitle, or sentence where you found it"
-                value={sourceContext}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Optional for save. Needed for “Explain in context” (up to{" "}
-                {MAX_SOURCE_CONTEXT_CHARS} characters).
-              </p>
-              {draftPending ? (
-                <div
-                  className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
-                  <div>
-                    <p className="font-medium">Explaining in context…</p>
-                    <p className="mt-1 text-muted-foreground">
-                      Writing a contextual note and grounding the headword with
-                      CC-CEDICT.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-              {canDraftInbound || draftPending ? (
-                <Button
-                  className="mt-3 w-full"
-                  disabled={!canDraftInbound || assistBusy || addPending}
-                  onClick={() => void runDraftAssist()}
-                  type="button"
-                  variant="outline"
-                >
-                  {draftPending ? (
-                    <LoaderCircle className="animate-spin" />
-                  ) : (
-                    <Sparkles />
-                  )}
-                  {draftPending ? "Explaining…" : "Explain in context"}
-                </Button>
-              ) : null}
-            </>
-          )}
-
-          {draftAssist &&
-          draftAssist.mode === "outbound" &&
-          draftAssist.options.length > 0 ? (
-            <div className="mt-4 space-y-2">
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
-                Mandarin options
-              </p>
-              {draftAssist.options.map((option) => (
-                <button
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-card"
-                  key={option.id}
-                  onClick={() => {
-                    applyDraftOption(option);
-                    setDraftMessage(
-                      "Option applied to the draft below. Edit, then save.",
-                    );
-                  }}
-                  type="button"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-serif text-lg font-semibold">
-                        {option.headword}
-                      </p>
-                      <p className="text-sm">{option.sourceSentence}</p>
-                      {option.contextualMeaning ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {option.contextualMeaning}
-                        </p>
-                      ) : null}
-                      {option.phoneticReading ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {option.phoneticReading}
-                          {option.definitions
-                            ? ` · ${option.definitions}`
-                            : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Badge>
-                      {option.registerLabel ??
-                        (option.grounded ? "Grounded" : "Draft")}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {draftMessage ? (
-            <p
-              className={cn(
-                "mt-3 text-sm",
-                draftAssist?.options.length
-                  ? "text-muted-foreground"
-                  : "text-primary",
-              )}
-              role="status"
-            >
-              {draftMessage}
-            </p>
-          ) : null}
-
-          {captureMode === "outbound" ? (
-            <>
-              <label
-                className="mt-4 mb-2 block text-sm font-medium"
-                htmlFor="targetText"
-              >
-                Word or phrase
-              </label>
-              <Input
-                id="targetText"
-                name="targetText"
-                onChange={(event) => {
-                  updateTargetText(event.target.value);
-                }}
-                placeholder="Filled from a drafted option"
-                required
-                value={targetText}
-              />
-              {lengthHelp ? (
-                <p className="mt-2 text-sm text-primary" role="status">
-                  {lengthHelp}
-                </p>
-              ) : null}
-            </>
-          ) : null}
-
+      {captureMode === "outbound" ? (
+        <>
           <label
             className="mt-4 mb-2 block text-sm font-medium"
-            htmlFor="phoneticReading"
+            htmlFor="englishIntent"
           >
-            Pinyin
-          </label>
-          <Input
-            id="phoneticReading"
-            name="phoneticReading"
-            onChange={(event) => setPhoneticReading(event.target.value)}
-            placeholder="Filled from CC-CEDICT when matched"
-            value={phoneticReading}
-          />
-          <label
-            className="mt-4 mb-2 block text-sm font-medium"
-            htmlFor="definitions"
-          >
-            Definitions
-          </label>
-          <Input
-            id="definitions"
-            name="definitions"
-            onChange={(event) => setDefinitions(event.target.value)}
-            placeholder="airport; terminal"
-            required
-            value={definitions}
-          />
-          <label
-            className="mt-4 mb-2 block text-sm font-medium"
-            htmlFor="exampleContext"
-          >
-            Context
+            English intent
           </label>
           <Textarea
-            id="exampleContext"
-            name="exampleContext"
+            id="englishIntent"
+            maxLength={MAX_ENGLISH_INTENT_CHARS}
             onChange={(event) => {
-              setExampleContext(event.target.value);
-              setContextMessage("");
+              setEnglishIntent(event.target.value);
+              setDraftMessage("");
             }}
-            placeholder="Optional example, source sentence, or contextual note"
-            value={exampleContext}
+            placeholder="e.g. my car broke down"
+            value={englishIntent}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            One optional context on add. Generate more later from Collection.
+            Up to {MAX_ENGLISH_INTENT_CHARS} characters. Draft 1–2 natural
+            Mandarin options, then pick one to edit before saving.
           </p>
-          {contextPending ? (
+          {draftPending ? (
             <div
               className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
               role="status"
@@ -674,62 +348,356 @@ function AddCardPanel() {
             >
               <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
               <div>
-                <p className="font-medium">Generating context…</p>
+                <p className="font-medium">Drafting Mandarin options…</p>
                 <p className="mt-1 text-muted-foreground">
-                  Writing one example sentence for this draft. You can still
-                  edit it before saving.
+                  Isolating a headword and checking CC-CEDICT before you
+                  confirm.
                 </p>
               </div>
             </div>
           ) : null}
-          {canGenerateContext || contextPending ? (
+          <Button
+            className="mt-3 w-full"
+            disabled={!canDraftOutbound || assistBusy || addPending}
+            onClick={() => void runDraftAssist()}
+            type="button"
+            variant="outline"
+          >
+            {draftPending ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              <Sparkles />
+            )}
+            {draftPending ? "Drafting…" : "Draft Mandarin options"}
+          </Button>
+        </>
+      ) : (
+        <>
+          <label
+            className="mt-4 mb-2 block text-sm font-medium"
+            htmlFor="targetText"
+          >
+            Word or phrase
+          </label>
+          <Input
+            id="targetText"
+            name="targetText"
+            onChange={(event) => {
+              updateTargetText(event.target.value);
+            }}
+            placeholder="机场, jichang, or airport"
+            required
+            value={targetText}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Headwords up to {MAX_HEADWORD_HAN_CHARS} Chinese characters. Search
+            by hanzi, toneless pinyin, or English gloss.
+          </p>
+          {lengthHelp ? (
+            <p className="mt-2 text-sm text-primary" role="status">
+              {lengthHelp}
+            </p>
+          ) : null}
+          {autofillPending ? (
+            <p
+              className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
+              role="status"
+            >
+              <LoaderCircle className="size-4 animate-spin" />
+              Looking up CC-CEDICT matches…
+            </p>
+          ) : null}
+          {autofill?.helpMessage ? (
+            <p className="mt-3 text-sm text-muted-foreground" role="status">
+              {autofill.helpMessage}
+            </p>
+          ) : null}
+          {autofill && autofill.matches.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Dictionary matches
+              </p>
+              {autofill.matches.map((match) => (
+                <button
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-card"
+                  key={match.entryId}
+                  onClick={() => applyMatch(match)}
+                  type="button"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-serif text-lg font-semibold">
+                        {match.simplified}
+                        {match.traditional !== match.simplified
+                          ? ` · ${match.traditional}`
+                          : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {match.pinyin}
+                      </p>
+                      <p className="mt-1 truncate text-sm">
+                        {match.definitions.slice(0, 3).join("; ")}
+                      </p>
+                    </div>
+                    <Badge>
+                      {match.matchKind === "exact"
+                        ? "Exact"
+                        : match.matchKind === "component"
+                          ? "In phrase"
+                          : "Match"}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <label
+            className="mt-4 mb-2 block text-sm font-medium"
+            htmlFor="sourceContext"
+          >
+            Surrounding context
+          </label>
+          <Textarea
+            id="sourceContext"
+            maxLength={MAX_SOURCE_CONTEXT_CHARS}
+            onChange={(event) => {
+              setSourceContext(event.target.value);
+              setDraftMessage("");
+            }}
+            placeholder="Optional lyric, subtitle, or sentence where you found it"
+            value={sourceContext}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Optional for save. Needed for “Explain in context” (up to{" "}
+            {MAX_SOURCE_CONTEXT_CHARS} characters).
+          </p>
+          {draftPending ? (
+            <div
+              className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">Explaining in context…</p>
+                <p className="mt-1 text-muted-foreground">
+                  Writing a contextual note and grounding the headword with
+                  CC-CEDICT.
+                </p>
+              </div>
+            </div>
+          ) : null}
+          {canDraftInbound || draftPending ? (
             <Button
               className="mt-3 w-full"
-              disabled={!canGenerateContext || assistBusy || addPending}
-              onClick={() => void generateContextDraft()}
+              disabled={!canDraftInbound || assistBusy || addPending}
+              onClick={() => void runDraftAssist()}
               type="button"
               variant="outline"
             >
-              {contextPending ? (
+              {draftPending ? (
                 <LoaderCircle className="animate-spin" />
               ) : (
                 <Sparkles />
               )}
-              {contextPending ? "Generating context…" : "Generate context"}
+              {draftPending ? "Explaining…" : "Explain in context"}
             </Button>
           ) : null}
-          {contextMessage ? (
-            <p
-              className={cn(
-                "mt-2 text-sm",
-                exampleContext.trim()
-                  ? "text-muted-foreground"
-                  : "text-primary",
-              )}
-              role="status"
+        </>
+      )}
+
+      {draftAssist &&
+      draftAssist.mode === "outbound" &&
+      draftAssist.options.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Mandarin options
+          </p>
+          {draftAssist.options.map((option) => (
+            <button
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-card"
+              key={option.id}
+              onClick={() => {
+                applyDraftOption(option);
+                setDraftMessage(
+                  "Option applied to the draft below. Edit, then save.",
+                );
+              }}
+              type="button"
             >
-              {contextMessage}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-serif text-lg font-semibold">
+                    {option.headword}
+                  </p>
+                  <p className="text-sm">{option.sourceSentence}</p>
+                  {option.contextualMeaning ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {option.contextualMeaning}
+                    </p>
+                  ) : null}
+                  {option.phoneticReading ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {option.phoneticReading}
+                      {option.definitions ? ` · ${option.definitions}` : ""}
+                    </p>
+                  ) : null}
+                </div>
+                <Badge>
+                  {option.registerLabel ??
+                    (option.grounded ? "Grounded" : "Draft")}
+                </Badge>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {draftMessage ? (
+        <p
+          className={cn(
+            "mt-3 text-sm",
+            draftAssist?.options.length
+              ? "text-muted-foreground"
+              : "text-primary",
+          )}
+          role="status"
+        >
+          {draftMessage}
+        </p>
+      ) : null}
+
+      {captureMode === "outbound" ? (
+        <>
+          <label
+            className="mt-4 mb-2 block text-sm font-medium"
+            htmlFor="targetText"
+          >
+            Word or phrase
+          </label>
+          <Input
+            id="targetText"
+            name="targetText"
+            onChange={(event) => {
+              updateTargetText(event.target.value);
+            }}
+            placeholder="Filled from a drafted option"
+            required
+            value={targetText}
+          />
+          {lengthHelp ? (
+            <p className="mt-2 text-sm text-primary" role="status">
+              {lengthHelp}
             </p>
           ) : null}
-          <Button
-            className="mt-4 w-full"
-            disabled={addPending || Boolean(lengthHelp) || assistBusy}
-            type="submit"
-          >
-            <FileText />
-            {addPending ? "Saving…" : "Add Flashcard"}
-          </Button>
-          <p
-            className={cn(
-              "mt-3 text-sm",
-              addState.ok ? "text-muted-foreground" : "text-primary",
-            )}
-          >
-            {addState.message}
-          </p>
-        </CardContent>
-      </form>
-    </Card>
+        </>
+      ) : null}
+
+      <label
+        className="mt-4 mb-2 block text-sm font-medium"
+        htmlFor="phoneticReading"
+      >
+        Pinyin
+      </label>
+      <Input
+        id="phoneticReading"
+        name="phoneticReading"
+        onChange={(event) => setPhoneticReading(event.target.value)}
+        placeholder="Filled from CC-CEDICT when matched"
+        value={phoneticReading}
+      />
+      <label
+        className="mt-4 mb-2 block text-sm font-medium"
+        htmlFor="definitions"
+      >
+        Definitions
+      </label>
+      <Input
+        id="definitions"
+        name="definitions"
+        onChange={(event) => setDefinitions(event.target.value)}
+        placeholder="airport; terminal"
+        required
+        value={definitions}
+      />
+      <label
+        className="mt-4 mb-2 block text-sm font-medium"
+        htmlFor="exampleContext"
+      >
+        Context
+      </label>
+      <Textarea
+        id="exampleContext"
+        name="exampleContext"
+        onChange={(event) => {
+          setExampleContext(event.target.value);
+          setContextMessage("");
+        }}
+        placeholder="Optional example, source sentence, or contextual note"
+        value={exampleContext}
+      />
+      <p className="mt-1 text-xs text-muted-foreground">
+        One optional context on add. Generate more later from Collection.
+      </p>
+      {contextPending ? (
+        <div
+          className="mt-3 flex items-start gap-3 rounded-lg border border-primary/30 bg-background p-3 text-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+          <div>
+            <p className="font-medium">Generating context…</p>
+            <p className="mt-1 text-muted-foreground">
+              Writing one example sentence for this draft. You can still edit it
+              before saving.
+            </p>
+          </div>
+        </div>
+      ) : null}
+      {canGenerateContext || contextPending ? (
+        <Button
+          className="mt-3 w-full"
+          disabled={!canGenerateContext || assistBusy || addPending}
+          onClick={() => void generateContextDraft()}
+          type="button"
+          variant="outline"
+        >
+          {contextPending ? (
+            <LoaderCircle className="animate-spin" />
+          ) : (
+            <Sparkles />
+          )}
+          {contextPending ? "Generating context…" : "Generate context"}
+        </Button>
+      ) : null}
+      {contextMessage ? (
+        <p
+          className={cn(
+            "mt-2 text-sm",
+            exampleContext.trim() ? "text-muted-foreground" : "text-primary",
+          )}
+          role="status"
+        >
+          {contextMessage}
+        </p>
+      ) : null}
+      <Button
+        className="mt-4 w-full"
+        disabled={addPending || Boolean(lengthHelp) || assistBusy}
+        type="submit"
+      >
+        <FileText />
+        {addPending ? "Saving…" : "Add Flashcard"}
+      </Button>
+      <p
+        className={cn(
+          "mt-3 text-sm",
+          addState.ok ? "text-muted-foreground" : "text-primary",
+        )}
+      >
+        {addState.message}
+      </p>
+    </form>
   );
 }
 
@@ -1300,15 +1268,14 @@ export function DashboardView({
         <LearningRhythm days={initialLearningRhythm} />
       </section>
 
-      <Sheet
-        onOpenChange={setAddCardOpen}
-        open={addCardOpen}
-      >
+      <Sheet onOpenChange={setAddCardOpen} open={addCardOpen}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Add a card</SheetTitle>
             <SheetDescription>
-              Add one Mandarin word or phrase to your private learning collection.
+              Capture Mandarin in context or draft how you want to say
+              something. CC-CEDICT grounds readings and glosses; optional LLM
+              assist fills meaning and examples—confirm before saving.
             </SheetDescription>
           </SheetHeader>
           <div className="mt-5">
