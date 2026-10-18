@@ -30,6 +30,7 @@ export default async function DashboardPage() {
   const cards = serializeDashboardCards(dashboardCards);
 
   queryClient.setQueryData(queryKeys.dashboardCards, cards);
+  queryClient.setQueryData(queryKeys.dashboardLearningRhythm, learningRhythm);
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

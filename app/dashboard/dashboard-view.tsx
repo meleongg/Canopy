@@ -71,6 +71,7 @@ import {
 } from "@/lib/card-draft";
 import { MAX_EXAMPLE_CONTEXTS } from "@/lib/example-contexts";
 import { queryKeys } from "@/lib/query-keys";
+import { fetchDashboardLearningRhythm } from "@/lib/dashboard-client";
 import type { LearningRhythmDay } from "@/lib/learning-rhythm";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,9 @@ const initialAddState = {
 
 function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.dashboardCards });
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.dashboardLearningRhythm,
+  });
   void queryClient.invalidateQueries({ queryKey: queryKeys.reviewQueue });
   void queryClient.invalidateQueries({ queryKey: queryKeys.overstorySeeds });
   void queryClient.invalidateQueries({ queryKey: queryKeys.understorySeeds });
@@ -1128,6 +1132,11 @@ export function DashboardView({
     queryFn: () => fetchCardsByScope("active"),
     initialData: initialCards,
   });
+  const { data: learningRhythm = initialLearningRhythm } = useQuery({
+    queryKey: queryKeys.dashboardLearningRhythm,
+    queryFn: fetchDashboardLearningRhythm,
+    initialData: initialLearningRhythm,
+  });
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt) <= new Date(),
   ).length;
@@ -1280,7 +1289,7 @@ export function DashboardView({
             </Button>
           </CardContent>
         </Card>
-        <LearningRhythm days={initialLearningRhythm} />
+        <LearningRhythm days={learningRhythm} />
       </section>
 
       <Sheet onOpenChange={setAddCardOpen} open={addCardOpen}>

@@ -13,11 +13,51 @@ export function SheetContent({
   className,
   children,
   side = "right",
+  style,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   side?: "left" | "right" | "bottom";
 }) {
   const showMobileHandle = side === "right" || side === "bottom";
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+  const dragStartRef = React.useRef<{ pointerId: number; y: number } | null>(
+    null,
+  );
+  const [dragOffset, setDragOffset] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+
+  function isMobileDrawer() {
+    return (
+      showMobileHandle &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches
+    );
+  }
+
+  function onHandlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (!isMobileDrawer() || !event.isPrimary) return;
+    dragStartRef.current = { pointerId: event.pointerId, y: event.clientY };
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onHandlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const dragStart = dragStartRef.current;
+    if (!dragStart || dragStart.pointerId !== event.pointerId) return;
+    setDragOffset(Math.max(-32, event.clientY - dragStart.y));
+  }
+
+  function finishHandleDrag(event: React.PointerEvent<HTMLDivElement>) {
+    const dragStart = dragStartRef.current;
+    if (!dragStart || dragStart.pointerId !== event.pointerId) return;
+    const offset = Math.max(-32, event.clientY - dragStart.y);
+    dragStartRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+    if (offset > Math.min(160, window.innerHeight * 0.25)) {
+      closeButtonRef.current?.click();
+    }
+  }
 
   return (
     <DialogPrimitive.Portal>
@@ -33,19 +73,31 @@ export function SheetContent({
             "top-0 left-0 h-full w-[min(520px,calc(100%-2rem))] border-r",
           className,
         )}
+        style={{
+          ...style,
+          transform: isMobileDrawer()
+            ? `translateY(${dragOffset}px)`
+            : undefined,
+          transition: isDragging ? "none" : "transform 200ms ease-out",
+        }}
         {...props}
       >
         {showMobileHandle ? (
           <div
             aria-hidden
             className={cn(
-              "mx-auto mb-4 h-1.5 w-10 shrink-0 rounded-full bg-border",
+              "mx-auto mb-4 h-1.5 w-10 shrink-0 touch-none rounded-full bg-border",
               side === "right" && "md:hidden",
             )}
+            onPointerCancel={finishHandleDrag}
+            onPointerDown={onHandlePointerDown}
+            onPointerMove={onHandlePointerMove}
+            onPointerUp={finishHandleDrag}
           />
         ) : null}
         {children}
         <DialogPrimitive.Close
+          ref={closeButtonRef}
           className={cn(
             "absolute right-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-border hover:bg-primary hover:text-primary-foreground",
             showMobileHandle ? "top-3 md:top-4" : "top-4",
