@@ -1,5 +1,6 @@
 export const queryKeys = {
   dashboardCards: ["dashboardCards"] as const,
+  dashboardLearningRhythm: ["dashboardLearningRhythm"] as const,
   reviewQueue: ["reviewQueue"] as const,
   overstorySeeds: ["overstorySeeds"] as const,
   understorySeeds: ["understorySeeds"] as const,

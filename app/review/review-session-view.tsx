@@ -83,6 +83,9 @@ export function ReviewSessionView({
           queryKey: queryKeys.dashboardCards,
         });
         void queryClient.invalidateQueries({
+          queryKey: queryKeys.dashboardLearningRhythm,
+        });
+        void queryClient.invalidateQueries({
           queryKey: queryKeys.overstorySeeds,
         });
         void queryClient.invalidateQueries({

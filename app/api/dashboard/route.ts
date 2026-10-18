@@ -1,4 +1,4 @@
-import { getDashboardData } from "@/lib/data";
+import { getDashboardData, getDashboardLearningRhythm } from "@/lib/data";
 import { requireApiAuth } from "@/lib/session";
 import { serializeDashboardCards } from "@/lib/serialization";
 
@@ -10,9 +10,11 @@ export async function GET() {
     return auth.response;
   }
 
-  const cards = serializeDashboardCards(
-    await getDashboardData(auth.session.user.id),
-  );
+  const [dashboardCards, learningRhythm] = await Promise.all([
+    getDashboardData(auth.session.user.id),
+    getDashboardLearningRhythm(auth.session.user.id),
+  ]);
+  const cards = serializeDashboardCards(dashboardCards);
   const now = Date.now();
   const dueCount = cards.filter(
     (card) => new Date(card.nextReviewAt).getTime() <= now,
@@ -20,6 +22,7 @@ export async function GET() {
 
   return Response.json({
     cards,
+    learningRhythm,
     stats: {
       totalCards: cards.length,
       dueCount,
